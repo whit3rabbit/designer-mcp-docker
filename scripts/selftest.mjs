@@ -185,6 +185,50 @@ try {
   const detail = await fetch(`http://127.0.0.1:${PORT}/design/${refero.id}`).then((r) => r.text());
   detail.includes("Color tokens") ? ok("detail page renders") : bad("detail page wrong");
 
+  // ------------------------------------------------- AI component library
+  const comps = await fetch(`http://127.0.0.1:${PORT}/api/components`).then((r) => r.json());
+  if (comps.total) {
+    ok(`api/components reports ${comps.total} components`);
+
+    const compHtml = await fetch(`http://127.0.0.1:${PORT}/components`).then((r) => r.text());
+    compHtml.includes("Components") ? ok("component library page renders") : bad("component page wrong");
+
+    const first = comps.components[0];
+    const one = await fetch(`http://127.0.0.1:${PORT}/api/component/${first.slug}`).then((r) => r.json());
+    const variant = one.variants?.[0];
+    if (variant?.code) {
+      // Real TSX, not a description of it.
+      const looksLikeTsx =
+        variant.code.includes("export function") || variant.code.includes("export default");
+      looksLikeTsx
+        ? ok(`component source is real TSX (${variant.filename}, ${variant.code.length} bytes)`)
+        : bad(`component source for ${variant.filename} is not TSX`);
+    } else {
+      bad(`component ${first.slug} has no source code`);
+    }
+
+    const detailHtml = await fetch(`http://127.0.0.1:${PORT}/component/${first.slug}`).then((r) => r.text());
+    detailHtml.includes("Copy") ? ok("component detail page renders") : bad("component detail wrong");
+  } else {
+    bad("no components in the cache — run: node scripts/fetch-gradientdeck.mjs");
+  }
+
+  // ---------------------------------------------------------- preset catalogs
+  const presets = await fetch(`http://127.0.0.1:${PORT}/api/presets`).then((r) => r.json());
+  if (presets.total) {
+    ok(`api/presets reports ${presets.total} presets across ${presets.catalogs.length} catalogs`);
+    const kind = presets.catalogs[0].kind;
+    const cat = await fetch(`http://127.0.0.1:${PORT}/api/presets/${kind}`).then((r) => r.json());
+    const p0 = cat.presets?.[0];
+    p0?.style || p0?.code
+      ? ok(`preset catalog "${kind}" carries real CSS (${cat.presets.length} presets)`)
+      : bad(`preset catalog "${kind}" has no style or code`);
+    const pHtml = await fetch(`http://127.0.0.1:${PORT}/presets/${kind}`).then((r) => r.text());
+    pHtml.includes("preset") ? ok("preset page renders") : bad("preset page wrong");
+  } else {
+    bad("no presets in the cache — run: node scripts/fetch-presets.mjs");
+  }
+
   // An OpenDesign entry, if present.
   const od = designs.find((d) => d.source === "opendesign");
   if (od) {
@@ -304,7 +348,11 @@ try {
   });
   const dtools = await dcall("tools/list", {});
   const names = (dtools.result?.tools || []).map((t) => t.name);
-  const expected = ["design_search", "design_get", "design_list", "design_facets", "design_markdown"];
+  const expected = [
+    "design_search", "design_get", "design_list", "design_facets", "design_markdown",
+    "design_component_search", "design_component_get", "design_component_code",
+    "design_preset_search", "design_preset_get",
+  ];
   const missing = expected.filter((t) => !names.includes(t));
   missing.length === 0
     ? ok(`exposes ${names.length} tools: ${names.join(", ")}`)
@@ -327,6 +375,58 @@ try {
   df.sources?.length > 1
     ? ok(`design_facets reports ${df.sources.length} sources`)
     : bad("design_facets reports fewer than 2 sources");
+
+  // The component library must return real source, not a description.
+  const cs = await dcall("tools/call", {
+    name: "design_component_search",
+    arguments: { query: "prompt", limit: 5 },
+  });
+  const csr = JSON.parse(cs.result.content[0].text);
+  if (csr.total > 0) {
+    ok(`design_component_search reports ${csr.total} components`);
+
+    const cg = await dcall("tools/call", {
+      name: "design_component_get",
+      arguments: { slug: csr.components[0].slug },
+    });
+    const cgr = JSON.parse(cg.result.content[0].text);
+    cgr.variants?.length
+      ? ok(`design_component_get returns ${cgr.variants.length} variants for '${cgr.slug}'`)
+      : bad(`design_component_get returned no variants for '${cgr.slug}'`);
+
+    const cc = await dcall("tools/call", {
+      name: "design_component_code",
+      arguments: { slug: cgr.slug, variant: cgr.variants[0].id },
+    });
+    const ccr = JSON.parse(cc.result.content[0].text);
+    const isTsx = /export (function|default)/.test(ccr.code || "");
+    isTsx
+      ? ok(`design_component_code returns real TSX (${ccr.variant.filename})`)
+      : bad(`design_component_code did not return TSX for '${cgr.slug}'`);
+  } else {
+    bad("design_component_search found no components");
+  }
+
+  // The preset catalogs must carry real CSS.
+  const ps = await dcall("tools/call", {
+    name: "design_preset_search",
+    arguments: { limit: 5 },
+  });
+  const psr = JSON.parse(ps.result.content[0].text);
+  if (psr.total > 0) {
+    ok(`design_preset_search reports ${psr.total} presets`);
+    const pg = await dcall("tools/call", {
+      name: "design_preset_get",
+      arguments: { kind: psr.kinds[0] },
+    });
+    const pgr = JSON.parse(pg.result.content[0].text);
+    const p0 = pgr.presets?.[0];
+    p0?.style || p0?.code
+      ? ok(`design_preset_get returns ${pgr.presets.length} presets with CSS`)
+      : bad("design_preset_get returned presets with no style or code");
+  } else {
+    bad("design_preset_search found no presets");
+  }
 
   // A Refero entry and an OpenDesign entry must both resolve and render.
   const referoEntry = designs.find((d) => (d.source || "refero") === "refero");

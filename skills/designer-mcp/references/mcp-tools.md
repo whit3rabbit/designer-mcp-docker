@@ -17,6 +17,16 @@ server prefix if your client namespaces them.
   - [`refero_similar` — needs the live API](#refero-similar-needs-the-live-api)
   - [`refero_refresh` — needs the live API](#refero-refresh-needs-the-live-api)
 - [Generic tools — `design_*`](#generic-tools--design_)
+  - [`design_search`](#design_search)
+  - [`design_get`](#design_get)
+  - [`design_list`](#design_list)
+  - [`design_facets`](#design_facets)
+  - [`design_markdown`](#design_markdown)
+  - [`design_component_search`](#design_component_search)
+  - [`design_component_get`](#design_component_get)
+  - [`design_component_code`](#design_component_code)
+  - [`design_preset_search`](#design_preset_search)
+  - [`design_preset_get`](#design_preset_get)
 - [Gallery API (optional, for visual inspection)](#gallery-api-optional-for-visual-inspection)
 - [Common Mistakes](#common-mistakes)
 - [If Results Are Weak](#if-results-are-weak)
@@ -53,13 +63,18 @@ The container ships two stdio MCP servers. Use whichever your client exposes.
 | Server | Tools | Scope |
 |---|---|---|
 | `scripts/mcp-entry.mjs` | `refero_*` (7) | Refero styles only; `refero_similar` and `refero_refresh` need the live API |
-| `scripts/mcp-server.mjs` | `design_*` (5) | **Both sources**, fully offline |
+| `scripts/mcp-server.mjs` | `design_*` (10) | **All sources**, fully offline |
 
 The `design_*` server also serves **152 OpenDesign design systems**
 (`source: "opendesign"`) alongside the Refero styles — Linear, Stripe,
 Vercel, Notion, GitHub, Anthropic, and ~146 more, each with a hand-written
 DESIGN.md and a full typed token set. Prefer it when it is available: it
 searches more, and every tool works offline.
+
+It also serves the **AI component library** (109 components, 250 variants)
+and the **preset catalogs** (139 gradients/patterns, 20 liquid-glass
+effects) — see [`design_component_search`](#design_component_search) and
+[`design_preset_search`](#design_preset_search).
 
 Both tool sets can be registered at once. When a `design_*` tool is present,
 use it; fall back to `refero_*` otherwise.
@@ -280,6 +295,67 @@ For Refero entries it is rendered from the cached record (~3.8 KB). For
 OpenDesign entries it is the **original hand-written document** (~22 KB) with
 the full rationale, so it is worth reading in full.
 
+### `design_component_search`
+
+Search the **AI component library** — 109 real React components, 250
+variants, each with complete, typed TSX source. These are shadcn-style
+registry exports, so the code is real and complete (not a screenshot or a
+description of one).
+
+| Argument | Type | Notes |
+|---|---|---|
+| `query` | string | optional — matches name, description, category and variant names |
+| `category` | string | optional — `chat`, `voice`, `agent setup`, `agent activity`, `output & artifacts`, `usage & limits`, `media generation`, `writing` |
+| `limit` | number | default 20, max 100 |
+
+Returns the matching components with their variant ids, display names and
+filenames, plus the full list of categories.
+
+### `design_component_get`
+
+One component in full: description, install command, FAQ, and every variant's
+source code and dependencies.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `slug` | string | **required** — e.g. `prompt-input` |
+
+### `design_component_code`
+
+The source code for one variant — the tool to reach for when you need to
+copy an implementation into a project.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `slug` | string | **required** |
+| `variant` | string | optional — variant id, short id or display name. Defaults to the first variant |
+| `includeCode` | boolean | optional — default `true`; set `false` for metadata only |
+
+The `code` field is the raw TSX: `"use client"`, typed props, `motion/react`
+and `lucide-react` imports. The `dependencies` field lists the npm packages
+it needs.
+
+### `design_preset_search`
+
+Search the **preset catalogs** — 139 background gradients and patterns, 20
+liquid-glass effects, plus Tailwind colour scales. Each preset carries real
+CSS and a React template.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `query` | string | optional — matches name, id, category, description |
+| `kind` | string | optional — `patterns`, `liquid-glass` |
+| `limit` | number | default 20, max 100 |
+
+### `design_preset_get`
+
+One preset catalog in full. Each preset has `id`, `name`, `category`,
+`textColor`, a `style` object of real CSS, and a `code` React template.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `kind` | string | **required** — e.g. `patterns` |
+
 ---
 
 ## Gallery API (optional, for visual inspection)
@@ -288,18 +364,29 @@ When the preview container is running (`docker compose up -d`), the same data
 is available over HTTP — useful for pulling actual screenshots and swatches
 into a visual workflow.
 
+The gallery has three tabs in its top bar: **Designs**, **Components**, and
+**Gradients & Patterns**.
+
 ```
-GET /                            gallery UI — thumbnail grid
-GET /style/:id                   detail page — live screenshot, color tokens, type scale
-GET /api/styles?q=&theme=&industry=&limit=&offset=
-GET /api/styles/:id              full style JSON
-GET /api/styles/:id/design.md    rendered DESIGN.md
+GET /                            design systems gallery — thumbnail grid
+GET /design/:id                  detail page — screenshot, color tokens, type scale
+GET /api/designs?limit=          every design in the catalog
 GET /api/facets                  theme/industry/font distributions
-GET /thumb/:id                   302 → the site's screenshot on the CDN
+GET /thumb/:id                   local thumbnail bytes (no redirect)
+
+GET /components                  component library — 109 components, 250 variants
+GET /component/:slug             one component: variants, source, FAQ
+GET /api/components?q=&category= component search
+GET /api/component/:slug         one component as JSON
+
+GET /presets                     preset catalogs — gradients, patterns, glass
+GET /presets/:kind               one catalog in full
+GET /api/presets                 preset catalog index
+GET /api/presets/:kind           one catalog as JSON
 ```
 
-Thumbnails redirect to `images.refero.design`, whose robots.txt permits generic
-agents (only `GPTBot` is disallowed).
+Thumbnails are served from the LOCAL cache, so the gallery needs no network
+at all.
 
 ---
 

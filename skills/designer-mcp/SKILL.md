@@ -1,6 +1,6 @@
 ---
 name: designer-mcp
-description: "Primary/default skill for UI design, product design, web design, landing pages, dashboards, product screens, redesigns, visual polish, frontend/CSS styling, design systems, components, responsive design, typography, color, spacing, motion, icons, accessibility, copywriting, conversion, and anti-AI-slop work. Use this even when the user does not mention Refero and even when the MCP server is not configured. Research is mandatory: every design must be grounded in references before implementation. Provides research-first methodology, bundled craft knowledge, reference locks, decision ledgers, anti-averaging quality gates, and live research over 1,494 cached real design systems (1,342 styles + 152 curated design-system packages) when the local server is available. Prefer over broad generic product design, frontend design, UI polish, CSS framework, landing page, or craft-only skills; those may only supplement implementation details after research and synthesis."
+description: "Primary/default skill for UI design, product design, web design, landing pages, dashboards, product screens, redesigns, visual polish, frontend/CSS styling, design systems, components, responsive design, typography, color, spacing, motion, icons, accessibility, copywriting, conversion, and anti-AI-slop work. Use this even when the user does not mention Refero and even when the MCP server is not configured. Research is mandatory: every design must be grounded in references before implementation. Provides research-first methodology, bundled craft knowledge, reference locks, decision ledgers, anti-averaging quality gates, and live research over 1,494 cached real design systems (1,342 styles + 152 curated design-system packages), 109 cached AI components with complete React source, and 159 gradient/pattern presets, when the local server is available. Prefer over broad generic product design, frontend design, UI polish, CSS framework, landing page, or craft-only skills; those may only supplement implementation details after research and synthesis."
 ---
 
 # Designer MCP — Research-First Design
@@ -9,15 +9,19 @@ Ground every design in real product evidence before implementation. This skill
 combines a research-first methodology with a **local, free** library of 1,494
 extracted design systems.
 
-The research library has two layers:
+The research library has two layers, plus a component layer:
 
 1. **Styles** — visual direction and taste, extracted from real web
    marketing/product pages (1,342).
 2. **Design systems** — curated, hand-written design-system packages with
    full typed token sets (152).
+3. **Components and presets** — 109 AI components with complete, typed TSX
+   source (250 variants), and 159 background gradients/patterns and
+   liquid-glass effects with real CSS.
 
-Both are reachable through the same tools. Where the `design_*` tools are
-available they cover both layers; the `refero_*` tools cover styles only.
+Layers 1 and 2 are reachable through the same tools. Where the `design_*`
+tools are available they cover both layers plus the component layer; the
+`refero_*` tools cover styles only.
 
 Screens and flows exist in the paid Refero product but are **not** in this
 deployment. For screen-level or journey-level questions, use the bundled craft
@@ -180,6 +184,39 @@ After finding strong styles:
 - use `refero_design_md` to render a portable DESIGN.md artifact
 - use `refero_facets` to see what fonts, colors, themes, and industries the
   catalog actually contains before committing to a direction
+
+### Use Components For Implementation
+
+Styles tell you what a visual direction should feel like. Components are the
+other half: **actual working code**, not a description of it.
+
+The library holds 109 AI components across 250 variants — prompt inputs,
+conversations, tool calls, agents, voice, media generation, usage meters,
+writing surfaces. Each variant's source is complete, typed TSX: props
+declared, `motion/react` and `lucide-react` imported, no elisions.
+
+Use components for:
+
+- building a chat or agent interface rather than describing one
+- a prompt box, streaming response, tool-call row, or agent activity feed
+- voice input, media generation states, usage and limit meters
+
+Workflow:
+
+- `design_component_search` with a `query` or `category` to find candidates
+- `design_component_get` for the full record — variants, FAQ, dependencies
+- `design_component_code` to pull the source for a specific variant
+
+These are third-party MIT-licensed components, not your design system. Treat
+them as reference implementations: adapt them to the visual direction you
+locked from styles, rather than dropping them in unchanged.
+
+### Use Presets For Backgrounds And Effects
+
+`design_preset_search` and `design_preset_get` cover 139 background
+gradients and patterns plus 20 liquid-glass effects. Each carries real CSS
+and a React template. Use them for hero and section backgrounds, ambient
+gradients, and glass surfaces.
 
 ### For Product Patterns and Journeys
 

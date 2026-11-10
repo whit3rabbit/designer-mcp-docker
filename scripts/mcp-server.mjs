@@ -32,7 +32,17 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { CACHE_DIR, SOURCE, readCatalog, readDesign, mergeDesign } from "./lib/cache.mjs";
+import {
+  CACHE_DIR,
+  SOURCE,
+  readCatalog,
+  readDesign,
+  mergeDesign,
+  readComponentsIndex,
+  readComponent,
+  readPresetsIndex,
+  readPresetCatalog,
+} from "./lib/cache.mjs";
 import { resolveDesign } from "./lib/resolve.mjs";
 import { score, searchText } from "./lib/score.mjs";
 
@@ -174,6 +184,79 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "design_component_search",
+    description:
+      "Search the AI component library — real React components with full source code " +
+      "(shadcn-style registry exports). Filter by category or free-text query.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Free-text match on name, description, category, variants." },
+        category: { type: "string", description: "Component category, e.g. chat, voice, canvas." },
+        limit: { type: "number", description: "Max results (default 20, max 100)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_component_get",
+    description:
+      "One component's full record: description, install command, FAQ, and every variant's " +
+      "source code and dependencies.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slug: { type: "string", description: "Component slug, e.g. prompt-input." },
+      },
+      required: ["slug"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_component_code",
+    description:
+      "The source code for one component variant. Use this when you need to copy the " +
+      "implementation into a project.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slug: { type: "string", description: "Component slug, e.g. prompt-input." },
+        variant: { type: "string", description: "Variant id or name. Defaults to the first variant." },
+        includeCode: { type: "boolean", description: "Include the source (default true)." },
+      },
+      required: ["slug"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_preset_search",
+    description:
+      "Search the preset catalogs — background gradients and patterns, liquid glass effects, " +
+      "and color scales. Returns preset ids and names; use design_preset_get for the CSS.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Free-text match on name, id, category." },
+        kind: { type: "string", description: "Catalog to search, e.g. patterns, liquid-glass." },
+        limit: { type: "number", description: "Max results (default 20, max 100)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_preset_get",
+    description:
+      "One preset catalog in full, with each preset's CSS style and React code template.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", description: "Catalog kind, e.g. patterns." },
+      },
+      required: ["kind"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 // ------------------------------------------------------------------ handlers
@@ -182,6 +265,18 @@ function asString(value, field) {
   const t = value.trim();
   if (!t) throw new Error(`${field} is required`);
   return t;
+}
+
+/**
+ * A string that is allowed to be absent.
+ *
+ * Used for search queries, where listing everything is a valid request —
+ * `asString` would reject the empty string.
+ */
+function optionalString(value) {
+  if (value === undefined || value === null) return "";
+  if (typeof value !== "string") throw new Error("query must be a string");
+  return value;
 }
 
 function asLimit(value, def, max) {
@@ -303,6 +398,169 @@ async function handleMarkdown(args) {
   };
 }
 
+// ------------------------------------------------------------- components
+/**
+ * Component catalog search.
+ *
+ * The catalog is the merged index written by scripts/fetch-gradientdeck.mjs:
+ * every component with its metadata and its variants' ids and filenames.
+ */
+async function handleComponentSearch(args) {
+  const index = await readComponentsIndex();
+  // `query` is optional — browsing by category alone is a valid request.
+  const q = optionalString(args.query ?? args.q).trim().toLowerCase();
+  const category = args.category ? asString(args.category, "category").toLowerCase() : null;
+
+  let list = index.components || [];
+  if (category) {
+    list = list.filter((c) => (c.category || "").toLowerCase() === category);
+  }
+  if (q) {
+    list = list.filter((c) =>
+      `${c.title} ${c.description || ""} ${c.category || ""} ${c.slug} ${(c.variants || [])
+        .map((v) => `${v.name} ${v.id} ${v.filename}`)
+        .join(" ")}`
+        .toLowerCase()
+        .includes(q),
+    );
+  }
+
+  const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100);
+  return {
+    total: list.length,
+    returned: Math.min(list.length, limit),
+    categories: [...new Set((index.components || []).map((c) => c.category).filter(Boolean))].sort(),
+    components: list.slice(0, limit).map((c) => ({
+      slug: c.slug,
+      title: c.title,
+      description: c.description,
+      category: c.category,
+      variantCount: (c.variants || []).length,
+      variants: (c.variants || []).map((v) => ({ id: v.id, name: v.name, filename: v.filename })),
+    })),
+  };
+}
+
+/** One component's full record, including each variant's source code. */
+async function handleComponentGet(args) {
+  const slug = asString(args.slug, "slug");
+  const component = await readComponent(slug);
+  if (!component) {
+    throw new Error(
+      `No component "${slug}" in the cache. ` +
+        `Run design_component_search to see what is cached.`,
+    );
+  }
+  return component;
+}
+
+/**
+ * The source code for one variant (or the first variant when unspecified).
+ *
+ * `includeCode` defaults to true; set it false to get just the metadata.
+ */
+async function handleComponentCode(args) {
+  const slug = asString(args.slug, "slug");
+  const component = await readComponent(slug);
+  if (!component) {
+    throw new Error(
+      `No component "${slug}" in the cache. ` +
+        `Run design_component_search to see what is cached.`,
+    );
+  }
+  const variants = component.variants || [];
+  if (!variants.length) {
+    throw new Error(`Component "${slug}" has no variants cached.`);
+  }
+
+  let variant = variants[0];
+  if (args.variant) {
+    const wanted = asString(args.variant, "variant");
+    const hit = variants.find((v) => v.id === wanted || v.variantId === wanted || v.name === wanted);
+    if (!hit) {
+      throw new Error(
+        `Component "${slug}" has no variant "${wanted}". ` +
+          `Available: ${variants.map((v) => v.id).join(", ")}`,
+      );
+    }
+    variant = hit;
+  }
+
+  const includeCode = args.includeCode !== false;
+  return {
+    slug: component.slug,
+    title: component.title,
+    description: component.description,
+    category: component.category,
+    install: component.install,
+    variant: {
+      id: variant.id,
+      name: variant.name,
+      filename: variant.filename,
+      dependencies: variant.dependencies,
+      registryDependencies: variant.registryDependencies,
+    },
+    ...(includeCode ? { code: variant.code } : {}),
+  };
+}
+
+// ----------------------------------------------------------------- presets
+/** Search within the preset catalogs (gradients, patterns, glass, colors). */
+async function handlePresetSearch(args) {
+  const index = await readPresetsIndex();
+  // `query` is optional — listing every preset in a catalog is valid.
+  const q = optionalString(args.query ?? args.q).trim().toLowerCase();
+  const kind = args.kind ? asString(args.kind, "kind") : null;
+
+  const catalogs = (index.catalogs || []).filter((c) => !kind || c.kind === kind);
+  if (!catalogs.length) {
+    return {
+      total: 0,
+      returned: 0,
+      kinds: (index.catalogs || []).map((c) => c.kind),
+      presets: [],
+    };
+  }
+
+  const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100);
+  const hits = [];
+  for (const c of catalogs) {
+    const catalog = await readPresetCatalog(c.kind);
+    if (!catalog) continue;
+    for (const p of catalog.presets || []) {
+      const hay = `${p.name || ""} ${p.label || ""} ${p.id || ""} ${p.category || ""} ${p.description || ""}`;
+      if (q && !hay.toLowerCase().includes(q)) continue;
+      hits.push({
+        kind: c.kind,
+        id: p.id,
+        name: p.name || p.label,
+        category: p.category,
+        description: p.description,
+      });
+    }
+  }
+
+  return {
+    total: hits.length,
+    returned: Math.min(hits.length, limit),
+    kinds: (index.catalogs || []).map((c) => c.kind),
+    presets: hits.slice(0, limit),
+  };
+}
+
+/** One preset catalog, with every preset record. */
+async function handlePresetGet(args) {
+  const kind = asString(args.kind, "kind");
+  const catalog = await readPresetCatalog(kind);
+  if (!catalog) {
+    throw new Error(
+      `No preset catalog "${kind}" in the cache. ` +
+        `Run design_preset_search to see what is cached.`,
+    );
+  }
+  return catalog;
+}
+
 async function dispatch(name, args) {
   switch (name) {
     case "design_search":
@@ -315,6 +573,16 @@ async function dispatch(name, args) {
       return handleFacets();
     case "design_markdown":
       return handleMarkdown(args);
+    case "design_component_search":
+      return handleComponentSearch(args);
+    case "design_component_get":
+      return handleComponentGet(args);
+    case "design_component_code":
+      return handleComponentCode(args);
+    case "design_preset_search":
+      return handlePresetSearch(args);
+    case "design_preset_get":
+      return handlePresetGet(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }

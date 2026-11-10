@@ -43,7 +43,21 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { mergeDesign } from "./lib/cache.mjs";
+import {
+  mergeDesign,
+  readComponentsIndex,
+  readComponent,
+  readPresetsIndex,
+  readPresetCatalog,
+} from "./lib/cache.mjs";
+import {
+  componentsHtml,
+  componentDetailHtml,
+  presetsHtml,
+  presetDetailHtml,
+  nav,
+  NAV_CSS,
+} from "./lib/ui.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR =
@@ -251,7 +265,8 @@ function galleryHtml() {
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--fg);
     font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { position: sticky; top:0; z-index:10; background:rgba(13,15,18,.92);
+${NAV_CSS}
+  header { position: sticky; top:46px; z-index:10; background:rgba(13,15,18,.92);
     backdrop-filter: blur(8px); border-bottom:1px solid var(--line); padding:14px 20px; }
   h1 { margin:0 0 10px; font-size:16px; font-weight:650; letter-spacing:-.01em; }
   h1 span { color:var(--muted); font-weight:400; }
@@ -291,6 +306,7 @@ function galleryHtml() {
 </style>
 </head>
 <body>
+${nav("designs")}
 <header>
   <h1>Design Systems <span>· ${f.total} cached designs</span></h1>
   <div class="bar">
@@ -303,7 +319,6 @@ function galleryHtml() {
       <option value="score">Relevance</option>
     </select>
     <button id="reset">Reset</button>
-    <a class="dl" href="/skill">⬇ Skill</a>
   </div>
 </header>
 <div class="count" id="count"></div>
@@ -491,6 +506,78 @@ const server = createServer(async (req, res) => {
     }
 
     if (p === "/api/facets") return json(res, 200, facets());
+
+    // ---------------------------------------------------- component library
+    if (p === "/components" || p === "/components/") {
+      const html = componentsHtml(await readComponentsIndex());
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
+      return res.end(html);
+    }
+
+    if (p === "/api/components") {
+      const index = await readComponentsIndex();
+      const q = (url.searchParams.get("q") || "").toLowerCase();
+      const cat = url.searchParams.get("category");
+      let list = index.components || [];
+      if (cat) list = list.filter((c) => c.category === cat);
+      if (q) {
+        list = list.filter((c) =>
+          `${c.name} ${c.description || ""} ${c.category || ""} ${(c.variants || [])
+            .map((v) => `${v.name} ${v.id}`)
+            .join(" ")}`
+            .toLowerCase()
+            .includes(q),
+        );
+      }
+      return json(res, 200, { total: list.length, components: list });
+    }
+
+    const mComponent = p.match(/^\/component\/([^/]+)$/);
+    if (mComponent) {
+      const slug = decodeURIComponent(mComponent[1]);
+      const component = await readComponent(slug);
+      if (!component) return json(res, 404, { error: "component not in cache", slug });
+      const html = componentDetailHtml(component);
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
+      return res.end(html);
+    }
+
+    const mComponentApi = p.match(/^\/api\/component\/([^/]+)$/);
+    if (mComponentApi) {
+      const slug = decodeURIComponent(mComponentApi[1]);
+      const component = await readComponent(slug);
+      if (!component) return json(res, 404, { error: "component not in cache", slug });
+      return json(res, 200, component);
+    }
+
+    // ---------------------------------------------------- preset catalogs
+    if (p === "/presets" || p === "/presets/") {
+      const html = presetsHtml(await readPresetsIndex());
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
+      return res.end(html);
+    }
+
+    if (p === "/api/presets") {
+      return json(res, 200, await readPresetsIndex());
+    }
+
+    const mPreset = p.match(/^\/presets\/([^/]+)$/);
+    if (mPreset) {
+      const kind = decodeURIComponent(mPreset[1]);
+      const catalog = await readPresetCatalog(kind);
+      if (!catalog) return json(res, 404, { error: "preset catalog not in cache", kind });
+      const html = presetDetailHtml(catalog);
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
+      return res.end(html);
+    }
+
+    const mPresetApi = p.match(/^\/api\/presets\/([^/]+)$/);
+    if (mPresetApi) {
+      const kind = decodeURIComponent(mPresetApi[1]);
+      const catalog = await readPresetCatalog(kind);
+      if (!catalog) return json(res, 404, { error: "preset catalog not in cache", kind });
+      return json(res, 200, catalog);
+    }
 
     if (p === "/api/search") {
       const q = url.searchParams.get("q") || "";

@@ -3,19 +3,24 @@
 # Surfaces over one local cache:
 #   gallery   — HTTP preview with local thumbnails, colour swatches, type scales
 #   mcp       — the upstream Refero MCP server (7 `refero_*` tools)
-#   design    — the generic MCP server (5 `design_*` tools, both sources)
+#   design    — the generic MCP server (10 `design_*` tools, all sources)
 #   fetch     — populates the cache from public sources
 #   thumbs    — caches screenshots locally so the gallery works offline
 #   opendesign — imports OpenDesign design systems
+#   components — fetches the GradientDeck AI component catalog
+#   presets   — fetches the GradientDeck gradient/pattern preset catalogs
 #
-# The cache is populated OUTSIDE the container and mounted read-only. It is
-# never baked into the image.
+# The image SHIPS a baked catalog, so `docker compose up gallery` works with
+# no setup at all. The cache volume is mounted read-only on top of it: if it
+# is empty the baked catalog is used, and if you populate it (with the
+# services above) your data takes precedence.
 #
 #   docker compose pull                 # fetch the published image
-#   docker compose run --rm fetch       # Refero styles from public pages
-#   docker compose run --rm opendesign  # OpenDesign design systems
-#   docker compose run --rm thumbs      # cache screenshots for offline use
 #   docker compose up -d gallery        # start the preview server
+#   docker compose run --rm fetch       # refresh Refero styles
+#   docker compose run --rm opendesign  # refresh OpenDesign design systems
+#   docker compose run --rm components  # refresh the AI component catalog
+#   docker compose run --rm presets     # refresh the preset catalogs
 #   docker compose run --rm mcp         # upstream Refero MCP server
 #   docker compose run --rm design      # generic MCP server
 #
@@ -42,6 +47,18 @@ x-cache-env: &cache-env
   # The upstream package reads this name; both point at the same directory.
   REFERO_CACHE_DIR: /cache
 
+# The cache is a NAMED volume by default, so Docker seeds it from the
+# catalog baked into the image on first run. A named volume also keeps
+# whatever the fetch services write between runs.
+#
+# Override with an absolute path to bind-mount a cache directory instead:
+#   DESIGN_CACHE_DIR=/Users/you/.design-cache docker compose up -d gallery
+# A bind mount SHADOWS the baked catalog, which is the point: it lets you
+# point at a newer cache without rebuilding the image.
+volumes:
+  design-cache:
+    name: ${DESIGN_CACHE_VOLUME:-design-cache}
+
 services:
   gallery:
     <<: *image
@@ -50,7 +67,7 @@ services:
       #   GALLERY_PORT=8788 docker compose up -d gallery
       - "127.0.0.1:${GALLERY_PORT:-8787}:8787"
     volumes:
-      - ${DESIGN_CACHE_DIR:-./cache}:/cache:ro
+      - design-cache:/cache:ro
     environment:
       <<: *cache-env
       PORT: "8787"
@@ -78,7 +95,7 @@ services:
     <<: *image
     profiles: ["fetch"]
     volumes:
-      - ${DESIGN_CACHE_DIR:-./cache}:/cache
+      - design-cache:/cache
     environment: *cache-env
     entrypoint: ["node", "scripts/refero-public-fetch.js"]
     init: true
@@ -92,7 +109,7 @@ services:
     <<: *image
     profiles: ["fetch"]
     volumes:
-      - ${DESIGN_CACHE_DIR:-./cache}:/cache
+      - design-cache:/cache
     environment: *cache-env
     entrypoint: ["node", "scripts/fetch-opendesign.mjs"]
     init: true
@@ -110,7 +127,7 @@ services:
     <<: *image
     profiles: ["fetch"]
     volumes:
-      - ${DESIGN_CACHE_DIR:-./cache}:/cache
+      - design-cache:/cache
     environment: *cache-env
     entrypoint: ["node", "scripts/fetch-thumbs.mjs", "--compress"]
     init: true
@@ -125,9 +142,36 @@ services:
     <<: *image
     profiles: ["fetch"]
     volumes:
-      - ${DESIGN_CACHE_DIR:-./cache}:/cache
+      - design-cache:/cache
     environment: *cache-env
     entrypoint: ["node", "scripts/compress-thumbs.mjs"]
+    init: true
+
+  # Fetch the GradientDeck AI component catalog. Each variant is published
+  # as a shadcn registry JSON, so the source is real, complete TSX — not a
+  # screenshot or a description of one.
+  #
+  #   docker compose run --rm components
+  components:
+    <<: *image
+    profiles: ["fetch"]
+    volumes:
+      - design-cache:/cache
+    environment: *cache-env
+    entrypoint: ["node", "scripts/fetch-gradientdeck.mjs"]
+    init: true
+
+  # Fetch the GradientDeck preset catalogs: background gradients and
+  # patterns, liquid glass effects and Tailwind colour scales.
+  #
+  #   docker compose run --rm presets
+  presets:
+    <<: *image
+    profiles: ["fetch"]
+    volumes:
+      - design-cache:/cache
+    environment: *cache-env
+    entrypoint: ["node", "scripts/fetch-presets.mjs"]
     init: true
 
   # The upstream stdio MCP server (Refero-specific tools). Run it with
@@ -137,10 +181,14 @@ services:
     <<: *image
     profiles: ["mcp"]
     volumes:
-      - ${DESIGN_CACHE_DIR:-./cache}:/cache:ro
+      - design-cache:/cache:ro
     environment:
       <<: *cache-env
-      REFERO_CACHE_TTL_MS: "86400000"
+      # The upstream package refetches the catalog over the network when its
+      # cache goes stale. The image ships a baked catalog and must work with
+      # no network at all, so the TTL is effectively disabled here. The
+      # `refero_refresh` tool still refreshes on demand.
+      REFERO_CACHE_TTL_MS: "315360000000"
     command: ["node", "scripts/mcp-entry.mjs"]
     # stdout is the MCP transport — diagnostics go to stderr.
     init: true
@@ -151,7 +199,7 @@ services:
     <<: *image
     profiles: ["mcp"]
     volumes:
-      - ${DESIGN_CACHE_DIR:-./cache}:/cache:ro
+      - design-cache:/cache:ro
     environment: *cache-env
     command: ["node", "scripts/mcp-server.mjs"]
     init: true

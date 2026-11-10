@@ -172,6 +172,58 @@ export async function cachedThumbIds() {
   );
 }
 
+/**
+ * The GradientDeck component index.
+ *
+ * Written by scripts/fetch-gradientdeck.mjs. Returns an empty index when
+ * the cache has no components, so the server still starts and the page
+ * explains what to run.
+ */
+export async function readComponentsIndex() {
+  const path = join(CACHE_DIR, "components.json");
+  if (!existsSync(path)) return { updatedAt: null, total: 0, variants: 0, components: [] };
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return { updatedAt: null, total: 0, variants: 0, components: [] };
+  }
+}
+
+/** One component's full record, including every variant's source code. */
+export async function readComponent(slug) {
+  if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  const path = join(CACHE_DIR, "components", `${slug}.json`);
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/** The preset catalog index (which catalogs exist). */
+export async function readPresetsIndex() {
+  const path = join(CACHE_DIR, "presets.json");
+  if (!existsSync(path)) return { updatedAt: null, total: 0, catalogs: [] };
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return { updatedAt: null, total: 0, catalogs: [] };
+  }
+}
+
+/** One preset catalog, with every preset record. */
+export async function readPresetCatalog(kind) {
+  if (!/^[a-z0-9-]+$/i.test(kind)) return null;
+  const path = join(CACHE_DIR, "presets", `${kind}.json`);
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 /** Aggregate counts for the health endpoint and the index file. */
 export async function writeIndex() {
   const { designs } = await readCatalog();

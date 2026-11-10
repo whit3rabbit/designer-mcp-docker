@@ -59,6 +59,33 @@ if (!BUILD_ONLY) {
     args: [join(ROOT, "scripts", "refero-public-fetch.js"), "--limit", "0", "--force"],
     env: { REFERO_CACHE_DIR: CACHE_DIR },
   });
+  steps.push({
+    name: "components",
+    desc: "refresh the AI component catalog",
+    cmd: process.execPath,
+    args: [join(ROOT, "scripts", "fetch-gradientdeck.mjs")],
+    env: { DESIGN_CACHE_DIR: CACHE_DIR },
+  });
+  steps.push({
+    name: "presets",
+    desc: "refresh the gradient / pattern preset catalogs",
+    cmd: process.execPath,
+    args: [join(ROOT, "scripts", "fetch-presets.mjs")],
+    env: { DESIGN_CACHE_DIR: CACHE_DIR },
+  });
+}
+
+// The image ships a baked catalog, so the build needs one. Baking is cheap
+// (a file copy) compared to the fetch above, and it guarantees the image
+// never ships an empty gallery.
+if (!FETCH_ONLY) {
+  steps.push({
+    name: "bake",
+    desc: `assemble the baked catalog in ${ROOT}/bake`,
+    cmd: process.execPath,
+    args: [join(ROOT, "scripts", "bake-cache.mjs"), "--cache", CACHE_DIR, "--out", join(ROOT, "bake")],
+    env: { DESIGN_CACHE_DIR: CACHE_DIR },
+  });
 }
 
 if (!FETCH_ONLY) {

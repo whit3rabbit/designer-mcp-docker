@@ -1,5 +1,45 @@
 # Changelog
 
+## v1.3.0 — 2026-11-10
+
+- **The image now ships the catalog.** Previously every deployment had to
+  populate a mounted cache before `docker run` showed anything — the
+  gallery was empty and the MCP servers exited with "no catalog". The
+  catalog is now baked into the image, so a bare `docker run` works with
+  1,494 designs, 109 AI components and 159 presets already present, and
+  makes **no outbound calls** (verified with `--network none`).
+- **`scripts/bake-cache.mjs` assembles the baked catalog** (`npm run bake`).
+  It also shrinks the catalog sharply: the live `catalog.json` wrote the
+  same array under both `styles` and `designs`, and inlined Refero's
+  `fullResult` (41 MB) that is already on disk in `styles/<id>.json`.
+  Dropping both takes **84.4 MB → 4.1 MB** with no loss of function.
+- **The upstream package's 24-hour TTL is disabled in the image.** It
+  refetches the catalog over the network when the cache goes stale, which
+  would have silently broken the offline guarantee. `REFERO_CACHE_TTL_MS`
+  is now ~10 years; `refero_refresh` still refreshes on demand.
+- **The AI component library** — 109 components, 250 variants, fetched
+  from GradientDeck's public shadcn registry exports. Each variant's
+  source is complete, typed TSX with `motion/react` and `lucide-react`,
+  not a screenshot or a description of one. The variant count matches
+  GradientDeck's own "109 components" claim.
+- **The preset catalogs** — 139 background gradients and patterns plus 20
+  liquid-glass effects, each with real CSS and a React template.
+- **The gallery has a top bar** switching between three tabs: Designs,
+  Components, and Gradients & Patterns. New routes: `/components`,
+  `/component/:slug`, `/presets`, `/presets/:kind`, plus JSON APIs under
+  `/api/components` and `/api/presets`.
+- **Five new MCP tools** on the generic server, taking it from 5 to 10:
+  `design_component_search`, `design_component_get`,
+  `design_component_code`, `design_preset_search`, `design_preset_get`.
+- **New `components` and `presets` compose services** to refresh those
+  catalogs, and `npm run components` / `npm run presets` on the host.
+- **Compose now uses a named volume** rather than binding `./cache`, so
+  Docker seeds it from the baked image on first run. Bind-mounting a
+  cache path still shadows the baked catalog, which is how you point at a
+  newer cache without rebuilding.
+- `update.mjs` now runs fetch → components → presets → bake → build, so a
+  published image can never ship an empty gallery.
+
 ## v1.2.0 — 2026-11-10
 
 - **Thumbnail compression.** The cached screenshots are 1440×900 JPEGs —

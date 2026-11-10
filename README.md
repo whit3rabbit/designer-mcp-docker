@@ -24,6 +24,8 @@ makes zero outbound requests. Verified against a container with
 |---|---|---|
 | `refero` | 1,342 | Styles scraped from `styles.refero.design`'s public pages |
 | `opendesign` | 152 | Design systems from [nexu-io/open-design](https://github.com/nexu-io/open-design) (Apache-2.0) |
+| `gradientdeck` | 109 components / 250 variants | AI components published as shadcn registry JSON — complete, typed TSX (MIT) |
+| `gradientdeck` | 139 patterns + 20 glass effects | Background gradients, patterns and liquid-glass presets with real CSS (MIT) |
 
 Both land in **one catalog** with a `source` tag on every entry, so a single
 query searches both.
@@ -108,6 +110,10 @@ cache/styles/<uuid>.json { updatedAt, style }                 <- Refero detail
 cache/systems/<slug>.json{ updatedAt, system }                <- OpenDesign package
 cache/thumbs/<id>.webp   compressed screenshot bytes          <- offline gallery
 cache/index.json         { updatedAt, total, counts }         <- per-source counts
+cache/components.json    { updatedAt, total, components[] }   <- component index
+cache/components/<slug>.json  variants + source code          <- one component
+cache/presets.json       { updatedAt, total, catalogs[] }     <- preset index
+cache/presets/<kind>.json      presets with CSS + templates   <- one catalog
 ```
 
 `styles` and `designs` in `catalog.json` point at the same array — the
@@ -153,27 +159,54 @@ sitemap: **0 style ids appear in collections that are missing from the sitemap.*
 | `refero_similar` | Refero's similar-style ranking | no — needs `/api/` |
 | `refero_refresh` | force a re-fetch | no — needs `/api/` |
 
+The generic `design_*` server (`scripts/mcp-server.mjs`) is the recommended
+one — it covers every source and works fully offline:
+
+| Tool | What it does |
+|---|---|
+| `design_search` | natural-language search across all sources |
+| `design_get` | full record for one design |
+| `design_list` | browse with filters |
+| `design_facets` | what's actually in the catalog |
+| `design_markdown` | the DESIGN.md brief for one design |
+| `design_component_search` | search the AI component library |
+| `design_component_get` | one component — variants, FAQ, dependencies |
+| `design_component_code` | the source code for one variant |
+| `design_preset_search` | search gradients, patterns and glass effects |
+| `design_preset_get` | one preset catalog with real CSS |
+
 ---
 
 ## Gallery
 
 ```
-GET /                            gallery UI
-GET /style/:id                   detail page — live screenshot, color tokens, type scale
-GET /api/styles?q=&theme=&industry=&limit=&offset=
-GET /api/styles/:id              full style JSON
-GET /api/styles/:id/design.md    rendered DESIGN.md
+GET /                            design systems gallery
+GET /design/:id                  detail page — screenshot, color tokens, type scale
+GET /api/designs?limit=          every design in the catalog
 GET /api/facets                  theme/industry/font distributions
 GET /api/search?q=               ranked search
-GET /thumb/:id                   302 → upstream screenshot on the CDN
+GET /thumb/:id                   local thumbnail bytes
 GET /healthz                     readiness probe
+
+GET /components                  component library — 109 components, 250 variants
+GET /component/:slug             one component: variants, source, FAQ
+GET /api/components?q=&category= component search
+GET /api/component/:slug         one component as JSON
+
+GET /presets                     preset catalogs — gradients, patterns, glass
+GET /presets/:kind               one catalog in full
+GET /api/presets                 preset catalog index
+GET /api/presets/:kind           one catalog as JSON
 ```
 
 The gallery's DESIGN.md is **byte-identical** to what `refero_design_md`
 returns — both call the upstream package's own `renderDesignMd`.
 
-Thumbnails are served as a redirect to `images.refero.design`, whose
-robots.txt permits generic agents (only `GPTBot` is disallowed).
+A top bar switches between the three tabs: **Designs**, **Components**, and
+**Gradients & Patterns**.
+
+Thumbnails are served from the **local** cache, so the gallery needs no
+network at all.
 
 ---
 
@@ -262,12 +295,16 @@ npm test        # 17 checks across cache, renderer, preview, and MCP
 
 | Route | Returns |
 |---|---|
-| `/` | gallery grid (1,342 cards) |
-| `/style/:id` | detail page — screenshot, colour tokens, type scale, do/don't |
-| `/thumb/:id` | 302 to the screenshot on Refero's CDN |
-| `/api/styles` | catalog rows (paginated) |
+| `/` | design systems gallery (1,494 cards) |
+| `/design/:id` | detail page — screenshot, colour tokens, type scale, do/don't |
+| `/thumb/:id` | local thumbnail bytes |
+| `/api/designs` | catalog rows (paginated) |
 | `/api/facets` | font/theme distributions |
 | `/design.md/:id` | rendered DESIGN.md |
+| `/components` | component library (109 components, 250 variants) |
+| `/component/:slug` | one component — variants, source, FAQ |
+| `/presets` | preset catalogs |
+| `/presets/:kind` | one catalog with real CSS |
 | `/skill` | the skill zip (`designer-mcp-skill.zip`) |
 | `/skill/SKILL.md` | the skill source |
 | `/healthz` | status + style count |
@@ -281,23 +318,33 @@ docker pull ghcr.io/whit3rabbit/designer-mcp:latest
 ```
 
 Public on GitHub Container Registry, multi-arch (`linux/amd64`, `linux/arm64`),
-~285MB.
+~570MB — most of it the baked catalog.
 
 `:latest` tracks the newest release — the publish workflow pushes it
 alongside every version tag. Pin to a specific tag (`v1.0.4`) when you want
 a reproducible deployment.
 
-**The image ships the fetcher**, so a fresh machine needs no repo checkout —
-just Docker and a volume:
+**The image ships the catalog**, so the gallery works with no setup at all:
 
 ```bash
-# 1. populate the cache (reads only public pages; /api/ is never requested)
+docker run -d --name designer-mcp-gallery \
+  -p 127.0.0.1:8787:8787 \
+  ghcr.io/whit3rabbit/designer-mcp:latest
+```
+
+That container has 1,494 designs, 109 AI components and 159 presets baked
+in, and makes **no outbound calls** — verified with `--network none`.
+
+**The image also ships the fetchers**, so you can refresh against a volume:
+
+```bash
+# 1. populate a cache (reads only public pages; /api/ is never requested)
 docker volume create refero-cache
 docker run --rm -v refero-cache:/cache \
   ghcr.io/whit3rabbit/designer-mcp:latest \
   node scripts/refero-public-fetch.js --limit 0
 
-# 2. run the gallery
+# 2. run the gallery against that cache instead of the baked one
 docker run -d --name designer-mcp-gallery \
   -p 127.0.0.1:8787:8787 \
   -v refero-cache:/cache:ro \

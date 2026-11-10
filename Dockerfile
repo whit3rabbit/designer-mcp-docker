@@ -1,12 +1,19 @@
 # designer-mcp — design-system catalog: MCP server + live preview gallery.
 #
 # The upstream package (fidgetcoding-refero-mcp) is vendored UNMODIFIED and
-# runs against a prebuilt cache. The cache is NOT baked into the image — it is
-# mounted, and populated OUTSIDE the container by the fetchers:
+# runs against a prebuilt cache. The cache is baked into the image so a
+# plain `docker run` works offline with data already present:
 #
 #   scripts/refero-public-fetch.js  Refero styles (public pages only)
 #   scripts/fetch-opendesign.mjs    OpenDesign design systems (sparse clone)
 #   scripts/fetch-thumbs.mjs        screenshots, cached locally for offline use
+#   scripts/fetch-gradientdeck.mjs  AI components (shadcn registry exports)
+#   scripts/fetch-presets.mjs       gradient / pattern / glass preset catalogs
+#   scripts/bake-cache.mjs          assembles the cache that goes in the image
+#
+# The baked cache is produced OUTSIDE the container by `npm run bake`, from a
+# cache that was populated by the fetchers above. A mounted /cache still
+# overrides it at runtime, so a deployment can refresh without rebuilding.
 FROM node:22-alpine
 
 WORKDIR /app
@@ -29,6 +36,10 @@ COPY scripts/ ./scripts/
 # it for download, and so `docker run ... cat /app/skills/...` works offline.
 COPY skills/ ./skills/
 
+# The baked catalog: designs, AI components and preset catalogs.
+# Produced by `npm run bake`. Kept last so it is one layer.
+COPY bake/ /cache/
+
 # Prebuilt zip so /skill serves a proper .zip rather than a tarball.
 RUN node scripts/package-skill.mjs --out /app/dist && \
     cp /app/dist/designer-mcp-skill.zip /app/skills/ && \
@@ -36,7 +47,7 @@ RUN node scripts/package-skill.mjs --out /app/dist && \
 
 ENV DESIGN_CACHE_DIR=/cache \
     REFERO_CACHE_DIR=/cache \
-    REFERO_CACHE_TTL_MS=86400000 \
+    REFERO_CACHE_TTL_MS=315360000000 \
     PORT=8787 \
     HOST=0.0.0.0 \
     NODE_ENV=production
