@@ -127,9 +127,11 @@ The `designer-mcp` image runs both surfaces over the same cache:
 |---|---|---|
 | **Gallery** | `docker compose up -d gallery` | HTTP preview on `127.0.0.1:8787` — thumbnails, colour swatches, type scales, DESIGN.md |
 | **MCP** | `docker compose run --rm mcp` | stdio JSON-RPC server, 7 tools, for agents |
+| **Fetch** | `docker compose run --rm fetch` | populates the cache from public pages |
 
-The MCP service sits behind the `mcp` compose profile because it speaks
-JSON-RPC over stdin/stdout — `up` cannot supervise it.
+The MCP and fetch services sit behind compose profiles because `up` cannot
+supervise them: one speaks JSON-RPC over stdin/stdout, the other is a
+one-shot job.
 
 ### Point at a cache elsewhere
 
@@ -171,14 +173,45 @@ docker pull ghcr.io/whit3rabbit/designer-mcp:v1.0.1
 ```
 
 Public on GitHub Container Registry, multi-arch (`linux/amd64`, `linux/arm64`),
-~285MB. The style cache is **not** baked in — mount it:
+~285MB.
+
+**The image ships the fetcher**, so a fresh machine needs no repo checkout —
+just Docker and a volume:
 
 ```bash
+# 1. populate the cache (reads only public pages; /api/ is never requested)
+docker volume create refero-cache
+docker run --rm -v refero-cache:/cache \
+  ghcr.io/whit3rabbit/designer-mcp:v1.0.1 \
+  node scripts/refero-public-fetch.js --limit 0
+
+# 2. run the gallery
 docker run -d --name designer-mcp-gallery \
   -p 127.0.0.1:8787:8787 \
-  -v ~/.refero-cache:/cache:ro \
+  -v refero-cache:/cache:ro \
   ghcr.io/whit3rabbit/designer-mcp:v1.0.1
 ```
+
+### From a clone
+
+`docker-compose.yml` points at the published image, so a fresh clone runs
+without building:
+
+```bash
+git clone https://github.com/whit3rabbit/designer-mcp-docker.git
+cd designer-mcp-docker
+docker compose pull
+docker compose run --rm fetch          # populate ./cache
+docker compose up -d gallery
+```
+
+Override the host port to run a second instance alongside the first:
+
+```bash
+GALLERY_PORT=8788 docker compose up -d gallery
+```
+
+`docker compose build` still rebuilds from the Dockerfile in the repo.
 
 ### Updating and publishing
 

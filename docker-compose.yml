@@ -8,19 +8,31 @@
 # which reads only public pages. It is mounted read-only and never baked into
 # the image.
 #
-#   docker compose up -d gallery      # start the preview server
-#   docker compose run --rm mcp       # run the stdio MCP server
+#   docker compose pull              # fetch the published image
+#   docker compose up -d gallery     # start the preview server
+#   docker compose run --rm mcp      # run the stdio MCP server
 #
 # Point at a cache elsewhere with:
 #   REFERO_CACHE_DIR=/path/to/cache docker compose up -d gallery
+#
+# Build from source instead of pulling:
+#   docker compose build
+
+x-image: &image
+  # The published image, so a fresh clone can `docker compose pull` and run
+  # without building. `docker compose build` still rebuilds it locally from
+  # the Dockerfile in this repo.
+  image: ghcr.io/whit3rabbit/designer-mcp:v1.0.1
+  build:
+    context: .
 
 services:
   gallery:
-    build: .
-    image: designer-mcp:latest
-    container_name: designer-mcp-gallery
+    <<: *image
     ports:
-      - "127.0.0.1:8787:8787"
+      # Host port is configurable so a second instance can run alongside:
+      #   GALLERY_PORT=8788 docker compose up -d gallery
+      - "127.0.0.1:${GALLERY_PORT:-8787}:8787"
     volumes:
       - ${REFERO_CACHE_DIR:-./cache}:/cache:ro
     environment:
@@ -40,12 +52,23 @@ services:
       retries: 3
       start_period: 5s
 
+  # Populate the cache. The image ships the fetcher, so a fresh install needs
+  # no repo checkout:
+  #   docker compose run --rm fetch
+  # Reads only public pages; /api/ is never requested.
+  fetch:
+    <<: *image
+    profiles: ["fetch"]
+    volumes:
+      - ${REFERO_CACHE_DIR:-./cache}:/cache
+    environment:
+      REFERO_CACHE_DIR: /cache
+    command: ["node", "scripts/refero-public-fetch.js", "--limit", "0"]
+
   # The stdio MCP server. Run it with `docker compose run --rm mcp` — it
   # speaks JSON-RPC over stdin/stdout, so it is not started by `up`.
   mcp:
-    build: .
-    image: designer-mcp:latest
-    container_name: designer-mcp-mcp
+    <<: *image
     profiles: ["mcp"]
     volumes:
       - ${REFERO_CACHE_DIR:-./cache}:/cache:ro

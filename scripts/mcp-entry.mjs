@@ -21,9 +21,11 @@ if (!existsSync(catalog)) {
   // stdout is the MCP transport, so this must go to stderr.
   console.error(
     `[refero-mcp] no catalog at ${catalog}\n` +
-      `[refero-mcp] populate it first, e.g.:\n` +
-      `[refero-mcp]   docker run --rm -v refero-cache:/cache -v "$PWD":/src refero-styles-preview \\\n` +
-      `[refero-mcp]     node /src/scripts/refero-public-fetch.js --limit 0`,
+      `[refero-mcp] populate it first — the image ships the fetcher:\n` +
+      `[refero-mcp]   docker run --rm -v refero-cache:/cache \\\n` +
+      `[refero-mcp]     ghcr.io/whit3rabbit/designer-mcp:v1.0.1 \\\n` +
+      `[refero-mcp]     node scripts/refero-public-fetch.js --limit 0\n` +
+      `[refero-mcp] then run the MCP server against the same volume.`,
   );
   process.exit(1);
 }
