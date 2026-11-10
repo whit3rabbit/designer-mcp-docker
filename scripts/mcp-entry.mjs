@@ -19,11 +19,13 @@ const catalog = join(CACHE_DIR, "catalog.json");
 
 if (!existsSync(catalog)) {
   // stdout is the MCP transport, so this must go to stderr.
+  // The image reference is deliberately not spelled out here: the version
+  // baked into this string would go stale on the next release. Use whatever
+  // tag you actually ran.
   console.error(
     `[refero-mcp] no catalog at ${catalog}\n` +
-      `[refero-mcp] populate it first — the image ships the fetcher:\n` +
-      `[refero-mcp]   docker run --rm -v refero-cache:/cache \\\n` +
-      `[refero-mcp]     ghcr.io/whit3rabbit/designer-mcp:v1.0.1 \\\n` +
+      `[refero-mcp] populate it first — this image ships the fetcher:\n` +
+      `[refero-mcp]   docker run --rm -v refero-cache:/cache <this-image> \\\n` +
       `[refero-mcp]     node scripts/refero-public-fetch.js --limit 0\n` +
       `[refero-mcp] then run the MCP server against the same volume.`,
   );
