@@ -119,6 +119,51 @@ robots.txt permits generic agents (only `GPTBot` is disallowed).
 
 ---
 
+## Two surfaces, one image
+
+The `designer-mcp` image runs both surfaces over the same cache:
+
+| Surface | How to run | What it is |
+|---|---|---|
+| **Gallery** | `docker compose up -d gallery` | HTTP preview on `127.0.0.1:8787` — thumbnails, colour swatches, type scales, DESIGN.md |
+| **MCP** | `docker compose run --rm mcp` | stdio JSON-RPC server, 7 tools, for agents |
+
+The MCP service sits behind the `mcp` compose profile because it speaks
+JSON-RPC over stdin/stdout — `up` cannot supervise it.
+
+### Point at a cache elsewhere
+
+The default mount is `./cache`. To use a cache populated elsewhere:
+
+```bash
+REFERO_CACHE_DIR=/Users/whit3rabbit/.refero-cache docker compose up -d gallery
+```
+
+### Verify both surfaces
+
+```bash
+curl -s http://127.0.0.1:8787/healthz
+# {"ok":true,"styles":1342,"updatedAt":1794274864435}
+
+npm test        # 17 checks across cache, renderer, preview, and MCP
+```
+
+### Routes
+
+| Route | Returns |
+|---|---|
+| `/` | gallery grid (1,342 cards) |
+| `/style/:id` | detail page — screenshot, colour tokens, type scale, do/don't |
+| `/thumb/:id` | 302 to the screenshot on Refero's CDN |
+| `/api/styles` | catalog rows (paginated) |
+| `/api/facets` | font/theme distributions |
+| `/design.md/:id` | rendered DESIGN.md |
+| `/skill` | the skill zip (`designer-mcp-skill.zip`) |
+| `/skill/SKILL.md` | the skill source |
+| `/healthz` | status + style count |
+
+---
+
 ## The skill
 
 `skills/designer-mcp/` is a research-first design skill: methodology, MCP
