@@ -9,7 +9,9 @@
     "fetch": "node scripts/refero-public-fetch.js",
     "fetch:quick": "node scripts/refero-public-fetch.js --limit 60",
     "opendesign": "node scripts/fetch-opendesign.mjs",
-    "thumbs": "node scripts/fetch-thumbs.mjs",
+    "thumbs": "node scripts/fetch-thumbs.mjs --compress",
+    "thumbs:raw": "node scripts/fetch-thumbs.mjs",
+    "compress": "node scripts/compress-thumbs.mjs",
     "all": "npm run fetch && npm run opendesign && npm run thumbs",
     "preview": "node scripts/preview.mjs",
     "mcp": "node scripts/mcp-server.mjs",
@@ -25,6 +27,9 @@
   },
   "dependencies": {
     "fidgetcoding-refero-mcp": "^0.2.0"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.35.5"
   },
   "overrides": {
     "zod": "^4.6.6"

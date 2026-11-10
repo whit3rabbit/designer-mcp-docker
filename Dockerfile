@@ -16,6 +16,9 @@ WORKDIR /app
 RUN apk add --no-cache zip git
 
 # Upstream package, unmodified.
+# `sharp` is optional: it is only needed by the thumbnail compressor. It
+# ships prebuilt binaries for linux-x64, linux-arm64 and darwin, so the
+# same script runs on the host and in this multi-arch image.
 COPY package.json ./
 RUN npm install --omit=dev --ignore-scripts && npm cache clean --force
 

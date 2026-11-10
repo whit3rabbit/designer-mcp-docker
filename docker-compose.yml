@@ -98,17 +98,36 @@ services:
     init: true
 
   # Cache every screenshot locally so the gallery needs no network.
-  # ~150 MB for the full Refero catalog.
+  # ~150 MB for the full Refero catalog, or ~55 MB with --compress.
   #
   # `entrypoint` (not `command`) so trailing args append:
   #   docker compose run --rm thumbs --limit 20 --force
+  #
+  # --compress re-encodes to WebP before the bytes touch the disk, so a
+  # fresh install never stores the full-size JPEGs. Drop it if you want
+  # the originals.
   thumbs:
     <<: *image
     profiles: ["fetch"]
     volumes:
       - ${DESIGN_CACHE_DIR:-./cache}:/cache
     environment: *cache-env
-    entrypoint: ["node", "scripts/fetch-thumbs.mjs"]
+    entrypoint: ["node", "scripts/fetch-thumbs.mjs", "--compress"]
+    init: true
+
+  # Re-encode an EXISTING thumbnail cache to WebP. Use this when the
+  # thumbnails were fetched before the compressor existed:
+  #   docker compose run --rm compress --replace
+  #
+  # Trailing args append:
+  #   docker compose run --rm compress --width 720 --quality 80
+  compress:
+    <<: *image
+    profiles: ["fetch"]
+    volumes:
+      - ${DESIGN_CACHE_DIR:-./cache}:/cache
+    environment: *cache-env
+    entrypoint: ["node", "scripts/compress-thumbs.mjs"]
     init: true
 
   # The upstream stdio MCP server (Refero-specific tools). Run it with

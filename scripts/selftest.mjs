@@ -14,7 +14,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -117,6 +117,16 @@ if (!existsSync(thumbsDir)) {
   cached === withUrl.length
     ? ok(`all ${cached} Refero thumbnails cached locally`)
     : bad(`${withUrl.length - cached} of ${withUrl.length} thumbnails are not cached`);
+
+  // Report the compression state — a WebP cache should be much smaller.
+  const files = readdirSync(thumbsDir);
+  const webp = files.filter((f) => f.endsWith(".webp"));
+  const jpg = files.filter((f) => /\.jpe?g$/i.test(f));
+  const bytes = files.reduce((a, f) => a + statSync(join(thumbsDir, f)).size, 0);
+  ok(
+    `thumb cache: ${(bytes / 1048576).toFixed(1)} MB ` +
+      `(${webp.length} webp, ${jpg.length} jpg, ${files.length} total)`,
+  );
 }
 
 // ------------------------------------------------------- 4. preview

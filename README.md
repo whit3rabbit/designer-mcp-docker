@@ -42,7 +42,7 @@ cd ~/Documents/Github/designer-mcp-docker
 npm install          # upstream package
 npm run fetch        # populate ./cache from public pages (~2.5 min, 1,342 styles)
 npm run opendesign   # import the 152 OpenDesign design systems (~30s, 38 MB)
-npm run thumbs       # cache every screenshot locally (~150 MB)
+npm run thumbs       # cache every screenshot locally, compressed (~55 MB)
 npm test             # self-test everything
 
 docker compose up -d # gallery → http://127.0.0.1:8787
@@ -106,13 +106,18 @@ server and the offline thumbnails need:
 cache/catalog.json       { updatedAt, styles[], designs[] }   <- merged, both sources
 cache/styles/<uuid>.json { updatedAt, style }                 <- Refero detail
 cache/systems/<slug>.json{ updatedAt, system }                <- OpenDesign package
-cache/thumbs/<id>.jpg    cached screenshot bytes               <- offline gallery
+cache/thumbs/<id>.webp   compressed screenshot bytes          <- offline gallery
 cache/index.json         { updatedAt, total, counts }         <- per-source counts
 ```
 
 `styles` and `designs` in `catalog.json` point at the same array — the
 upstream package reads `styles`, the generic server reads `designs`. Every
 entry carries a `source` tag (`refero` or `opendesign`).
+
+Thumbnails are stored as **WebP at 1000px** (see
+[Thumbnail compression](#thumbnail-compression)). The preview server accepts
+`.jpg`, `.jpeg`, `.png` and `.webp`, preferring `.webp` when several exist,
+so an uncompressed cache keeps working unchanged.
 
 The cache dir is `DESIGN_CACHE_DIR` (default `~/.design-cache`);
 `REFERO_CACHE_DIR` is still honoured so existing installs keep working.
@@ -183,7 +188,8 @@ The `designer-mcp` image runs both surfaces over the same cache:
 | **MCP (upstream)** | `docker compose run --rm mcp` | stdio JSON-RPC server, 7 `refero_*` tools, Refero-only |
 | **Fetch** | `docker compose run --rm fetch` | populates the cache from Refero's public pages |
 | **OpenDesign** | `docker compose run --rm opendesign` | imports the 152 design-system packages |
-| **Thumbs** | `docker compose run --rm thumbs` | caches every screenshot locally (~150 MB) |
+| **Thumbs** | `docker compose run --rm thumbs` | caches every screenshot locally, compressed (~55 MB) |
+| **Compress** | `docker compose run --rm compress` | re-encodes an existing thumbnail cache to WebP |
 
 The MCP and fetch services sit behind compose profiles because `up` cannot
 supervise them: one speaks JSON-RPC over stdin/stdout, the others are
@@ -194,7 +200,7 @@ A full offline cache is three commands:
 ```bash
 docker compose run --rm fetch        # 1,342 Refero styles   (~2.5 min)
 docker compose run --rm opendesign   # 152 OpenDesign systems (~30 s)
-docker compose run --rm thumbs       # 1,342 screenshots     (~150 MB)
+docker compose run --rm thumbs       # 1,342 screenshots     (~55 MB)
 ```
 
 Each accepts trailing arguments, which append to the script's defaults:
@@ -203,7 +209,37 @@ Each accepts trailing arguments, which append to the script's defaults:
 docker compose run --rm fetch --limit 20              # just 20 styles
 docker compose run --rm opendesign --slug linear-app  # one design system
 docker compose run --rm thumbs --limit 50 --force     # re-fetch 50
+docker compose run --rm compress --replace            # drop the originals
 ```
+
+### Thumbnail compression
+
+The Refero screenshots are 1440×900 JPEGs, ~115 KB each — 150.6 MB for the
+full catalog, more than the JSON catalog itself.
+
+The gallery never renders them at that size: a grid card is 349 CSS px wide
+and the detail page 716 CSS px. So the fetcher re-encodes to **WebP at
+1000px** before the bytes touch the disk:
+
+| | size | per image |
+|---|---|---|
+| Original JPEG | 150.6 MB | ~115 KB |
+| Compressed WebP | **55.9 MB** | ~43 KB |
+
+That is 37% of the original. Measured against a Lanczos reference the
+result is a mean **PSNR of 42.5 dB and SSIM of 0.990** — visually
+indistinguishable at both display sizes. A gallery page load drops from
+25.3 MB to 9.3 MB.
+
+To re-encode a cache that was fetched before the compressor existed:
+
+```bash
+docker compose run --rm compress            # write .webp beside the .jpg
+docker compose run --rm compress --replace  # and delete the originals
+docker compose run --rm compress --width 720 --quality 80
+```
+
+`--full` additionally writes a 1440px `@full` tier for retina detail pages.
 
 ### Point at a cache elsewhere
 

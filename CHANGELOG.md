@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.2.0 — 2026-11-10
+
+- **Thumbnail compression.** The cached screenshots are 1440×900 JPEGs —
+  150.6 MB for the catalog, more than the JSON catalog itself — but the
+  gallery only ever renders them at 349 CSS px (grid) and 716 CSS px
+  (detail). `scripts/compress-thumbs.mjs` re-encodes them to WebP at
+  1000px: **150.6 MB → 55.9 MB (37%)**, mean PSNR 42.5 dB / SSIM 0.990
+  against a Lanczos reference. A gallery page load drops from 25.3 MB to
+  9.3 MB.
+- `fetch-thumbs.mjs --compress` re-encodes before the bytes touch the
+  disk, so a fresh install never stores the full-size JPEGs at all.
+  The `thumbs` compose service uses it by default.
+- New `compress` compose service re-encodes an existing cache:
+  `docker compose run --rm compress --replace`.
+- The resize uses sharp's **Lanczos3** kernel, not the encoder's own
+  scaler. `cwebp -resize` uses a fast box filter and costs ~3.8 dB of
+  PSNR on a 1440→1000 downscale, which is visible on text-heavy
+  screenshots.
+- `sharp` is an optional dependency — the plain fetch path does not need
+  it, and it ships prebuilt binaries for linux-x64, linux-arm64 and
+  darwin, so the same script runs on the host and in the multi-arch image.
+- The preview server now prefers `.webp` over `.jpg` when both are
+  present, so a cache can be compressed in place without a restart.
+
 ## v1.1.1 — 2026-11-10
 
 - **Compose services accept trailing arguments.** `docker compose run --rm

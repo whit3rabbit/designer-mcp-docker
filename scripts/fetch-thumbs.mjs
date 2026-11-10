@@ -12,8 +12,14 @@
  * One image per design: the catalog's `screenshotUrl` and `thumbnailUrl` are
  * the same URL for every Refero entry, so we fetch it once.
  *
+ * With --compress the bytes are re-encoded to WebP before they touch the
+ * disk, so a fresh install never stores the 150 MB of full-size JPEGs.
+ * The source images are 1440x900; the gallery renders them at 349 CSS px
+ * (grid) and 716 CSS px (detail), so 1000px is enough for both.
+ *
  * Usage
  *   node scripts/fetch-thumbs.mjs                 # every design missing a thumb
+ *   node scripts/fetch-thumbs.mjs --compress      # re-encode to WebP on the way in
  *   node scripts/fetch-thumbs.mjs --source refero
  *   node scripts/fetch-thumbs.mjs --id <id>       # one design
  *   node scripts/fetch-thumbs.mjs --force         # re-fetch even if cached
@@ -49,6 +55,9 @@ const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
 const CONC = Math.max(1, Number(argVal("--conc") || 8));
 const FORCE = has("--force");
+const COMPRESS = has("--compress");
+const COMPRESS_WIDTH = Number(argVal("--compress-width") || 1000);
+const COMPRESS_QUALITY = Number(argVal("--compress-quality") || 86);
 
 /** Map a content-type to a file extension. */
 function extFor(contentType) {
@@ -59,6 +68,41 @@ function extFor(contentType) {
   return ".jpg";
 }
 
+// ------------------------------------------------------------------ sharp
+// Loaded lazily so a plain fetch does not require the optional dependency.
+let sharp = null;
+async function getSharp() {
+  if (sharp) return sharp;
+  try {
+    ({ default: sharp } = await import("sharp"));
+  } catch {
+    console.error(
+      "sharp is not installed — cannot compress.\n" +
+        "  npm install sharp\n" +
+        "  (it ships prebuilt binaries for linux-x64, linux-arm64 and darwin)",
+    );
+    process.exit(1);
+  }
+  return sharp;
+}
+
+/**
+ * Re-encode a downloaded image to WebP at the size the gallery renders.
+ *
+ * The resize uses a Lanczos3 kernel: the encoder's own scaler is a fast box
+ * filter and costs ~3.8 dB of PSNR on a 1440->1000 downscale, which shows
+ * on text-heavy screenshots.
+ */
+async function compressBuffer(buf, width, quality) {
+  const s = await getSharp();
+  const out = await s(buf, { failOn: "none" })
+    .rotate()
+    .resize({ width, kernel: "lanczos3", withoutEnlargement: true })
+    .webp({ quality, effort: 4, smartSubsample: true })
+    .toBuffer();
+  return out;
+}
+
 async function download(url, dest) {
   const res = await fetch(url, {
     headers: { "User-Agent": UA, Accept: "image/*,*/*" },
@@ -66,14 +110,24 @@ async function download(url, dest) {
     redirect: "follow",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  const buf = Buffer.from(await res.arrayBuffer());
+  let buf = Buffer.from(await res.arrayBuffer());
   if (!buf.length) throw new Error("empty response body");
-  const ext = extFor(res.headers.get("content-type"));
+
+  let ext = extFor(res.headers.get("content-type"));
+  let rawBytes = buf.length;
+
+  // Compress before the bytes touch the disk, so the cache never holds the
+  // full-size originals.
+  if (COMPRESS) {
+    buf = await compressBuffer(buf, COMPRESS_WIDTH, COMPRESS_QUALITY);
+    ext = ".webp";
+  }
+
   const final = dest.replace(/\.(jpg|jpeg|png|webp)$/i, ext);
   const tmp = `${final}.tmp.${process.pid}`;
   await writeFile(tmp, buf);
   await rename(tmp, final);
-  return { bytes: buf.length, ext };
+  return { bytes: buf.length, rawBytes, ext };
 }
 
 async function main() {
@@ -107,6 +161,9 @@ async function main() {
   console.log(`thumbs    : ${THUMBS_DIR}`);
   console.log(`designs   : ${designs.length} total, ${targets.length} selected`);
   console.log(
+    `compress  : ${COMPRESS ? `webp ${COMPRESS_WIDTH}px q${COMPRESS_QUALITY}` : "off (source jpeg)"}`,
+  );
+  console.log(
     `pending   : ${pending.length} to fetch` +
       (skippedNoUrl > 0 ? `, ${skippedNoUrl} without a screenshot URL` : ""),
   );
@@ -125,6 +182,7 @@ async function main() {
   let ok = 0;
   let failed = 0;
   let bytes = 0;
+  let rawBytes = 0;
   const queue = batch.slice();
 
   const worker = async () => {
@@ -136,8 +194,10 @@ async function main() {
         const r = await download(url, dest);
         ok += 1;
         bytes += r.bytes;
+        rawBytes += r.rawBytes;
+        const saved = r.rawBytes > r.bytes ? ` (${((1 - r.bytes / r.rawBytes) * 100).toFixed(0)}% smaller)` : "";
         process.stdout.write(
-          `  ok ${String(ok).padStart(4)}/${batch.length}  ${(r.bytes / 1024).toFixed(0)}KB  ${d.siteName || d.id}\n`,
+          `  ok ${String(ok).padStart(4)}/${batch.length}  ${(r.bytes / 1024).toFixed(0)}KB${saved}  ${d.siteName || d.id}\n`,
         );
       } catch (e) {
         failed += 1;
@@ -151,6 +211,12 @@ async function main() {
   console.log(
     `\ndone: ${ok} fetched, ${failed} failed, ${(bytes / 1048576).toFixed(1)} MB written`,
   );
+  if (COMPRESS && rawBytes > bytes) {
+    console.log(
+      `      ${(rawBytes / 1048576).toFixed(1)} MB downloaded -> ${(bytes / 1048576).toFixed(1)} MB stored ` +
+        `(${((1 - bytes / rawBytes) * 100).toFixed(0)}% smaller, webp ${COMPRESS_WIDTH}px q${COMPRESS_QUALITY})`,
+    );
+  }
   if (failed) {
     console.log("tip: re-run to retry only the failures — cached files are skipped.");
     process.exitCode = 1;

@@ -121,9 +121,15 @@ async function loadFull(id) {
   return mergeDesign(entry, raw.style ?? raw.system ?? null);
 }
 
-/** Local thumbnail bytes for a design, or null. */
+/**
+ * Local thumbnail bytes for a design, or null.
+ *
+ * The extension order matters: a compressed `.webp` is preferred over the
+ * original `.jpg`, because `compress-thumbs.mjs` writes the WebP alongside
+ * the source and the source may still be present.
+ */
 async function loadThumb(id) {
-  for (const ext of [".jpg", ".jpeg", ".png", ".webp"]) {
+  for (const ext of [".webp", ".jpg", ".jpeg", ".png"]) {
     const p = join(CACHE_DIR, "thumbs", `${id}${ext}`);
     if (!existsSync(p)) continue;
     const buf = await readFile(p);
