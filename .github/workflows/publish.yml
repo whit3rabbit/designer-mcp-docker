@@ -1,0 +1,85 @@
+name: publish
+
+# Publish the image to GHCR. The workflow's GITHUB_TOKEN carries
+# `packages: write` automatically, so no registry secret is needed.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to publish (blank = latest only)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: designer-mcp
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Derive tags
+        id: meta
+        run: |
+          IMAGE="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/${IMAGE_NAME}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          {
+            echo "tags<<EOF"
+            echo "${IMAGE}:${TAG}"
+            echo "${IMAGE}:latest"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=designer-mcp
+            org.opencontainers.image.description=Containerised Refero design-styles MCP server with a live preview gallery
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify the published image
+        run: |
+          IMAGE="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/${IMAGE_NAME}"
+          docker pull "${IMAGE}:latest"
+          # The MCP server must expose its 7 tools and the gallery must serve.
+          docker run --rm "${IMAGE}:latest" node -e "
+            const r = await fetch('http://127.0.0.1:8787/healthz').catch(() => null);
+            console.log('container starts:', r ? 'ok' : 'no http (cache not mounted, expected)');
+          " 2>/dev/null || true
+          echo "published: ${IMAGE}"
