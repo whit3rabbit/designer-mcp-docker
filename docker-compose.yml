@@ -22,7 +22,7 @@ x-image: &image
   # The published image, so a fresh clone can `docker compose pull` and run
   # without building. `docker compose build` still rebuilds it locally from
   # the Dockerfile in this repo.
-  image: ghcr.io/whit3rabbit/designer-mcp:v1.0.3
+  image: ghcr.io/whit3rabbit/designer-mcp:v1.0.4
   build:
     context: .
 

@@ -169,7 +169,7 @@ npm test        # 17 checks across cache, renderer, preview, and MCP
 ## Published image
 
 ```bash
-docker pull ghcr.io/whit3rabbit/designer-mcp:v1.0.3
+docker pull ghcr.io/whit3rabbit/designer-mcp:v1.0.4
 ```
 
 Public on GitHub Container Registry, multi-arch (`linux/amd64`, `linux/arm64`),
@@ -182,14 +182,14 @@ just Docker and a volume:
 # 1. populate the cache (reads only public pages; /api/ is never requested)
 docker volume create refero-cache
 docker run --rm -v refero-cache:/cache \
-  ghcr.io/whit3rabbit/designer-mcp:v1.0.3 \
+  ghcr.io/whit3rabbit/designer-mcp:v1.0.4 \
   node scripts/refero-public-fetch.js --limit 0
 
 # 2. run the gallery
 docker run -d --name designer-mcp-gallery \
   -p 127.0.0.1:8787:8787 \
   -v refero-cache:/cache:ro \
-  ghcr.io/whit3rabbit/designer-mcp:v1.0.3
+  ghcr.io/whit3rabbit/designer-mcp:v1.0.4
 ```
 
 ### From a clone

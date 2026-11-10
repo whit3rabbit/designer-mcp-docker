@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.4 — 2026-11-10
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.0.4`
+- The gallery now waits for `catalog.json` instead of dying at startup.
+  Previously, starting the gallery while a fetch was still running produced
+  an endless restart loop until the fetch finished. The preview server polls
+  for up to `REFERO_CATALOG_WAIT_MS` (default 5 minutes), logs why it is
+  waiting, and starts serving as soon as the catalog lands — no restart.
+
 ## v1.0.3 — 2026-11-10
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v1.0.3`
