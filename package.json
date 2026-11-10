@@ -1,0 +1,24 @@
+{
+  "name": "designer-mcp-docker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Containerised Refero design-styles MCP server with a live thumbnail preview gallery",
+  "license": "MIT",
+  "scripts": {
+    "fetch": "node scripts/refero-public-fetch.js --limit 0",
+    "fetch:quick": "node scripts/refero-public-fetch.js --limit 60",
+    "preview": "node scripts/preview.mjs",
+    "build": "docker build -t designer-mcp:latest .",
+    "up": "docker compose up -d",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "test": "node scripts/selftest.mjs"
+  },
+  "dependencies": {
+    "fidgetcoding-refero-mcp": "^0.2.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

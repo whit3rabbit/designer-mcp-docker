@@ -1,0 +1,118 @@
+{
+  "skills": [
+    "designer-mcp"
+  ],
+  "notes": "Guide-structured evaluations (query, files, expected_behavior). Run each query in a fresh session against the listed files and compare behavior. Record every run in results[] with the model name to build cross-model evidence (EV-02).",
+  "evals": [
+    {
+      "id": "research-first-dark-developer-tool",
+      "query": "I'm designing a dark developer-tool dashboard with a violet accent. What color palette and type scale should I use?",
+      "files": [
+        "SKILL.md",
+        "references/mcp-tools.md"
+      ],
+      "expected_behavior": [
+        "Searches styles first with refero_search before proposing any palette",
+        "Runs 3+ differently-worded searches (aesthetic, domain, and known-brand angles) rather than one query",
+        "Retrieves full styles with refero_get, not just search previews",
+        "Names the specific styles reviewed and what each contributes",
+        "Locks a primary reference with 3-5 preserved traits and 1-2 borrowed details",
+        "Does not average references into a safe middle",
+        "Does not default to indigo/violet unless the user asked for it",
+        "Produces a decision ledger tying each major choice to a source"
+      ]
+    },
+    {
+      "id": "product-pattern-without-screens-layer",
+      "query": "Build me a pricing page for a B2B analytics product. Where should the plan comparison go and what should the enterprise CTA say?",
+      "files": [
+        "SKILL.md",
+        "references/copywriting.md",
+        "references/research-playbook.md"
+      ],
+      "expected_behavior": [
+        "Establishes visual direction from styles first",
+        "For the page-level and CTA decisions, uses craft references and user material",
+        "States plainly that screen-level and flow-level precedent is NOT available in this deployment",
+        "Does not invent screen or flow research or cite a screens/flows tool that does not exist here",
+        "Does not call refero_search_screens, refero_get_screen, refero_search_flows, or refero_get_flow",
+        "Produces the research summary template from research-playbook.md before implementing",
+        "Converts findings into a decision ledger"
+      ]
+    },
+    {
+      "id": "diagnose-failing-refresh-tool",
+      "query": "The refero_refresh tool failed. Is the MCP server broken, and how do I get fresh styles?",
+      "files": [
+        "SKILL.md",
+        "references/mcp-tools.md"
+      ],
+      "expected_behavior": [
+        "Knows refero_refresh and refero_similar require the live /api/ endpoint and fail by design here",
+        "Does NOT report the install as broken",
+        "Gives the working refresh command: node scripts/refero-public-fetch.js --limit 0 --force",
+        "Explains the fetcher reads only public pages and never requests /api/",
+        "Mentions the long REFERO_CACHE_TTL_MS is deliberate and refresh is done by re-running the fetcher"
+      ]
+    },
+    {
+      "id": "facets-before-promising-a-direction",
+      "query": "Which fonts and themes are actually in this design library? I want to make sure my brand font has precedent here.",
+      "files": [
+        "SKILL.md",
+        "references/mcp-tools.md"
+      ],
+      "expected_behavior": [
+        "Calls refero_facets before promising a direction, to see what is actually present",
+        "Reports concrete font families and theme counts rather than generic claims",
+        "Notes that colorScheme can be 'mixed' and that upstream's theme filter silently drops mixed styles",
+        "Uses refero_list with filters to browse, and refero_search for ranked matches"
+      ]
+    },
+    {
+      "id": "anti-slop-hero-repair",
+      "query": "Make this hero section look less generic — it's a beige gradient with a serif word swapped for a highlighted word.",
+      "files": [
+        "SKILL.md",
+        "references/anti-ai-slop.md"
+      ],
+      "expected_behavior": [
+        "Reads references/anti-ai-slop.md",
+        "Recognises the exact pattern the reference warns about: warm/cream canvas plus a decorative word swap",
+        "Does not produce another decorative serif/italic/accent word swap",
+        "Avoids the generic hero -> features grid -> pricing -> FAQ -> CTA structure",
+        "Creates at least one memorable detail that is not a word swap",
+        "Still grounds the direction in research rather than asserting taste"
+      ]
+    },
+    {
+      "id": "trigger-paraphrase-without-name",
+      "query": "I need some inspiration for the visual direction of a fintech marketing site — palettes, typography, the works. Can you show me what real products do?",
+      "files": [
+        "SKILL.md"
+      ],
+      "expected_behavior": [
+        "Triggers the skill from the description without the words 'designer-mcp' or 'Refero' appearing in the query",
+        "Routes to refero_search for visual direction",
+        "Does not ask the user to install or enable a skill that is already loaded",
+        "Uses domain-appropriate queries like 'premium fintech website with restrained typography'"
+      ]
+    },
+    {
+      "id": "trigger-paraphrase-craft-only",
+      "query": "What are the do's and don'ts for choosing a type scale, and how do I avoid making my landing page look like every other AI-generated site?",
+      "files": [
+        "SKILL.md",
+        "references/typography.md",
+        "references/anti-ai-slop.md"
+      ],
+      "expected_behavior": [
+        "Triggers the skill on craft-quality phrasing alone, with no product or MCP mention",
+        "Reads references/typography.md and references/anti-ai-slop.md rather than answering from memory",
+        "Still requires research grounding before any visual recommendation",
+        "Uses the bundled craft references as the source when the MCP is unavailable"
+      ]
+    }
+  ],
+  "results": []
+}

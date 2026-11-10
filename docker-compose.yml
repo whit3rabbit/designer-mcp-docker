@@ -1,0 +1,30 @@
+# designer-mcp — Refero styles gallery + MCP server.
+#
+# The gallery serves the cached catalog over HTTP with live thumbnails.
+# The MCP server (stdio) is the same one registered as `refero-styles`.
+services:
+  gallery:
+    build: .
+    image: designer-mcp:latest
+    container_name: designer-mcp-gallery
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      # The cache is populated OUTSIDE the container by scripts/refero-public-fetch.js,
+      # which reads only public pages. Mount it read-only here.
+      - ${REFERO_CACHE_DIR:-./cache}:/cache:ro
+    environment:
+      REFERO_CACHE_DIR: /cache
+      PORT: "8787"
+      HOST: 0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

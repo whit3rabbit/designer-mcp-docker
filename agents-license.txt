@@ -1,0 +1,22 @@
+Third-party components bundled in this project
+==============================================
+
+1. fidgetcoding-refero-mcp (npm)
+   Upstream: https://github.com/fidgetcoding/refero-design-mcp
+   License: MIT
+   Used unmodified. Its README explains why it stopped supporting the
+   styles.refero.design/api/styles endpoint (robots.txt disallows it, it
+   returns 403). This project supplies that data from public pages instead.
+
+2. Refero design skill craft references
+   Upstream: https://github.com/referodesign/refero_skill
+   License: MIT — Copyright (c) 2026 Refero
+   Files: skills/designer-mcp/references/{typography,color,motion,icons,
+          craft-details,copywriting,anti-ai-slop,visual-workflow,example-workflow}.md
+   Adapted: the MCP tool names and the screens/flows scope were changed to
+   match this deployment. See skills/designer-mcp/references/mcp-tools.md
+   and the Provenance section of skills/designer-mcp/SKILL.md.
+
+Design data cached under cache/ belongs to Refero and to the sites depicted.
+It is fetched from publicly available pages for local use and is not
+redistributed by this project.
