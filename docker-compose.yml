@@ -1,19 +1,26 @@
-# designer-mcp — Refero styles gallery + MCP server.
+# designer-mcp — design-system catalog: gallery + MCP servers.
 #
-# Two surfaces over one local cache:
-#   gallery — HTTP preview with live thumbnails, colour swatches, type scales
-#   mcp     — the stdio MCP server (7 tools) for agents
+# Surfaces over one local cache:
+#   gallery   — HTTP preview with local thumbnails, colour swatches, type scales
+#   mcp       — the upstream Refero MCP server (7 `refero_*` tools)
+#   design    — the generic MCP server (5 `design_*` tools, both sources)
+#   fetch     — populates the cache from public sources
+#   thumbs    — caches screenshots locally so the gallery works offline
+#   opendesign — imports OpenDesign design systems
 #
-# The cache is populated OUTSIDE the container by scripts/refero-public-fetch.js,
-# which reads only public pages. It is mounted read-only and never baked into
-# the image.
+# The cache is populated OUTSIDE the container and mounted read-only. It is
+# never baked into the image.
 #
-#   docker compose pull              # fetch the published image
-#   docker compose up -d gallery     # start the preview server
-#   docker compose run --rm mcp      # run the stdio MCP server
+#   docker compose pull                 # fetch the published image
+#   docker compose run --rm fetch       # Refero styles from public pages
+#   docker compose run --rm opendesign  # OpenDesign design systems
+#   docker compose run --rm thumbs      # cache screenshots for offline use
+#   docker compose up -d gallery        # start the preview server
+#   docker compose run --rm mcp         # upstream Refero MCP server
+#   docker compose run --rm design      # generic MCP server
 #
 # Point at a cache elsewhere with:
-#   REFERO_CACHE_DIR=/path/to/cache docker compose up -d gallery
+#   DESIGN_CACHE_DIR=/path/to/cache docker compose up -d gallery
 #
 # Build from source instead of pulling:
 #   docker compose build
@@ -24,11 +31,16 @@ x-image: &image
   # the Dockerfile in this repo.
   #
   # `:latest` tracks the newest release — the publish workflow pushes it
-  # alongside every version tag. Pin to a specific tag (v1.0.4) for a
-  # reproducible deployment.
+  # alongside every version tag. Pin to a specific tag for a reproducible
+  # deployment.
   image: ghcr.io/whit3rabbit/designer-mcp:latest
   build:
     context: .
+
+x-cache-env: &cache-env
+  DESIGN_CACHE_DIR: /cache
+  # The upstream package reads this name; both point at the same directory.
+  REFERO_CACHE_DIR: /cache
 
 services:
   gallery:
@@ -38,10 +50,9 @@ services:
       #   GALLERY_PORT=8788 docker compose up -d gallery
       - "127.0.0.1:${GALLERY_PORT:-8787}:8787"
     volumes:
-      - ${REFERO_CACHE_DIR:-./cache}:/cache:ro
+      - ${DESIGN_CACHE_DIR:-./cache}:/cache:ro
     environment:
-      REFERO_CACHE_DIR: /cache
-      REFERO_CACHE_TTL_MS: "86400000"
+      <<: *cache-env
       PORT: "8787"
       HOST: 0.0.0.0
     restart: unless-stopped
@@ -56,29 +67,60 @@ services:
       retries: 3
       start_period: 5s
 
-  # Populate the cache. The image ships the fetcher, so a fresh install needs
-  # no repo checkout:
+  # Populate the cache from Refero's public pages. The image ships the
+  # fetcher, so a fresh install needs no repo checkout:
   #   docker compose run --rm fetch
   # Reads only public pages; /api/ is never requested.
   fetch:
     <<: *image
     profiles: ["fetch"]
     volumes:
-      - ${REFERO_CACHE_DIR:-./cache}:/cache
-    environment:
-      REFERO_CACHE_DIR: /cache
+      - ${DESIGN_CACHE_DIR:-./cache}:/cache
+    environment: *cache-env
     command: ["node", "scripts/refero-public-fetch.js", "--limit", "0"]
 
-  # The stdio MCP server. Run it with `docker compose run --rm mcp` — it
-  # speaks JSON-RPC over stdin/stdout, so it is not started by `up`.
+  # Import OpenDesign design systems. Sparse-clones only the
+  # `design-systems/` subtree (38 MB, not the 3.6 GB full repo).
+  opendesign:
+    <<: *image
+    profiles: ["fetch"]
+    volumes:
+      - ${DESIGN_CACHE_DIR:-./cache}:/cache
+    environment: *cache-env
+    command: ["node", "scripts/fetch-opendesign.mjs"]
+
+  # Cache every screenshot locally so the gallery needs no network.
+  # ~150 MB for the full Refero catalog.
+  thumbs:
+    <<: *image
+    profiles: ["fetch"]
+    volumes:
+      - ${DESIGN_CACHE_DIR:-./cache}:/cache
+    environment: *cache-env
+    command: ["node", "scripts/fetch-thumbs.mjs"]
+
+  # The upstream stdio MCP server (Refero-specific tools). Run it with
+  # `docker compose run --rm mcp` — it speaks JSON-RPC over stdin/stdout,
+  # so it is not started by `up`.
   mcp:
     <<: *image
     profiles: ["mcp"]
     volumes:
-      - ${REFERO_CACHE_DIR:-./cache}:/cache:ro
+      - ${DESIGN_CACHE_DIR:-./cache}:/cache:ro
     environment:
-      REFERO_CACHE_DIR: /cache
+      <<: *cache-env
       REFERO_CACHE_TTL_MS: "86400000"
     command: ["node", "scripts/mcp-entry.mjs"]
     # stdout is the MCP transport — diagnostics go to stderr.
+    init: true
+
+  # The generic stdio MCP server: `design_search`, `design_get`,
+  # `design_list`, `design_facets`, `design_markdown` across both sources.
+  design:
+    <<: *image
+    profiles: ["mcp"]
+    volumes:
+      - ${DESIGN_CACHE_DIR:-./cache}:/cache:ro
+    environment: *cache-env
+    command: ["node", "scripts/mcp-server.mjs"]
     init: true

@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.1.0 — 2026-11-10
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.1.0`
+- **Offline thumbnails.** `/thumb/:id` no longer 302-redirects to the CDN.
+  `scripts/fetch-thumbs.mjs` caches all 1,342 screenshots locally
+  (~150 MB) and the gallery serves the bytes. The gallery now makes zero
+  outbound requests. Verified against a container run with `--network none`.
+- **OpenDesign as a second source.** 152 curated design-system packages from
+  [nexu-io/open-design](https://github.com/nexu-io/open-design) (Apache-2.0)
+  are imported by `scripts/fetch-opendesign.mjs` into the same catalog, with
+  a `source` tag on every entry. Imported via sparse clone of the
+  `design-systems/` subtree — 38 MB, not the 3.6 GB full repo.
+- **Generic MCP server.** `scripts/mcp-server.mjs` exposes five source-neutral
+  tools — `design_search`, `design_get`, `design_list`, `design_facets`,
+  `design_markdown` — across both sources, with no network calls. The
+  upstream package stays unmodified with its seven `refero_*` tools.
+- **Generic naming.** The cache dir is `DESIGN_CACHE_DIR` (default
+  `~/.design-cache`); `REFERO_CACHE_DIR` is still honoured. Routes are
+  `/api/designs` and `/design/:id`, with `/api/styles` and `/style/:id`
+  kept as aliases. `catalog.json` carries both `styles` and `designs` keys
+  pointing at the same array.
+- OpenDesign entries render their original hand-written DESIGN.md (~22 KB)
+  rather than a synthesised one; Refero entries keep the upstream renderer,
+  so their output stays byte-identical.
+
 ## v1.0.4 — 2026-11-10
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v1.0.4`

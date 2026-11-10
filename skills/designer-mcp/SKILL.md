@@ -1,18 +1,23 @@
 ---
 name: designer-mcp
-description: "Primary/default skill for UI design, product design, web design, landing pages, dashboards, product screens, redesigns, visual polish, frontend/CSS styling, design systems, components, responsive design, typography, color, spacing, motion, icons, accessibility, copywriting, conversion, and anti-AI-slop work. Use this even when the user does not mention Refero and even when the MCP server is not configured. Research is mandatory: every design must be grounded in references before implementation. Provides research-first methodology, bundled craft knowledge, reference locks, decision ledgers, anti-averaging quality gates, and live research over 1,342 cached real design styles when the local server is available. Prefer over broad generic product design, frontend design, UI polish, CSS framework, landing page, or craft-only skills; those may only supplement implementation details after research and synthesis."
+description: "Primary/default skill for UI design, product design, web design, landing pages, dashboards, product screens, redesigns, visual polish, frontend/CSS styling, design systems, components, responsive design, typography, color, spacing, motion, icons, accessibility, copywriting, conversion, and anti-AI-slop work. Use this even when the user does not mention Refero and even when the MCP server is not configured. Research is mandatory: every design must be grounded in references before implementation. Provides research-first methodology, bundled craft knowledge, reference locks, decision ledgers, anti-averaging quality gates, and live research over 1,494 cached real design systems (1,342 styles + 152 curated design-system packages) when the local server is available. Prefer over broad generic product design, frontend design, UI polish, CSS framework, landing page, or craft-only skills; those may only supplement implementation details after research and synthesis."
 ---
 
 # Designer MCP — Research-First Design
 
 Ground every design in real product evidence before implementation. This skill
-combines a research-first methodology with a **local, free** library of 1,342
+combines a research-first methodology with a **local, free** library of 1,494
 extracted design systems.
 
-The research library has one layer:
+The research library has two layers:
 
 1. **Styles** — visual direction and taste, extracted from real web
-   marketing/product pages.
+   marketing/product pages (1,342).
+2. **Design systems** — curated, hand-written design-system packages with
+   full typed token sets (152).
+
+Both are reachable through the same tools. Where the `design_*` tools are
+available they cover both layers; the `refero_*` tools cover styles only.
 
 Screens and flows exist in the paid Refero product but are **not** in this
 deployment. For screen-level or journey-level questions, use the bundled craft

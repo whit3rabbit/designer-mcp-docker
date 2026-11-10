@@ -7,6 +7,7 @@ server prefix if your client namespaces them.
 ## Contents
 
 - [What you have vs. the official Refero MCP](#what-you-have-vs-the-official-refero-mcp)
+- [Two servers, two tool sets](#two-servers-two-tool-sets)
 - [Styles](#styles)
   - [`refero_search`](#refero-search)
   - [`refero_get`](#refero-get)
@@ -15,6 +16,7 @@ server prefix if your client namespaces them.
   - [`refero_facets`](#refero-facets)
   - [`refero_similar` — needs the live API](#refero-similar-needs-the-live-api)
   - [`refero_refresh` — needs the live API](#refero-refresh-needs-the-live-api)
+- [Generic tools — `design_*`](#generic-tools--design_)
 - [Gallery API (optional, for visual inspection)](#gallery-api-optional-for-visual-inspection)
 - [Common Mistakes](#common-mistakes)
 - [If Results Are Weak](#if-results-are-weak)
@@ -41,6 +43,26 @@ so plainly rather than inventing precedent.
 
 If the user has a paid Refero account, the official MCP can be registered
 alongside this one and both layers become available.
+
+---
+
+## Two servers, two tool sets
+
+The container ships two stdio MCP servers. Use whichever your client exposes.
+
+| Server | Tools | Scope |
+|---|---|---|
+| `scripts/mcp-entry.mjs` | `refero_*` (7) | Refero styles only; `refero_similar` and `refero_refresh` need the live API |
+| `scripts/mcp-server.mjs` | `design_*` (5) | **Both sources**, fully offline |
+
+The `design_*` server also serves **152 OpenDesign design systems**
+(`source: "opendesign"`) alongside the Refero styles — Linear, Stripe,
+Vercel, Notion, GitHub, Anthropic, and ~146 more, each with a hand-written
+DESIGN.md and a full typed token set. Prefer it when it is available: it
+searches more, and every tool works offline.
+
+Both tool sets can be registered at once. When a `design_*` tool is present,
+use it; fall back to `refero_*` otherwise.
 
 ---
 
@@ -205,6 +227,58 @@ node scripts/refero-public-fetch.js --limit 0 --force
 
 That reads only the **public** style pages and rewrites the cache. It never
 requests `/api/`.
+
+---
+
+## Generic tools — `design_*`
+
+Exposed by the generic server (`scripts/mcp-server.mjs`). These cover **both**
+sources and make **no network calls**.
+
+### `design_search`
+
+Natural-language search across the whole catalog (1,342 Refero styles + 152
+OpenDesign design systems).
+
+| Argument | Type | Notes |
+|---|---|---|
+| `query` | string | **required** — e.g. "warm healthcare", "dark developer tools" |
+| `theme` | `"light"` \| `"dark"` | optional filter |
+| `source` | `"refero"` \| `"opendesign"` | optional filter |
+| `limit` | number | default 10, max 50 |
+
+Each result carries `id`, `source`, `siteName`, `url`, `northStar`, `theme`,
+`industry`, `colors`, `fonts`, and a relevance `score`.
+
+### `design_get`
+
+Resolve an identifier to the full record. Accepts an id, a site name, a
+hostname, or a URL — e.g. `"linear"`, `"linear.app"`, `"linear-app"`.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `identifier` | string | **required** |
+| `source` | string | optional — restrict the lookup to one source |
+
+### `design_list`
+
+Browse with filters: `theme`, `source`, `industry`, `limit` (default 25,
+max 200), `offset`.
+
+### `design_facets`
+
+Distributions across the catalog: `total`, plus breakdowns by `themes`,
+`sources`, `industries`, and `fonts`. Call this before promising a direction,
+so you know what is actually present.
+
+### `design_markdown`
+
+The DESIGN.md for one design — the canonical agent-readable brief. Accepts
+the same identifiers as `design_get`.
+
+For Refero entries it is rendered from the cached record (~3.8 KB). For
+OpenDesign entries it is the **original hand-written document** (~22 KB) with
+the full rationale, so it is worth reading in full.
 
 ---
 

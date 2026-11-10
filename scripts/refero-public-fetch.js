@@ -511,11 +511,19 @@ async function readCatalog() {
   }
 }
 
-async function writeCatalog(styles) {
+/**
+ * Write the merged catalog.
+ *
+ * Two sources share one catalog file: Refero styles and OpenDesign systems.
+ * Each entry carries a `source` tag so downstream code can tell them apart.
+ * Both `styles` and `designs` keys are written pointing at the same array so
+ * the upstream package (which reads `styles`) keeps working unchanged.
+ */
+async function writeCatalog(designs) {
   await mkdir(CACHE_DIR, { recursive: true });
   await writeFile(
     join(CACHE_DIR, "catalog.json"),
-    JSON.stringify({ updatedAt: Date.now(), styles }, null, 1),
+    JSON.stringify({ updatedAt: Date.now(), styles: designs, designs }, null, 1),
   );
 }
 
@@ -608,16 +616,24 @@ async function main() {
   };
   await Promise.all(Array.from({ length: Math.min(CONC, targets.length) }, worker));
 
-  // Merge with anything already cached so the catalog keeps every style.
+  // Merge with anything already cached so the catalog keeps every style —
+  // including OpenDesign entries, which are left untouched.
   const prior = (await readCatalog())?.styles ?? [];
   const byId = new Map();
-  for (const s of prior) byId.set(s.id, s);
-  for (const s of listRows) byId.set(s.id, s);
+  for (const s of prior) {
+    if ((s.source || "refero") !== "refero") continue;
+    byId.set(s.id, s);
+  }
+  for (const s of listRows) {
+    s.source = "refero";
+    byId.set(s.id, s);
+  }
   const merged = [...byId.values()];
   await writeCatalog(merged);
 
   console.log(`\ndone: ${ok} fetched, ${failed} failed, catalog now ${merged.length} styles`);
-  console.log(`next: run the refero MCP server — it will serve from cache without touching /api/`);
+  console.log("next: node scripts/fetch-thumbs.mjs  (cache screenshots for offline use)");
+  console.log("next: run the MCP server — it will serve from cache without touching /api/");
 }
 
 // Only run when invoked directly, so the transport can be imported for tests.

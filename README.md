@@ -1,15 +1,36 @@
 # designer-mcp-docker
 
-**1,342 real product design systems, queryable by an agent and browsable by a human.**
+**1,494 real product design systems, queryable by an agent and browsable by a human.**
 
-Two surfaces over one cache:
+Three surfaces over one cache:
 
-- **MCP server** (stdio) — 7 tools for agents: search, get, render DESIGN.md, facets
+- **MCP server** (stdio) — 7 upstream `refero_*` tools for agents
+- **Generic MCP server** (stdio) — 5 source-neutral `design_*` tools across both sources
 - **Live gallery** (HTTP) — thumbnail grid, detail pages, live color swatches
 
 The upstream package [`fidgetcoding-refero-mcp`](https://github.com/fidgetcoding/refero-design-mcp)
 is vendored **unmodified** and runs against a prebuilt cache, so upstream
 updates drop in cleanly.
+
+**Runs fully offline.** Every thumbnail is cached on disk, so the gallery
+makes zero outbound requests. Verified against a container with
+`--network none`.
+
+---
+
+## Sources
+
+| Source | Count | What it is |
+|---|---|---|
+| `refero` | 1,342 | Styles scraped from `styles.refero.design`'s public pages |
+| `opendesign` | 152 | Design systems from [nexu-io/open-design](https://github.com/nexu-io/open-design) (Apache-2.0) |
+
+Both land in **one catalog** with a `source` tag on every entry, so a single
+query searches both.
+
+OpenDesign is imported with a sparse clone of just the `design-systems/`
+subtree — **38 MB**, not the 3.6 GB full repo (that figure is git history;
+the working tree is 323 MB).
 
 ---
 
@@ -20,6 +41,8 @@ cd ~/Documents/Github/designer-mcp-docker
 
 npm install          # upstream package
 npm run fetch        # populate ./cache from public pages (~2.5 min, 1,342 styles)
+npm run opendesign   # import the 152 OpenDesign design systems (~30s, 38 MB)
+npm run thumbs       # cache every screenshot locally (~150 MB)
 npm test             # self-test everything
 
 docker compose up -d # gallery → http://127.0.0.1:8787
@@ -30,15 +53,31 @@ Register the MCP server with your agent:
 ```bash
 hermes mcp add designer \
   --command docker \
-  --args run --rm -i -v "$HOME/.refero-cache:/cache:ro" \
+  --args run --rm -i -v "$HOME/.design-cache:/cache:ro" \
          ghcr.io/whit3rabbit/designer-mcp:latest \
-         node scripts/mcp-entry.mjs
+         node scripts/mcp-server.mjs
 ```
 
 The command prompts to enable tools — answer `y`. If stdin is not a TTY it
 cancels, so pipe it: `printf 'y\n' | hermes mcp add designer ...`.
 
 Restart the gateway (or `/reload-mcp`) so the tools register.
+
+### The two MCP servers
+
+`design_*` (generic, recommended) — source-neutral, works across both sources:
+
+| Tool | What it does |
+|---|---|
+| `design_search` | Natural-language search over the whole catalog |
+| `design_get` | Resolve an id, name, hostname, or URL to the full record |
+| `design_list` | Browse with theme/source/industry filters |
+| `design_facets` | Distributions: theme, source, industry, font |
+| `design_markdown` | The DESIGN.md for one design |
+
+`refero_*` (upstream) — Refero-specific, includes `refero_similar` and
+`refero_refresh`, which need network. Swap the command to
+`node scripts/mcp-entry.mjs` to use it.
 
 ---
 
@@ -60,13 +99,23 @@ a first-class product feature, not an extraction loophole.
 
 ### Cache layout
 
-The upstream package's own format, so upgrades stay safe:
+The upstream package's own format, plus the extra directories the generic
+server and the offline thumbnails need:
 
 ```
-cache/catalog.json       { updatedAt, styles[] }
-cache/styles/<uuid>.json { updatedAt, style }
-cache/embeddings.json    { model, vectors }   (only with OPENAI_API_KEY)
+cache/catalog.json       { updatedAt, styles[], designs[] }   <- merged, both sources
+cache/styles/<uuid>.json { updatedAt, style }                 <- Refero detail
+cache/systems/<slug>.json{ updatedAt, system }                <- OpenDesign package
+cache/thumbs/<id>.jpg    cached screenshot bytes               <- offline gallery
+cache/index.json         { updatedAt, total, counts }         <- per-source counts
 ```
+
+`styles` and `designs` in `catalog.json` point at the same array — the
+upstream package reads `styles`, the generic server reads `designs`. Every
+entry carries a `source` tag (`refero` or `opendesign`).
+
+The cache dir is `DESIGN_CACHE_DIR` (default `~/.design-cache`);
+`REFERO_CACHE_DIR` is still honoured so existing installs keep working.
 
 ---
 

@@ -17,6 +17,15 @@ Third-party components bundled in this project
    match this deployment. See skills/designer-mcp/references/mcp-tools.md
    and the Provenance section of skills/designer-mcp/SKILL.md.
 
-Design data cached under cache/ belongs to Refero and to the sites depicted.
-It is fetched from publicly available pages for local use and is not
-redistributed by this project.
+3. nexu-io/open-design (design-system packages)
+   Upstream: https://github.com/nexu-io/open-design
+   License: Apache-2.0
+   Files: the design-systems/ subtree, imported into cache/systems/<slug>.json
+          and cache/catalog.json by scripts/fetch-opendesign.mjs.
+   Used unmodified. Each imported package keeps its own manifest, DESIGN.md,
+   and token set. Individual packages under design-templates/ carry their own
+   LICENSE files upstream and are not imported by this project.
+
+Design data cached under cache/ belongs to Refero, to nexu-io/open-design, and
+to the sites depicted. It is fetched from publicly available pages for local
+use and is not redistributed by this project.
