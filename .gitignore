@@ -1,6 +1,29 @@
+# Dependencies
 node_modules/
+
+# Populated by scripts/refero-public-fetch.js — 1,342 style files, ~117MB.
+# Populate it outside the container; it is mounted read-only, never baked in.
 cache/
+
+# Built skill archives
 dist/
-*.log
-.DS_Store
+
+# Local env / secrets
 .env
+.env.*
+!.env.example
+
+# Logs and OS cruft
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Python bytecode (the audit scripts in the sibling repo are Python; harmless here)
+__pycache__/
+*.pyc

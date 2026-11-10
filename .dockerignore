@@ -1,7 +1,34 @@
-node_modules
-cache
+# Keep the build context small and the image reproducible.
+
+# Installed inside the image by `npm install` in the Dockerfile.
+node_modules/
+
+# The style cache is mounted at runtime, never baked in. Baking 117MB would
+# make the image stale the moment a style is updated.
+cache/
+
+# Build output
+dist/
+
+# VCS and tooling
 .git
 .gitignore
+.gitattributes
+.github/
+
+# Docs are not needed at runtime. Keep them out of the image.
+docs/
+README.md
+agents-license.txt
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs, OS cruft, editor state
 *.log
 .DS_Store
-docs/*.local.md
+Thumbs.db
+.vscode/
+.idea/

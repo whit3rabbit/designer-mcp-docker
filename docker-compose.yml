@@ -1,7 +1,19 @@
 # designer-mcp — Refero styles gallery + MCP server.
 #
-# The gallery serves the cached catalog over HTTP with live thumbnails.
-# The MCP server (stdio) is the same one registered as `refero-styles`.
+# Two surfaces over one local cache:
+#   gallery — HTTP preview with live thumbnails, colour swatches, type scales
+#   mcp     — the stdio MCP server (7 tools) for agents
+#
+# The cache is populated OUTSIDE the container by scripts/refero-public-fetch.js,
+# which reads only public pages. It is mounted read-only and never baked into
+# the image.
+#
+#   docker compose up -d gallery      # start the preview server
+#   docker compose run --rm mcp       # run the stdio MCP server
+#
+# Point at a cache elsewhere with:
+#   REFERO_CACHE_DIR=/path/to/cache docker compose up -d gallery
+
 services:
   gallery:
     build: .
@@ -10,11 +22,10 @@ services:
     ports:
       - "127.0.0.1:8787:8787"
     volumes:
-      # The cache is populated OUTSIDE the container by scripts/refero-public-fetch.js,
-      # which reads only public pages. Mount it read-only here.
       - ${REFERO_CACHE_DIR:-./cache}:/cache:ro
     environment:
       REFERO_CACHE_DIR: /cache
+      REFERO_CACHE_TTL_MS: "86400000"
       PORT: "8787"
       HOST: 0.0.0.0
     restart: unless-stopped
@@ -28,3 +39,19 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+
+  # The stdio MCP server. Run it with `docker compose run --rm mcp` — it
+  # speaks JSON-RPC over stdin/stdout, so it is not started by `up`.
+  mcp:
+    build: .
+    image: designer-mcp:latest
+    container_name: designer-mcp-mcp
+    profiles: ["mcp"]
+    volumes:
+      - ${REFERO_CACHE_DIR:-./cache}:/cache:ro
+    environment:
+      REFERO_CACHE_DIR: /cache
+      REFERO_CACHE_TTL_MS: "86400000"
+    command: ["node", "scripts/mcp-entry.mjs"]
+    # stdout is the MCP transport — diagnostics go to stderr.
+    init: true
