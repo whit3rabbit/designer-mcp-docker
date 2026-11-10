@@ -77,7 +77,18 @@ if (!FETCH_ONLY) {
       buildPlatforms,
       "-t",
       `${IMAGE_NAME}:latest`,
-      ...(TAG ? ["-t", `${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}`] : []),
+      // Publishing pushes both the version tag and `:latest`, so the
+      // floating tag never points at an older release.
+      ...(TAG
+        ? [
+            "-t",
+            `${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}`,
+            "-t",
+            `${REGISTRY}/${OWNER}/${IMAGE_NAME}:latest`,
+          ]
+        : PUBLISH
+          ? ["-t", `${REGISTRY}/${OWNER}/${IMAGE_NAME}:latest`]
+          : []),
       ...(PUBLISH ? ["--push"] : ["--load"]),
       ROOT,
     ],

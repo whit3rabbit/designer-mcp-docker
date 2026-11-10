@@ -30,9 +30,13 @@ Register the MCP server with your agent:
 ```bash
 hermes mcp add designer \
   --command docker \
-  --args run --rm -i -v "$PWD/cache:/cache:ro" \
-         designer-mcp:latest node scripts/mcp-entry.mjs
+  --args run --rm -i -v "$HOME/.refero-cache:/cache:ro" \
+         ghcr.io/whit3rabbit/designer-mcp:latest \
+         node scripts/mcp-entry.mjs
 ```
+
+The command prompts to enable tools — answer `y`. If stdin is not a TTY it
+cancels, so pipe it: `printf 'y\n' | hermes mcp add designer ...`.
 
 Restart the gateway (or `/reload-mcp`) so the tools register.
 
@@ -169,11 +173,15 @@ npm test        # 17 checks across cache, renderer, preview, and MCP
 ## Published image
 
 ```bash
-docker pull ghcr.io/whit3rabbit/designer-mcp:v1.0.4
+docker pull ghcr.io/whit3rabbit/designer-mcp:latest
 ```
 
 Public on GitHub Container Registry, multi-arch (`linux/amd64`, `linux/arm64`),
 ~285MB.
+
+`:latest` tracks the newest release — the publish workflow pushes it
+alongside every version tag. Pin to a specific tag (`v1.0.4`) when you want
+a reproducible deployment.
 
 **The image ships the fetcher**, so a fresh machine needs no repo checkout —
 just Docker and a volume:
@@ -182,14 +190,14 @@ just Docker and a volume:
 # 1. populate the cache (reads only public pages; /api/ is never requested)
 docker volume create refero-cache
 docker run --rm -v refero-cache:/cache \
-  ghcr.io/whit3rabbit/designer-mcp:v1.0.4 \
+  ghcr.io/whit3rabbit/designer-mcp:latest \
   node scripts/refero-public-fetch.js --limit 0
 
 # 2. run the gallery
 docker run -d --name designer-mcp-gallery \
   -p 127.0.0.1:8787:8787 \
   -v refero-cache:/cache:ro \
-  ghcr.io/whit3rabbit/designer-mcp:v1.0.4
+  ghcr.io/whit3rabbit/designer-mcp:latest
 ```
 
 ### From a clone
@@ -219,7 +227,7 @@ GALLERY_PORT=8788 docker compose up -d gallery
 hermes mcp add designer --command docker --args \
   run --rm -i \
   -v ~/.refero-cache:/cache:ro \
-  ghcr.io/whit3rabbit/designer-mcp:v1.0.4 \
+  ghcr.io/whit3rabbit/designer-mcp:latest \
   node scripts/mcp-entry.mjs
 ```
 
