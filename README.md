@@ -164,6 +164,67 @@ npm test        # 17 checks across cache, renderer, preview, and MCP
 
 ---
 
+## Published image
+
+```bash
+docker pull ghcr.io/whit3rabbit/designer-mcp:v1.0.0
+```
+
+Public on GitHub Container Registry, multi-arch (`linux/amd64`, `linux/arm64`),
+~285MB. The style cache is **not** baked in — mount it:
+
+```bash
+docker run -d --name designer-mcp-gallery \
+  -p 127.0.0.1:8787:8787 \
+  -v ~/.refero-cache:/cache:ro \
+  ghcr.io/whit3rabbit/designer-mcp:v1.0.0
+```
+
+### Updating and publishing
+
+```bash
+npm run update              # refresh the cache + rebuild the image
+npm run update:dry          # print the plan without executing
+npm run publish             # + push to GHCR
+npm run publish -- --tag v1.2.0
+```
+
+`scripts/update.mjs` is the entry point. It refreshes the cache, rebuilds the
+image, and optionally publishes:
+
+| Flag | Effect |
+|---|---|
+| `--fetch-only` | refresh the style cache, skip the build |
+| `--build-only` | rebuild the image, skip the fetch |
+| `--publish` | push to the registry after building |
+| `--tag <version>` | tag the image (implies `--publish`) and record it in `CHANGELOG.md` |
+| `--registry <host>` `--owner <name>` `--name <image>` | override the image coordinates |
+| `--cache <dir>` | cache location (default `~/.refero-cache`) |
+| `--dry-run` | print the commands without running them |
+| `--yes` | skip the confirmation prompt |
+
+A local build targets the host architecture, because `--load` cannot hold a
+multi-platform manifest. A publishing build goes multi-arch straight to the
+registry.
+
+**Publishing runs through GitHub Actions**, not locally: pushing to GHCR needs
+the `write:packages` scope, and the local `gh` token does not carry it. The
+workflow's own token has it by default, so a tag push publishes with no stored
+secret:
+
+```bash
+git tag v1.2.0 && git push origin v1.2.0    # publishes v1.2.0 + latest
+```
+
+To publish from your own machine instead, refresh the token scope once:
+
+```bash
+gh auth refresh -h github.com -s write:packages
+docker login ghcr.io -u <owner> --password-stdin < <(gh auth token)
+```
+
+---
+
 ## The skill
 
 `skills/designer-mcp/` is a research-first design skill: methodology, MCP
