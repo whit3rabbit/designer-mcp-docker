@@ -40,6 +40,33 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
+      # The image ships a baked catalog, so the build needs one. The bake
+      # directory is a build artifact and is not in git, so it is produced
+      # here from the fetchers — the same ones the image ships.
+      #
+      # The cache is restored between runs and the fetchers skip what is
+      # already present, so this is fast after the first run.
+      - name: Restore the catalog cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.design-cache
+          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-thumbs.mjs') }}
+          restore-keys: |
+            catalog-${{ runner.os }}-
+
+      - name: Populate and bake the catalog
+        run: |
+          npm install --omit=dev --ignore-scripts
+          export DESIGN_CACHE_DIR="$HOME/.design-cache"
+          export REFERO_CACHE_DIR="$HOME/.design-cache"
+          node scripts/refero-public-fetch.js --limit 0 || echo "refero fetch incomplete"
+          node scripts/fetch-opendesign.mjs || echo "opendesign import incomplete"
+          node scripts/fetch-gradientdeck.mjs || echo "component fetch incomplete"
+          node scripts/fetch-presets.mjs || echo "preset fetch incomplete"
+          node scripts/fetch-thumbs.mjs --compress || echo "thumb fetch incomplete"
+          node scripts/bake-cache.mjs --cache "$HOME/.design-cache" --out bake
+          ls -la bake/
+
       - name: Derive tags
         id: meta
         run: |
@@ -77,9 +104,34 @@ jobs:
         run: |
           IMAGE="${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/${IMAGE_NAME}"
           docker pull "${IMAGE}:latest"
-          # The MCP server must expose its 7 tools and the gallery must serve.
-          docker run --rm "${IMAGE}:latest" node -e "
-            const r = await fetch('http://127.0.0.1:8787/healthz').catch(() => null);
-            console.log('container starts:', r ? 'ok' : 'no http (cache not mounted, expected)');
-          " 2>/dev/null || true
+          # The baked catalog must be present and served with NO network at
+          # all. This is the property the image exists for, so it is worth
+          # failing the publish over.
+          #
+          # The container runs its normal CMD (the gallery); the checks are
+          # exec'd inside it, because passing a command would replace the
+          # CMD and the server would never start.
+          docker rm -f designer-mcp-verify || true
+          docker run -d --name designer-mcp-verify --network none "${IMAGE}:latest"
+          sleep 12
+          docker exec designer-mcp-verify node -e "
+            const base = 'http://127.0.0.1:8787';
+            const checks = ['/healthz', '/components', '/presets', '/api/designs'];
+            let bad = 0;
+            for (const p of checks) {
+              try {
+                const r = await fetch(base + p);
+                const body = await r.text();
+                const good = r.status === 200 && body.length > 0;
+                console.log('  ' + (good ? 'ok  ' : 'FAIL') + ' ' + p + ' ' + r.status + ' ' + body.length + 'b');
+                if (!good) bad++;
+              } catch (e) {
+                console.log('  FAIL ' + p + ' ' + e.message);
+                bad++;
+              }
+            }
+            if (bad) { console.error('published image is missing data'); process.exit(1); }
+            console.log('published image serves the baked catalog offline');
+          "
+          docker rm -f designer-mcp-verify
           echo "published: ${IMAGE}"
