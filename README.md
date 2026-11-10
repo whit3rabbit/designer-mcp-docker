@@ -179,12 +179,31 @@ The `designer-mcp` image runs both surfaces over the same cache:
 | Surface | How to run | What it is |
 |---|---|---|
 | **Gallery** | `docker compose up -d gallery` | HTTP preview on `127.0.0.1:8787` — thumbnails, colour swatches, type scales, DESIGN.md |
-| **MCP** | `docker compose run --rm mcp` | stdio JSON-RPC server, 7 tools, for agents |
-| **Fetch** | `docker compose run --rm fetch` | populates the cache from public pages |
+| **MCP** | `docker compose run --rm design` | stdio JSON-RPC server, 5 `design_*` tools over both sources |
+| **MCP (upstream)** | `docker compose run --rm mcp` | stdio JSON-RPC server, 7 `refero_*` tools, Refero-only |
+| **Fetch** | `docker compose run --rm fetch` | populates the cache from Refero's public pages |
+| **OpenDesign** | `docker compose run --rm opendesign` | imports the 152 design-system packages |
+| **Thumbs** | `docker compose run --rm thumbs` | caches every screenshot locally (~150 MB) |
 
 The MCP and fetch services sit behind compose profiles because `up` cannot
-supervise them: one speaks JSON-RPC over stdin/stdout, the other is a
-one-shot job.
+supervise them: one speaks JSON-RPC over stdin/stdout, the others are
+one-shot jobs.
+
+A full offline cache is three commands:
+
+```bash
+docker compose run --rm fetch        # 1,342 Refero styles   (~2.5 min)
+docker compose run --rm opendesign   # 152 OpenDesign systems (~30 s)
+docker compose run --rm thumbs       # 1,342 screenshots     (~150 MB)
+```
+
+Each accepts trailing arguments, which append to the script's defaults:
+
+```bash
+docker compose run --rm fetch --limit 20              # just 20 styles
+docker compose run --rm opendesign --slug linear-app  # one design system
+docker compose run --rm thumbs --limit 50 --force     # re-fetch 50
+```
 
 ### Point at a cache elsewhere
 

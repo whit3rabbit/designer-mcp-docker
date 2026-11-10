@@ -47,7 +47,9 @@ import {
 
 const argv = process.argv.slice(2);
 const argVal = (name) => {
-  const i = argv.indexOf(name);
+  // Last occurrence wins, so a compose `entrypoint` default can be
+  // overridden by a trailing argument: `run --rm opendesign --slug linear-app`.
+  const i = argv.lastIndexOf(name);
   return i >= 0 && argv[i + 1] ? argv[i + 1] : null;
 };
 const has = (name) => argv.includes(name);

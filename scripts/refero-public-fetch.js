@@ -24,13 +24,13 @@
  * that cache with zero network calls and zero code changes to the package.
  *
  * Usage:
+ *   node refero-public-fetch.js                     # fetch the whole catalog
  *   node refero-public-fetch.js --limit 40          # fetch N styles
- *   node refero-public-fetch.js --limit 0           # fetch whole catalog
  *   node refero-public-fetch.js --search "railway"  # resolve by name first
  *   node refero-public-fetch.js --id <uuid>         # fetch one style
  *
  * Env:
- *   REFERO_CACHE_DIR       cache root (default ~/.refero-cache)
+ *   REFERO_CACHE_DIR       cache root (default ~/.design-cache)
  *   REFERO_FETCH_DELAY_MS  delay between requests (default 400)
  *   REFERO_FETCH_CONC      parallel workers (default 4)
  *   REFERO_FETCH_UA        User-Agent header
@@ -43,7 +43,12 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 const BASE = "https://styles.refero.design";
-const CACHE_DIR = process.env.REFERO_CACHE_DIR || join(homedir(), ".refero-cache");
+// DESIGN_CACHE_DIR is the canonical name; REFERO_CACHE_DIR is the legacy
+// name and still honoured so existing setups keep working.
+const CACHE_DIR =
+  process.env.DESIGN_CACHE_DIR ||
+  process.env.REFERO_CACHE_DIR ||
+  join(homedir(), ".design-cache");
 const DELAY_MS = Number(process.env.REFERO_FETCH_DELAY_MS ?? 400);
 const CONC = Number(process.env.REFERO_FETCH_CONC ?? 4);
 const UA =
@@ -53,7 +58,9 @@ const UA =
 // ---------------------------------------------------------------- args
 const argv = process.argv.slice(2);
 const argVal = (name) => {
-  const i = argv.indexOf(name);
+  // Last occurrence wins, so a compose `entrypoint` default can be
+  // overridden by a trailing argument: `run --rm fetch --limit 20`.
+  const i = argv.lastIndexOf(name);
   return i >= 0 && argv[i + 1] ? argv[i + 1] : null;
 };
 const has = (name) => argv.includes(name);
@@ -547,7 +554,10 @@ async function cachedIds() {
 async function main() {
   const onlyId = argVal("--id");
   const searchTerm = argVal("--search");
-  const limit = argVal("--limit") === null ? 40 : Number(argVal("--limit"));
+  // Default to the whole catalog. The `fetch` compose service runs this
+  // with no arguments, and a partial fetch there would silently produce an
+  // incomplete cache. Pass `--limit N` to fetch only N styles.
+  const limit = argVal("--limit") === null ? 0 : Number(argVal("--limit"));
 
   console.log(`cache dir : ${CACHE_DIR}`);
   console.log(`base url  : ${BASE}  (public pages only; /api/ is never requested)`);

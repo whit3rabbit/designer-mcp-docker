@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.1.1 — 2026-11-10
+
+- **Compose services accept trailing arguments.** `docker compose run --rm
+  thumbs --limit 5 --force` used to fail with `node: bad option: --limit`,
+  because compose's `command:` key REPLACES the container command rather
+  than appending to it. The fetch services now use `entrypoint:` instead,
+  so trailing args append as expected. Verified for all three: `fetch`,
+  `opendesign`, `thumbs`.
+- **Argument parsing takes the last occurrence.** The `--limit 0` default
+  baked into the compose `command:` would have overridden a user's
+  `--limit 20`. `argVal` now returns the last match, so a trailing
+  argument always wins.
+- **`fetch` defaults to the whole catalog.** With the `--limit 0` default
+  moved out of the compose file, the script's own default changed from 40
+  to 0 (all). A partial fetch from the `fetch` service would otherwise
+  have silently produced an incomplete cache.
+- **The cache directory default is now consistent.** `refero-public-fetch.js`
+  defaulted to `~/.refero-cache` while every other script used
+  `~/.design-cache`. It now uses `DESIGN_CACHE_DIR`, falls back to the
+  legacy `REFERO_CACHE_DIR`, and only then to `~/.design-cache`.
+- The compose image is overridable with `DESIGNER_MCP_IMAGE`, so a local
+  build can be tested through the same compose services without retagging.
+
 ## v1.1.0 — 2026-11-10
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v1.1.0`

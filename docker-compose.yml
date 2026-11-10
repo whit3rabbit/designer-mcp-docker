@@ -33,7 +33,7 @@ x-image: &image
   # `:latest` tracks the newest release — the publish workflow pushes it
   # alongside every version tag. Pin to a specific tag for a reproducible
   # deployment.
-  image: ghcr.io/whit3rabbit/designer-mcp:latest
+  image: ${DESIGNER_MCP_IMAGE:-ghcr.io/whit3rabbit/designer-mcp:latest}
   build:
     context: .
 
@@ -71,33 +71,45 @@ services:
   # fetcher, so a fresh install needs no repo checkout:
   #   docker compose run --rm fetch
   # Reads only public pages; /api/ is never requested.
+  #
+  # `entrypoint` (not `command`) so trailing args append:
+  #   docker compose run --rm fetch --limit 20
   fetch:
     <<: *image
     profiles: ["fetch"]
     volumes:
       - ${DESIGN_CACHE_DIR:-./cache}:/cache
     environment: *cache-env
-    command: ["node", "scripts/refero-public-fetch.js", "--limit", "0"]
+    entrypoint: ["node", "scripts/refero-public-fetch.js"]
+    init: true
 
   # Import OpenDesign design systems. Sparse-clones only the
   # `design-systems/` subtree (38 MB, not the 3.6 GB full repo).
+  #
+  # `entrypoint` (not `command`) so that trailing args APPEND rather than
+  # replace it — `docker compose run --rm opendesign --source /path` works.
   opendesign:
     <<: *image
     profiles: ["fetch"]
     volumes:
       - ${DESIGN_CACHE_DIR:-./cache}:/cache
     environment: *cache-env
-    command: ["node", "scripts/fetch-opendesign.mjs"]
+    entrypoint: ["node", "scripts/fetch-opendesign.mjs"]
+    init: true
 
   # Cache every screenshot locally so the gallery needs no network.
   # ~150 MB for the full Refero catalog.
+  #
+  # `entrypoint` (not `command`) so trailing args append:
+  #   docker compose run --rm thumbs --limit 20 --force
   thumbs:
     <<: *image
     profiles: ["fetch"]
     volumes:
       - ${DESIGN_CACHE_DIR:-./cache}:/cache
     environment: *cache-env
-    command: ["node", "scripts/fetch-thumbs.mjs"]
+    entrypoint: ["node", "scripts/fetch-thumbs.mjs"]
+    init: true
 
   # The upstream stdio MCP server (Refero-specific tools). Run it with
   # `docker compose run --rm mcp` — it speaks JSON-RPC over stdin/stdout,

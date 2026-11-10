@@ -6,7 +6,7 @@
   "description": "Containerised design-system MCP server with a live offline thumbnail gallery",
   "license": "MIT",
   "scripts": {
-    "fetch": "node scripts/refero-public-fetch.js --limit 0",
+    "fetch": "node scripts/refero-public-fetch.js",
     "fetch:quick": "node scripts/refero-public-fetch.js --limit 60",
     "opendesign": "node scripts/fetch-opendesign.mjs",
     "thumbs": "node scripts/fetch-thumbs.mjs",
