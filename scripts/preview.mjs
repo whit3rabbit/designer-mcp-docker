@@ -469,7 +469,47 @@ const server = createServer(async (req, res) => {
   }
 });
 
-await loadCatalog();
+// Wait for the catalog rather than dying. The cache is often populated by a
+// separate fetch container that may still be running when the gallery starts,
+// so a missing catalog here is normal, not fatal. Without this the container
+// crash-loops until the fetch finishes.
+const CATALOG_WAIT_MS = Number(process.env.REFERO_CATALOG_WAIT_MS || 300000);
+const CATALOG_POLL_MS = Number(process.env.REFERO_CATALOG_POLL_MS || 2000);
+
+async function waitForCatalog() {
+  const deadline = Date.now() + CATALOG_WAIT_MS;
+  let announced = false;
+  while (Date.now() < deadline) {
+    if (existsSync(join(CACHE_DIR, "catalog.json"))) {
+      try {
+        await loadCatalog();
+        return true;
+      } catch {
+        // Written but not yet complete — fall through and retry.
+      }
+    }
+    if (!announced) {
+      console.log(
+        `refero-preview waiting for a catalog at ${join(CACHE_DIR, "catalog.json")} ` +
+          `(up to ${Math.round(CATALOG_WAIT_MS / 1000)}s). ` +
+          `Populate it with: node scripts/refero-public-fetch.js --limit 0`,
+      );
+      announced = true;
+    }
+    await new Promise((r) => setTimeout(r, CATALOG_POLL_MS));
+  }
+  return false;
+}
+
+if (!(await waitForCatalog())) {
+  console.error(
+    `refero-preview: no catalog at ${join(CACHE_DIR, "catalog.json")} after ` +
+      `${Math.round(CATALOG_WAIT_MS / 1000)}s. Populate it with: ` +
+      `node scripts/refero-public-fetch.js --limit 0`,
+  );
+  process.exit(1);
+}
+
 server.listen(PORT, HOST, () => {
   console.log(`refero-preview on http://${HOST}:${PORT} — ${catalog.length} styles`);
 });
