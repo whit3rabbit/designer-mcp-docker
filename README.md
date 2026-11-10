@@ -213,6 +213,22 @@ GALLERY_PORT=8788 docker compose up -d gallery
 
 `docker compose build` still rebuilds from the Dockerfile in the repo.
 
+### Registering with an agent (Hermes)
+
+```bash
+hermes mcp add designer --command docker --args \
+  run --rm -i \
+  -v ~/.refero-cache:/cache:ro \
+  ghcr.io/whit3rabbit/designer-mcp:v1.0.4 \
+  node scripts/mcp-entry.mjs
+```
+
+The command prompts to enable tools; answer `y` (or pipe `y` if stdin is not
+a TTY, or it cancels).
+
+Point it at the published tag rather than a locally built image — the
+registry tag works on any machine without a build step.
+
 ### Updating and publishing
 
 ```bash
