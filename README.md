@@ -167,7 +167,7 @@ npm test        # 17 checks across cache, renderer, preview, and MCP
 ## Published image
 
 ```bash
-docker pull ghcr.io/whit3rabbit/designer-mcp:v1.0.0
+docker pull ghcr.io/whit3rabbit/designer-mcp:v1.0.1
 ```
 
 Public on GitHub Container Registry, multi-arch (`linux/amd64`, `linux/arm64`),
@@ -177,7 +177,7 @@ Public on GitHub Container Registry, multi-arch (`linux/amd64`, `linux/arm64`),
 docker run -d --name designer-mcp-gallery \
   -p 127.0.0.1:8787:8787 \
   -v ~/.refero-cache:/cache:ro \
-  ghcr.io/whit3rabbit/designer-mcp:v1.0.0
+  ghcr.io/whit3rabbit/designer-mcp:v1.0.1
 ```
 
 ### Updating and publishing
