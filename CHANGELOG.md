@@ -1,5 +1,47 @@
 # Changelog
 
+## v1.4.0 — 2026-11-12
+
+- **A third source: the Open Design Agent Kit.** `npm run agentkit` imports
+  [feimacode/open-design-agent-kit](https://github.com/feimacode/open-design-agent-kit)
+  (MIT), which re-packages OpenDesign's content for agents. It contributes
+  **46 design systems that do not exist upstream** — 30 iOS systems adapted
+  from `Meliwat/awesome-ios-design-md` and 16 aesthetic concepts re-authored
+  from `bergside/awesome-design-skills` — taking the catalog from 1,494 to
+  **1,540** (1,342 Refero styles + 198 design systems).
+- **Corrections for 57 upstream systems** whose prose disagreed with their
+  tokens. agentic's DESIGN.md said "Playfair Display" and `#FF5701` while its
+  CSS said "Inter" and `#60a5fa`. The kit's overlay tree resolves each
+  conflict, keeping the value that renders, so a system's prose, tokens and
+  rendered preview now agree. The corrected files are restored from the kit's
+  pristine tree before the overlay is applied, so re-running the fetcher
+  never stacks a second override.
+- **A Claude Design package for every system** — the same files Claude's own
+  Design System format uses (`tokens.json`, `design-system.json`, `README.md`,
+  `components/Cover/preview.html`). The new `design_claude_package` MCP tool
+  reads them, so a system can be handed to Claude directly rather than
+  re-described. The generic server now exposes **20 `design_*` tools**.
+- **A rendered preview and cover for every system.** The gallery shows each
+  system two ways, as an Open Design preview and as a Claude Design view, at
+  `/preview/:id/open-design` and `/preview/:id/claude`. The artifacts are
+  published by the kit as static files and cached locally, so the gallery
+  still makes **no outbound calls**.
+- **Curated mood/industry/surface descriptors** — what the tokens cannot say,
+  and what the gallery filters on. `design_get` returns them under
+  `package.descriptor`.
+- **A redesigned gallery index.** Tag chips instead of dropdowns, and the
+  descriptor tags on every card.
+- **The `opendesign` importer is now shared.** The parsing moved to
+  `scripts/lib/opendesign-import.mjs`, which the Agent Kit fetcher uses, so a
+  package is read the same way whichever tree it came from.
+- **The publish workflow now runs the Agent Kit fetcher** and fails if the
+  baked catalog comes out without the kit layer. Before this, a CI-built
+  image would have silently shipped 1,494 designs and answered every Claude
+  Design request with an error. The published image is also verified to serve
+  the kit routes with `--network none`.
+- `agents-license.txt` records the new upstream sources and what was taken
+  from each.
+
 ## v1.3.0 — 2026-11-10
 
 - **The image now ships the catalog.** Previously every deployment had to

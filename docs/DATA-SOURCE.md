@@ -39,10 +39,36 @@ product feature, not an extraction loophole.
 - **1,342 styles**, each from one public page.
 - **52 collection pages**, used only to cross-check completeness.
 - **2 sitemap XML files**, for the canonical id list.
+- **198 OpenDesign design systems**, from two public git repositories under
+  permissive licences — see the table below.
 
 Completeness was verified by comparing the sitemap against every id found on
 all 52 collection pages: **0 style ids appear in collections that are missing
 from the sitemap.** The sitemap is the complete universe.
+
+## The non-Refero sources
+
+The other two sources are public git repositories, not scraped pages. The
+robots.txt reasoning above applies only to Refero; a git repository has no
+robots.txt and its licence is the permission.
+
+| Repository | Licence | What is taken |
+|---|---|---|
+| `nexu-io/open-design` | Apache-2.0 | 152 design-system packages (`design-systems/` subtree, sparse-cloned — 38 MB, not the 3.6 GB of git history) |
+| `feimacode/open-design-agent-kit` | MIT | 46 systems that do not exist upstream, the correction overlay for the 152, the Claude Design packages, and the rendered gallery artifacts |
+| `Meliwat/awesome-ios-design-md` | MIT | the 30 iOS systems the kit adapts |
+| `bergside/awesome-design-skills` | MIT | the 16 aesthetic systems the kit re-authors |
+
+The kit re-packages the Apache-2.0 OpenDesign content, so the attribution in
+the first row covers those systems as well. Its copies of them are stripped
+(no `design-tokens.json`, no `USAGE.md`), so this project keeps the upstream
+originals and takes only the kit's *corrections*.
+
+The gallery artifacts are published by the kit as static files on a public
+host and are fetched once into the cache. They are read, not scraped: a fixed
+set of known paths, no page traversal, no rate-limit circumvention.
+
+Full attribution is in `agents-license.txt` at the repository root.
 
 ## What is not requested
 

@@ -20,6 +20,7 @@ include the server name in the displayed tool name.
   - [`design_search`](#design_search)
   - [`design_get`](#design_get)
   - [`design_package_file`](#design_package_file)
+  - [`design_claude_package`](#design_claude_package)
   - [`design_list`](#design_list)
   - [`design_facets`](#design_facets)
   - [`design_markdown`](#design_markdown)
@@ -73,9 +74,9 @@ not this skill directory.
 | `scripts/mcp-entry.mjs` | `refero_*` (7) | Refero styles only; `refero_similar` and `refero_refresh` need the live API |
 | `scripts/mcp-server.mjs` | `design_*` | **All sources**, fully offline |
 
-The `design_*` server also serves **152 OpenDesign design systems**
+The `design_*` server also serves **198 OpenDesign design systems**
 (`source: "opendesign"`) alongside the Refero styles — Linear, Stripe,
-Vercel, Notion, GitHub, Anthropic, and ~146 more, each with a hand-written
+Vercel, Notion, GitHub, Anthropic, and ~194 more, each with a hand-written
 DESIGN.md and a full typed token set. Prefer it when it is available: it
 searches more, and every tool works offline.
 
@@ -260,7 +261,7 @@ sources and make **no network calls**.
 
 ### `design_search`
 
-Natural-language search across the whole catalog (1,342 Refero styles + 152
+Natural-language search across the whole catalog (1,342 Refero styles + 198
 OpenDesign design systems).
 
 | Argument | Type | Notes |
@@ -289,6 +290,11 @@ OpenDesign results also include `package.reference`, the original manifest
 cached paths, byte sizes, and encodings. `package.legacyCache` is true if
 only core fields from a pre-upgrade cache are available.
 
+Two more fields appear when the Agent Kit layer is cached:
+`package.descriptor` carries the curated `moods`, `industries` and
+`surfaces` — what the tokens cannot say — and `package.claudeFiles` lists
+the Claude Design package files for that system.
+
 ### `design_package_file`
 
 Read one OpenDesign package file offline, using a path from `design_get`:
@@ -302,6 +308,21 @@ the original byte count. New imports preserve the original file bytes;
 old caches reconstruct `manifest.json` and `design-tokens.json` from JSON.
 To fill in the missing files, refresh the cache with
 `npm run opendesign -- --slug arc` and rebuild if using the baked catalog.
+
+### `design_claude_package`
+
+Read one file from a system's **Claude Design** package — the same files
+Claude's own Design System format uses (`README.md`, `tokens.json`,
+`design-system.json`, `components/…`):
+
+```json
+{ "identifier": "designer:opendesign:arc", "path": "README.md" }
+```
+
+Get the available paths from `package.claudeFiles` in `design_get`. This is
+how you hand a system to Claude: read the files, then write them into a
+Claude Design System artifact. Refresh the layer with `npm run agentkit`
+if the cache has none.
 
 ### `design_list`
 

@@ -6,6 +6,8 @@
 #
 #   scripts/refero-public-fetch.js  Refero styles (public pages only)
 #   scripts/fetch-opendesign.mjs    OpenDesign design systems (sparse clone)
+#   scripts/fetch-agentkit.mjs      the Agent Kit layer: 46 more systems,
+#                                   the Claude Design packages, the previews
 #   scripts/fetch-thumbs.mjs        screenshots, cached locally for offline use
 #   scripts/fetch-gradientdeck.mjs  AI components (shadcn registry exports)
 #   scripts/fetch-presets.mjs       gradient / pattern / glass preset catalogs
@@ -79,5 +81,5 @@ EXPOSE 8787
 
 # Default: the preview gallery on 8787.
 #   node scripts/mcp-entry.mjs     the upstream Refero MCP server (7 tools)
-#   node scripts/mcp-server.mjs    the generic design MCP server (5 tools)
+#   node scripts/mcp-server.mjs    the generic design MCP server (20 tools)
 CMD ["node", "scripts/preview.mjs"]

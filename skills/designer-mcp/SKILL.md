@@ -23,7 +23,7 @@ A user-selected source is sufficient grounding. Follow the
 Use catalog research when the task needs a reference.
 
 Ground every design in real product evidence before implementation. This skill
-combines a research-first methodology with a **local, free** library of 1,494
+combines a research-first methodology with a **local, free** library of 1,540
 extracted design systems.
 
 The research library has two layers, plus a component layer:
@@ -31,10 +31,14 @@ The research library has two layers, plus a component layer:
 1. **Styles** — visual direction and taste, extracted from real web
    marketing/product pages (1,342).
 2. **Design systems** — curated, hand-written design-system packages with
-   full typed token sets (152).
+   full typed token sets (198).
 3. **Components and presets** — 109 AI components with complete, typed TSX
    source (250 variants), and 159 background gradients/patterns and
    liquid-glass effects with real CSS.
+
+Each design system also ships a **Claude Design package** — the files Claude
+itself uses — and a rendered preview. `design_claude_package` reads them, so
+a system can be handed to Claude directly rather than re-described.
 
 Layers 1 and 2 are reachable through the same tools. Where the `design_*`
 tools are available they cover both layers plus the component layer; the

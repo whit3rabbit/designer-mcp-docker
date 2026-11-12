@@ -1,11 +1,11 @@
 # designer-mcp-docker
 
-**1,494 real product design systems, queryable by an agent and browsable by a human.**
+**1,540 real product design systems, queryable by an agent and browsable by a human.**
 
 Three surfaces over one cache:
 
 - **MCP server** (stdio) — 7 upstream `refero_*` tools for agents
-- **Generic MCP server** (stdio) — 5 source-neutral `design_*` tools across both sources
+- **Generic MCP server** (stdio) — 20 source-neutral `design_*` tools across both sources
 - **Live gallery** (HTTP) — thumbnail grid, detail pages, live color swatches
 
 The upstream package [`fidgetcoding-refero-mcp`](https://github.com/fidgetcoding/refero-design-mcp)
@@ -23,7 +23,7 @@ makes zero outbound requests. Verified against a container with
 | Source | Count | What it is |
 |---|---|---|
 | `refero` | 1,342 | Styles scraped from `styles.refero.design`'s public pages |
-| `opendesign` | 152 | Design systems from [nexu-io/open-design](https://github.com/nexu-io/open-design) (Apache-2.0) |
+| `opendesign` | 198 | Design systems from [nexu-io/open-design](https://github.com/nexu-io/open-design) (Apache-2.0) and [feimacode/open-design-agent-kit](https://github.com/feimacode/open-design-agent-kit) (MIT) |
 | `gradientdeck` | 109 components / 250 variants | AI components published as shadcn registry JSON — complete, typed TSX (MIT) |
 | `gradientdeck` | 139 patterns + 20 glass effects | Background gradients, patterns and liquid-glass presets with real CSS (MIT) |
 
@@ -34,6 +34,28 @@ OpenDesign is imported with a sparse clone of just the `design-systems/`
 subtree — **38 MB**, not the 3.6 GB full repo (that figure is git history;
 the working tree is 323 MB).
 
+### The Agent Kit layer
+
+`npm run agentkit` adds a third source,
+[feimacode/open-design-agent-kit](https://github.com/feimacode/open-design-agent-kit)
+(MIT), which re-packages OpenDesign's content for agents. It contributes:
+
+- **46 design systems that do not exist upstream** — 30 iOS systems adapted
+  from `Meliwat/awesome-ios-design-md` and 16 aesthetic concepts re-authored
+  from `bergside/awesome-design-skills`.
+- **A Claude Design package for all 198** — the same files Claude's own
+  Design System format uses, so a system can be handed to Claude directly.
+- **A rendered preview and cover for all 198** — the gallery shows each
+  system two ways, as an Open Design preview and as a Claude Design view.
+- **Curated mood/industry descriptors** — what the tokens cannot say, and
+  what the gallery filters on.
+- **Corrections for 57 upstream systems** whose prose disagreed with their
+  tokens. The result is byte-identical to what the kit's own gallery renders.
+
+The 152 upstream systems keep their upstream originals: the kit's copies are
+stripped (no `design-tokens.json`, no `USAGE.md`), so only its *corrections*
+are taken from it.
+
 ---
 
 ## Quick start
@@ -43,7 +65,8 @@ cd ~/Documents/Github/designer-mcp-docker
 
 npm install          # upstream package
 npm run fetch        # populate ./cache from public pages (~2.5 min, 1,342 styles)
-npm run opendesign   # import the 152 OpenDesign design systems (~30s, 38 MB)
+npm run opendesign   # import the OpenDesign design systems (~30s, 38 MB)
+npm run agentkit     # add the Agent Kit layer: 46 new systems, Claude packages, previews
 npm run thumbs       # cache every screenshot locally, compressed (~55 MB)
 npm test             # self-test everything
 
@@ -246,10 +269,11 @@ The `designer-mcp` image runs both surfaces over the same cache:
 | Surface | How to run | What it is |
 |---|---|---|
 | **Gallery** | `docker compose up -d gallery` | HTTP preview on `127.0.0.1:8787` — thumbnails, colour swatches, type scales, DESIGN.md |
-| **MCP** | `docker compose run --rm design` | stdio JSON-RPC server, 5 `design_*` tools over both sources |
+| **MCP** | `docker compose run --rm design` | stdio JSON-RPC server, 20 `design_*` tools over both sources |
 | **MCP (upstream)** | `docker compose run --rm mcp` | stdio JSON-RPC server, 7 `refero_*` tools, Refero-only |
 | **Fetch** | `docker compose run --rm fetch` | populates the cache from Refero's public pages |
-| **OpenDesign** | `docker compose run --rm opendesign` | imports the 152 design-system packages |
+| **OpenDesign** | `docker compose run --rm opendesign` | imports the OpenDesign design-system packages |
+| **Agent Kit** | `docker compose run --rm agentkit` | adds the 46 new systems, the Claude Design packages, the rendered previews and the descriptors |
 | **Thumbs** | `docker compose run --rm thumbs` | caches every screenshot locally, compressed (~55 MB) |
 | **Compress** | `docker compose run --rm compress` | re-encodes an existing thumbnail cache to WebP |
 
@@ -257,11 +281,12 @@ The MCP and fetch services sit behind compose profiles because `up` cannot
 supervise them: one speaks JSON-RPC over stdin/stdout, the others are
 one-shot jobs.
 
-A full offline cache is three commands:
+A full offline cache is four commands:
 
 ```bash
 docker compose run --rm fetch        # 1,342 Refero styles   (~2.5 min)
-docker compose run --rm opendesign   # 152 OpenDesign systems (~30 s)
+docker compose run --rm opendesign   # 152 upstream OpenDesign systems (~30 s)
+docker compose run --rm agentkit     #  46 more + the Claude layer
 docker compose run --rm thumbs       # 1,342 screenshots     (~55 MB)
 ```
 
@@ -324,8 +349,12 @@ npm test        # 17 checks across cache, renderer, preview, and MCP
 
 | Route | Returns |
 |---|---|
-| `/` | design systems gallery (1,494 cards) |
-| `/design/:id` | detail page — screenshot, colour tokens, type scale, do/don't |
+| `/` | design systems gallery (1,540 cards) |
+| `/design/:id` | detail page — cover, colour tokens, type scale, do/don't |
+| `/preview/:id/open-design` | the rendered Open Design preview for one system |
+| `/preview/:id/claude` | the same system in Claude's Design System format |
+| `/preview/:id/claude/file/*` | a Claude Design package file |
+| `/api/designs/:id/file/*` | an Open Design package file |
 | `/thumb/:id` | local thumbnail bytes |
 | `/api/designs` | catalog rows (paginated) |
 | `/api/facets` | font/theme distributions |
@@ -361,7 +390,7 @@ docker run -d --name designer-mcp-gallery \
   ghcr.io/whit3rabbit/designer-mcp:latest
 ```
 
-That container has 1,494 designs, 109 AI components and 159 presets baked
+That container has 1,540 designs, 109 AI components and 159 presets baked
 in, and makes **no outbound calls** — verified with `--network none`.
 
 **The image also ships the fetchers**, so you can refresh against a volume:

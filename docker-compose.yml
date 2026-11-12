@@ -7,6 +7,8 @@
 #   fetch     — populates the cache from public sources
 #   thumbs    — caches screenshots locally so the gallery works offline
 #   opendesign — imports OpenDesign design systems
+#   agentkit   — imports the Agent Kit: 46 new systems, Claude Design
+#                packages, rendered previews and the curated descriptors
 #   components — fetches the GradientDeck AI component catalog
 #   presets   — fetches the GradientDeck gradient/pattern preset catalogs
 #
@@ -19,6 +21,7 @@
 #   docker compose up -d gallery        # start the preview server
 #   docker compose run --rm fetch       # refresh Refero styles
 #   docker compose run --rm opendesign  # refresh OpenDesign design systems
+#   docker compose run --rm agentkit    # refresh the Agent Kit layer
 #   docker compose run --rm components  # refresh the AI component catalog
 #   docker compose run --rm presets     # refresh the preset catalogs
 #   docker compose run --rm mcp         # upstream Refero MCP server
@@ -112,6 +115,26 @@ services:
       - design-cache:/cache
     environment: *cache-env
     entrypoint: ["node", "scripts/fetch-opendesign.mjs"]
+    init: true
+
+  # Import the Agent Kit: the 46 design systems that do not exist upstream,
+  # the Claude Design packages for all 198, the rendered gallery artifacts
+  # and the curated mood/industry descriptors.
+  #
+  # The kit's own assets tree holds the pristine upstream copies, so this
+  # also corrects the 57 upstream systems whose prose disagreed with their
+  # tokens. It is safe to re-run: the overlay always lands on the pristine
+  # file, never on an already-corrected one.
+  #
+  #   docker compose run --rm agentkit
+  #   docker compose run --rm agentkit --source /path/to/checkout
+  agentkit:
+    <<: *image
+    profiles: ["fetch"]
+    volumes:
+      - design-cache:/cache
+    environment: *cache-env
+    entrypoint: ["node", "scripts/fetch-agentkit.mjs"]
     init: true
 
   # Cache every screenshot locally so the gallery needs no network.

@@ -1,6 +1,6 @@
 {
   "name": "designer-mcp-docker",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "description": "Containerised design-system MCP server with a live offline thumbnail gallery",
@@ -9,6 +9,7 @@
     "fetch": "node scripts/refero-public-fetch.js",
     "fetch:quick": "node scripts/refero-public-fetch.js --limit 60",
     "opendesign": "node scripts/fetch-opendesign.mjs",
+    "agentkit": "node scripts/fetch-agentkit.mjs",
     "components": "node scripts/fetch-gradientdeck.mjs",
     "presets": "node scripts/fetch-presets.mjs",
     "templates": "node scripts/stage-design-systems.mjs",

@@ -50,7 +50,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.design-cache
-          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-thumbs.mjs') }}
+          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-thumbs.mjs') }}
           restore-keys: |
             catalog-${{ runner.os }}-
 
@@ -61,11 +61,38 @@ jobs:
           export REFERO_CACHE_DIR="$HOME/.design-cache"
           node scripts/refero-public-fetch.js --limit 0 || echo "refero fetch incomplete"
           node scripts/fetch-opendesign.mjs || echo "opendesign import incomplete"
+          node scripts/fetch-agentkit.mjs || echo "agentkit import incomplete"
           node scripts/fetch-gradientdeck.mjs || echo "component fetch incomplete"
           node scripts/fetch-presets.mjs || echo "preset fetch incomplete"
           node scripts/fetch-thumbs.mjs --compress || echo "thumb fetch incomplete"
           node scripts/bake-cache.mjs --cache "$HOME/.design-cache" --out bake
           ls -la bake/
+
+      # The Agent Kit adds a third source (46 systems that do not exist
+      # upstream), the Claude Design packages and the rendered previews. If
+      # the fetcher ran but the bake came out without them, the published
+      # image would silently carry 1,494 designs instead of 1,540 and the
+      # MCP server would answer every Claude Design request with an error.
+      # A missing layer is a failed publish, not a warning.
+      - name: Verify the baked catalog carries the Agent Kit layer
+        run: |
+          node -e "
+            const { readdirSync, existsSync, readFileSync } = require('fs');
+            const fail = [];
+            const index = JSON.parse(readFileSync('bake/index.json', 'utf8'));
+            console.log('  catalog total :', index.total);
+            console.log('  per source    :', JSON.stringify(index.counts));
+            if (index.total < 1540) fail.push('catalog has ' + index.total + ' designs, expected at least 1540');
+            if (!existsSync('bake/descriptors.json')) fail.push('bake/descriptors.json is missing');
+            for (const dir of ['claude', 'gallery']) {
+              if (!existsSync('bake/' + dir)) { fail.push('bake/' + dir + ' is missing'); continue; }
+              const n = readdirSync('bake/' + dir).length;
+              console.log('  ' + dir.padEnd(14) + n + ' entries');
+              if (n < 198) fail.push('bake/' + dir + ' has ' + n + ' entries, expected at least 198');
+            }
+            if (fail.length) { console.error('baked catalog is incomplete:'); for (const f of fail) console.error('  - ' + f); process.exit(1); }
+            console.log('baked catalog carries the Agent Kit layer');
+          "
 
       - name: Verify offline browser previews
         run: |
@@ -142,6 +169,36 @@ jobs:
             }
             if (bad) { console.error('published image is missing data'); process.exit(1); }
             console.log('published image serves the baked catalog offline');
+          "
+          # The Agent Kit routes are the newest surface, so they get their
+          # own offline check: pick a system from the catalog and read its
+          # Claude Design package and its rendered preview.
+          docker exec designer-mcp-verify node -e "
+            const base = 'http://127.0.0.1:8787';
+            const catalog = await (await fetch(base + '/api/designs?source=opendesign&limit=50')).json();
+            const kit = (catalog.designs || []).find((d) => d.id === 'agentic') || (catalog.designs || [])[0];
+            if (!kit) { console.error('no opendesign systems in the published catalog'); process.exit(1); }
+            const checks = [
+              '/preview/' + kit.id + '/open-design',
+              '/preview/' + kit.id + '/claude',
+              '/preview/' + kit.id + '/claude/file/README.md',
+              '/api/designs/' + kit.id + '/file/tokens.css',
+            ];
+            let bad = 0;
+            for (const p of checks) {
+              try {
+                const r = await fetch(base + p);
+                const body = await r.text();
+                const good = r.status === 200 && body.length > 0;
+                console.log('  ' + (good ? 'ok  ' : 'FAIL') + ' ' + p + ' ' + r.status + ' ' + body.length + 'b');
+                if (!good) bad++;
+              } catch (e) {
+                console.log('  FAIL ' + p + ' ' + e.message);
+                bad++;
+              }
+            }
+            if (bad) { console.error('published image is missing the Agent Kit layer'); process.exit(1); }
+            console.log('published image serves the Agent Kit layer offline');
           "
           docker exec designer-mcp-verify node scripts/verify-frontend-http.mjs
           echo "published: ${IMAGE}"

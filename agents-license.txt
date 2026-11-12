@@ -26,6 +26,36 @@ Third-party components bundled in this project
    and token set. Individual packages under design-templates/ carry their own
    LICENSE files upstream and are not imported by this project.
 
-Design data cached under cache/ belongs to Refero, to nexu-io/open-design, and
-to the sites depicted. It is fetched from publicly available pages for local
-use and is not redistributed by this project.
+4. feimacode/open-design-agent-kit (design-system packages, Claude Design
+   packages, rendered gallery artifacts)
+   Upstream: https://github.com/feimacode/open-design-agent-kit
+   License: MIT — Copyright (c) 2026 Iven Xu
+   Files: the design-systems/ subtree of packages/content/assets, the
+          claude-design-systems/ tree, and the rendered preview/cover
+          artifacts, imported into cache/systems/, cache/claude/ and
+          cache/gallery/ by scripts/fetch-agentkit.mjs.
+   The kit re-packages the Apache-2.0 nexu-io/open-design content, so the
+   attribution in (3) applies to those 152 systems as well. Its copy of
+   those systems is stripped (no design-tokens.json, no USAGE.md), so this
+   project keeps the upstream originals and takes only the kit's CORRECTIONS
+   from it — the corrected prose sections and token overrides for the 57
+   systems whose two disagreed.
+
+5. Meliwat/awesome-ios-design-md (30 iOS design systems)
+   Upstream: https://github.com/Meliwat/awesome-ios-design-md
+   License: MIT — Copyright (c) 2026 Muhammed Eliwat
+   Files: the 30 *-ios design systems the Agent Kit adapts, imported into
+          cache/systems/ and cache/claude/ by scripts/fetch-agentkit.mjs.
+   Each adapted system keeps its own attribution line in its README.
+
+6. bergside/awesome-design-skills (16 aesthetic design systems)
+   Upstream: https://github.com/bergside/awesome-design-skills
+   License: MIT
+   Files: the 16 re-authored aesthetic systems (sketch, matrix, impeccable,
+          riso, geometric, stitch, codex, ...) imported into cache/systems/
+          and cache/claude/ by scripts/fetch-agentkit.mjs.
+
+Design data cached under cache/ belongs to Refero, to nexu-io/open-design, to
+feimacode/open-design-agent-kit, to the sources it adapts, and to the sites
+depicted. It is fetched from publicly available pages for local use and is not
+redistributed by this project.
