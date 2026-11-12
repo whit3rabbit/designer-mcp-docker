@@ -435,13 +435,17 @@ GALLERY_PORT=8788 docker compose up -d gallery
 ```bash
 hermes mcp add designer --command docker --args \
   run --rm -i \
-  -v ~/.refero-cache:/cache:ro \
+  -v ~/.design-cache:/cache:ro \
   ghcr.io/whit3rabbit/designer-mcp:latest \
-  node scripts/mcp-entry.mjs
+  node scripts/mcp-server.mjs
 ```
 
 The command prompts to enable tools; answer `y` (or pipe `y` if stdin is not
 a TTY, or it cancels).
+
+`mcp-server.mjs` is the generic server: 20 `design_*` tools across every
+source, fully offline. Use `mcp-entry.mjs` instead if you want the upstream
+`refero_*` tools instead (7 tools, styles only).
 
 Point it at the published tag rather than a locally built image — the
 registry tag works on any machine without a build step.
