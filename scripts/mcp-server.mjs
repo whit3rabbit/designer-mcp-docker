@@ -39,6 +39,8 @@ import {
   readCatalog,
   readDesign,
   readOpenDesignPackage,
+  readClaudePackage,
+  readDescriptors,
   mergeDesign,
   readComponentsIndex,
   readComponent,
@@ -188,6 +190,26 @@ const TOOLS = [
     description:
       "Read one cached OpenDesign package file, such as DESIGN.md, tokens.css, or components.html. " +
       "Get the exact reference and available paths from design_get. Files are returned as source.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        identifier: {
+          type: "string",
+          pattern: "^designer:opendesign:[a-z0-9-]+$",
+          description: "Exact OpenDesign gallery reference, e.g. designer:opendesign:arc.",
+        },
+        path: { type: "string", description: "Exact relative file path from the package inventory." },
+      },
+      required: ["identifier", "path"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_claude_package",
+    description:
+      "Read one file from a system's Claude Design package — the same files Claude's own " +
+      "Design System format uses (README.md, tokens.json, design-system.json, components). " +
+      "Get the available paths from design_get. Files are returned as source.",
     inputSchema: {
       type: "object",
       properties: {
@@ -592,6 +614,15 @@ async function handleGet(args) {
       legacyCache,
       files: files.map(({ path, bytes, encoding }) => ({ path, bytes, encoding })),
     };
+    // The curated descriptors: the mood, the industry and the surface.
+    // The tokens say what the system looks like; these say what it is for.
+    const descriptor = (await readDescriptors())[match.id];
+    if (descriptor) packageInfo.descriptor = descriptor;
+    // The Claude Design files, for handing the system to Claude.
+    const claude = await readClaudePackage(match.id);
+    if (claude?.files?.length) {
+      packageInfo.claudeFiles = claude.files.map(({ path, bytes, encoding }) => ({ path, bytes, encoding }));
+    }
   }
   return {
     ...shorthand(match),
@@ -1029,6 +1060,30 @@ async function handleMarkdownValidate(args) {
   return validateDesignObservations(parsed, observations, requiredTokens);
 }
 
+async function handleClaudePackageFile(args) {
+  const identifier = asString(args.identifier, "identifier");
+  if (!/^designer:opendesign:[a-z0-9-]+$/.test(identifier)) {
+    throw new Error("Use an exact OpenDesign reference, such as designer:opendesign:arc.");
+  }
+  if (!isPackagePath(args.path)) throw new Error("path must be a safe relative package file path.");
+  const match = findCatalogDesign(identifier, SOURCE.OPENDESIGN);
+  if (!match) throw new Error(`No design matched ${JSON.stringify(identifier)}`);
+  const pkg = await readClaudePackage(match.id);
+  const files = pkg?.files ?? [];
+  if (!files.length) {
+    throw new Error(
+      `No Claude Design package is cached for ${match.id}. ` +
+        `Run the Agent Kit fetcher (scripts/fetch-agentkit.mjs) to populate it.`,
+    );
+  }
+  // Request paths are compared with the stored inventory, never opened on disk.
+  const file = files.find((item) => item.path === args.path);
+  if (!file) {
+    throw new Error("File is not in the cached Claude Design package. Use design_get to list available files.");
+  }
+  return { id: match.id, source: match.source, ...file };
+}
+
 async function dispatch(name, args) {
   switch (name) {
     case "design_search":
@@ -1037,6 +1092,8 @@ async function dispatch(name, args) {
       return handleGet(args);
     case "design_package_file":
       return handlePackageFile(args);
+    case "design_claude_package":
+      return handleClaudePackageFile(args);
     case "design_list":
       return handleList(args);
     case "design_facets":

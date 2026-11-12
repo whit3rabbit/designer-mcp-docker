@@ -21,10 +21,27 @@ const MIME = {
   ".zip": "application/zip",
 };
 
+/** The content type for a package file path. */
+export function contentTypeFor(path) {
+  return MIME[extname(String(path)).toLowerCase()] ?? "application/octet-stream";
+}
+
 export function documentPolicy(kind = "gallery") {
   const sandbox = ["demo", "deck", "landing", "tailwind"].includes(kind);
   const script = kind === "deck" ? "'self' 'unsafe-inline' 'unsafe-eval'" :
     kind === "demo" ? "'self'" : "'self' 'unsafe-inline'";
+  // The cached Agent Kit artifacts are self-contained static documents: no
+  // external references, no inline event handlers beyond one cover scaler.
+  // They are framed by the gallery, so they need to be able to frame and to
+  // style themselves.
+  if (kind === "kit") {
+    return [
+      "default-src 'none'", "base-uri 'none'", "object-src 'none'", "form-action 'none'",
+      "script-src 'self' 'unsafe-inline'", "style-src 'self' 'unsafe-inline'",
+      "font-src 'self' data:", "img-src 'self' data: blob:",
+      "frame-src 'self' data: blob:", "connect-src 'none'", "frame-ancestors 'self'",
+    ].join("; ");
+  }
   return [
     "default-src 'none'", "base-uri 'none'", "object-src 'none'", "form-action 'none'",
     `script-src ${script}`, "style-src 'self' 'unsafe-inline'", "font-src 'self'",

@@ -46,7 +46,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { htmlHeaders, loadFrontend } from "./lib/frontend.mjs";
+import { htmlHeaders, loadFrontend, contentTypeFor } from "./lib/frontend.mjs";
 import {
   mergeDesign,
   readComponentsIndex,
@@ -55,6 +55,11 @@ import {
   readPresetCatalog,
   readDesignSystemsIndex,
   readDesignSystem,
+  readClaudePackage,
+  readDescriptors,
+  readGalleryArtifact,
+  readGalleryThumb,
+  readOpenDesignPackage,
 } from "./lib/cache.mjs";
 import {
   assetsHtml,
@@ -69,6 +74,16 @@ import {
   nav,
   NAV_CSS,
 } from "./lib/ui.mjs";
+import {
+  galleryIndexHtml,
+  designDetailHtml,
+  promptPanel,
+  filePanel,
+  KIT_CSS,
+  KIT_NAV_CSS,
+  kitNav,
+  esc as kitEsc,
+} from "./lib/kit-ui.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR =
@@ -121,6 +136,7 @@ function designMarkdown(full) {
 let catalog = [];
 let byId = new Map();
 let loadedAt = 0;
+let descriptors = {};
 
 async function loadCatalog() {
   const p = join(CACHE_DIR, "catalog.json");
@@ -131,6 +147,7 @@ async function loadCatalog() {
   catalog = raw.designs || raw.styles || [];
   byId = new Map(catalog.map((s) => [s.id, s]));
   loadedAt = Date.now();
+  descriptors = await readDescriptors();
 }
 
 async function loadFull(id) {
@@ -252,164 +269,102 @@ const esc = (s) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-function galleryHtml() {
-  const f = facets();
-  const themeOpts = f.themes
-    .map((t) => `<option value="${esc(t.value)}">${esc(t.value)} (${t.count})</option>`)
-    .join("");
-  const indOpts = f.industries
-    .map((t) => `<option value="${esc(t.value)}">${esc(t.value)} (${t.count})</option>`)
-    .join("");
-  const srcOpts = f.sources
-    .map((t) => `<option value="${esc(t.value)}">${esc(t.value)} (${t.count})</option>`)
-    .join("");
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Design Systems — ${f.total} designs</title>
-<style>
-  :root {
-    --bg: #0d0f12; --panel: #16191e; --panel2: #1d2127; --line: #2a2f37;
-    --fg: #e6e9ee; --muted: #9aa3b0; --accent: #7c8cff;
+// ------------------------------------------------------------------ gallery
+/**
+ * The tags a design system is filed under.
+ *
+ * The Agent Kit's descriptors give the mood, the industry and the surface —
+ * what the tokens cannot say. Refero styles have no descriptors, so they
+ * fall back to their industry.
+ */
+function tagsFor(entry) {
+  const descriptor = descriptors[entry.id];
+  const tags = [];
+  if (descriptor) {
+    tags.push(...(descriptor.moods || []), ...(descriptor.industries || []));
+  } else if (entry.industry) {
+    tags.push(entry.industry);
   }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg);
-    font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
-${NAV_CSS}
-  header { position: sticky; top:46px; z-index:10; background:rgba(13,15,18,.92);
-    backdrop-filter: blur(8px); border-bottom:1px solid var(--line); padding:14px 20px; }
-  h1 { margin:0 0 10px; font-size:16px; font-weight:650; letter-spacing:-.01em; }
-  h1 span { color:var(--muted); font-weight:400; }
-  .bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  input, select, button {
-    background:var(--panel2); color:var(--fg); border:1px solid var(--line);
-    border-radius:7px; padding:7px 10px; font:inherit; font-size:13px; }
-  input { flex:1 1 220px; min-width:180px; }
-  button { cursor:pointer; }
-  button:hover { border-color:var(--accent); }
-  .dl { font-size:13px; color:var(--accent); text-decoration:none; align-self:center;
-    border:1px solid var(--line); background:var(--panel2); border-radius:7px; padding:7px 11px; }
-  .dl:hover { border-color:var(--accent); }
-  .grid { display:grid; gap:14px; padding:18px 20px 60px;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:11px;
-    overflow:hidden; display:flex; flex-direction:column; }
-  .card a.shot { display:block; aspect-ratio:16/10; background:#0a0c0e center/cover no-repeat; }
-  .meta { padding:11px 12px 13px; display:flex; flex-direction:column; gap:7px; }
-  .name { font-weight:600; font-size:14px; }
-  .ns { color:var(--muted); font-size:12px; line-height:1.45;
-    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-  .tags { display:flex; gap:5px; flex-wrap:wrap; }
-  .tag { font-size:11px; padding:2px 7px; border-radius:999px;
-    border:1px solid var(--line); background:var(--panel2); color:var(--muted); }
-  .tag.theme-dark { background:#1b2a3a; color:#9ecbff; border-color:#26405c; }
-  .tag.theme-light { background:#33301f; color:#f0d78c; border-color:#4a4630; }
-  .tag.theme-mixed { background:#2c2438; color:#c9b3ff; border-color:#40354f; }
-  .tag.src { background:#24303a; color:#8fd3c7; border-color:#2f434f; }
-  .sw { display:flex; gap:3px; margin-top:2px; }
-  .sw i { width:15px; height:15px; border-radius:4px; border:1px solid rgba(255,255,255,.12); }
-  .links { display:flex; gap:8px; font-size:12px; margin-top:4px; }
-  .links a { color:var(--accent); text-decoration:none; }
-  .links a:hover { text-decoration:underline; }
-  .count { color:var(--muted); font-size:12px; padding:0 20px 4px; }
-  .empty { padding:60px 20px; color:var(--muted); text-align:center; }
-</style>
-</head>
-<body>
-${nav("designs")}
-<header>
-  <h1>Design Systems <span>· ${f.total} cached designs</span></h1>
-  <div class="bar">
-    <input id="q" placeholder="Search names, north stars, fonts…" autocomplete="off">
-    <select id="source"><option value="">All sources</option>${srcOpts}</select>
-    <select id="theme"><option value="">All themes</option>${themeOpts}</select>
-    <select id="ind"><option value="">All industries</option>${indOpts}</select>
-    <select id="sort">
-      <option value="name">Name</option>
-      <option value="score">Relevance</option>
-    </select>
-    <button id="reset">Reset</button>
-  </div>
-</header>
-<div class="count" id="count"></div>
-<div class="grid" id="grid"></div>
-
-<script>
-const grid = document.getElementById('grid');
-const countEl = document.getElementById('count');
-const qEl = document.getElementById('q');
-const srcEl = document.getElementById('source');
-const themeEl = document.getElementById('theme');
-const indEl = document.getElementById('ind');
-const sortEl = document.getElementById('sort');
-
-// Client-side escaper — the server has its own, but this script runs alone.
-const esc = (s) => String(s ?? '')
-  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-let ALL = [];
-
-function card(s) {
-  const colors = (s.colors || []).slice(0, 7).map(c =>
-    '<i style="background:' + esc(c.hex || c.value || '#333') + '" title="' + esc(c.hex || c.value) + '"></i>'
-  ).join('');
-  const theme = String(s.colorScheme || 'light');
-  const src = String(s.source || 'refero');
-  return '<div class="card">' +
-    '<a class="shot" style="background-image:url(/thumb/' + encodeURIComponent(s.id) + ')" href="/design/' + encodeURIComponent(s.id) + '" target="_blank"></a>' +
-    '<div class="meta">' +
-      '<div class="name">' + esc(s.siteName) + '</div>' +
-      '<div class="ns">' + esc(s.northStar || '') + '</div>' +
-      '<div class="tags">' +
-        '<span class="tag theme-' + esc(theme) + '">' + esc(theme) + '</span>' +
-        '<span class="tag src">' + esc(src) + '</span>' +
-        (s.industry ? '<span class="tag">' + esc(s.industry) + '</span>' : '') +
-        ((s.fonts || []).length ? '<span class="tag">' + esc(s.fonts[0]) + '</span>' : '') +
-      '</div>' +
-      '<div class="sw">' + colors + '</div>' +
-      '<div class="links">' +
-        '<a href="/design/' + encodeURIComponent(s.id) + '">Detail</a>' +
-        '<a href="/api/designs/' + encodeURIComponent(s.id) + '/design.md">DESIGN.md</a>' +
-      '</div>' +
-    '</div></div>';
+  return [...new Set(tags.map((t) => String(t).toLowerCase()))];
 }
 
-function render() {
-  const q = qEl.value.trim().toLowerCase();
-  const theme = themeEl.value;
-  const ind = indEl.value;
-  const src = srcEl.value;
-  let list = ALL.filter(s =>
-    (!src || (s.source || 'refero') === src) &&
-    (!theme || s.colorScheme === theme) &&
-    (!ind || s.industry === ind) &&
-    (!q || (s.siteName || '').toLowerCase().includes(q) ||
-      (s.northStar || '').toLowerCase().includes(q) ||
-      (s.fonts || []).some(f => f.toLowerCase().includes(q)))
-  );
-  if (sortEl.value === 'name') list = list.slice().sort((a,b) => (a.siteName||'').localeCompare(b.siteName||''));
-  countEl.textContent = list.length + ' of ' + ALL.length + ' designs';
-  grid.innerHTML = list.length ? list.map(card).join('') : '<div class="empty">No designs match.</div>';
+/**
+ * The gallery index.
+ *
+ * Every design in the catalog appears here: the Refero styles and the
+ * OpenDesign systems side by side. Systems carry a rendered cover; styles
+ * carry their screenshot; the rest fall back to a swatch strip.
+ */
+function galleryHtml() {
+  const designs = catalog.map((entry) => {
+    const tags = tagsFor(entry);
+    const search = [
+      entry.siteName,
+      entry.northStar,
+      entry.industry,
+      ...(entry.fonts || []),
+      ...tags,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return { entry, tags, search };
+  });
+
+  // The most-used tags lead, so the chips a reader wants are visible.
+  const counts = new Map();
+  for (const { tags } of designs) {
+    for (const tag of tags) counts.set(tag, (counts.get(tag) || 0) + 1);
+  }
+  const chipList = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 32)
+    .map(([value, count]) => ({ value, count }));
+
+  return galleryIndexHtml({
+    total: designs.length,
+    tags: chipList,
+    designs: designs.map(({ entry, tags, search }) => ({
+      id: entry.id,
+      siteName: entry.siteName,
+      tags,
+      search,
+      colors: entry.colors || [],
+      // The OpenDesign covers are rendered images; the Refero styles have
+      // screenshots. Both are local bytes.
+      thumb: (entry.source || "refero") === "opendesign" ? `/thumb/${encodeURIComponent(entry.id)}` : `/thumb/${encodeURIComponent(entry.id)}`,
+    })),
+  });
 }
 
-let t;
-qEl.addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 120); });
-srcEl.addEventListener('change', render);
-themeEl.addEventListener('change', render);
-indEl.addEventListener('change', render);
-sortEl.addEventListener('change', render);
-document.getElementById('reset').addEventListener('click', () => {
-  qEl.value = ''; srcEl.value = ''; themeEl.value = ''; indEl.value = ''; sortEl.value = 'name'; render();
-});
+/**
+ * The design-system detail page.
+ *
+ * An OpenDesign system with cached gallery artifacts gets the full spoke:
+ * the rendered preview beside the prompts and file lists that hand it to a
+ * tool. Everything else — the Refero styles — keeps the token-led page,
+ * because a screenshot and a token list are all there is to show.
+ */
+async function detailHtml(s) {
+  const src = s.source || "refero";
+  const reference = `designer:${src}:${s.id}`;
+  const tags = tagsFor(s);
 
-fetch('/api/designs?limit=5000').then(r => r.json()).then(d => { ALL = d.designs || d.styles; render(); });
-</script>
-</body></html>`;
-}
+  // The Open Design preview and the Claude Design view.
+  const views = [];
+  if (src === "opendesign") {
+    if (await readGalleryArtifact(s.id, "preview.html")) {
+      views.push({ label: "Open Design", src: `/preview/${encodeURIComponent(s.id)}/open-design`, hash: "" });
+    }
+    if (await readGalleryArtifact(s.id, "claude/view.html")) {
+      views.push({
+        label: "Claude Design",
+        src: `/preview/${encodeURIComponent(s.id)}/claude`,
+        hash: "claude",
+      });
+    }
+  }
 
-function detailHtml(s) {
   // Token extraction works for both sources: Refero nests them under
   // fullResult.raw, OpenDesign under fullResult.raw too (we normalise on
   // import) and additionally carries the typed token JSON.
@@ -430,49 +385,8 @@ function detailHtml(s) {
   ).join("");
   const dos = (s.fullResult?.designSystem?.dos || []).map((d) => '<li>' + esc(d) + '</li>').join("");
   const donts = (s.fullResult?.designSystem?.donts || []).map((d) => '<li>' + esc(d) + '</li>').join("");
-  const src = s.source || "refero";
-  const reference = `designer:${src}:${s.id}`;
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(s.siteName)} — Design Systems</title>
-<style>
-  :root{--bg:#0d0f12;--panel:#16191e;--line:#2a2f37;--fg:#e6e9ee;--muted:#9aa3b0;--accent:#7c8cff;}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.6 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
-  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 70px}
-  a{color:var(--accent)}
-  .shot{width:100%;border-radius:11px;border:1px solid var(--line);background:#0a0c0e center/cover no-repeat;aspect-ratio:16/9}
-  h1{margin:16px 0 4px;font-size:24px;letter-spacing:-.02em}
-  .ns{color:var(--muted);font-size:15px;margin-bottom:14px}
-  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
-  .tag{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--panel)}
-  h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:26px 0 10px}
-  .toks{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
-  .tok{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px}
-  .chip{width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,.14);flex:none}
-  .tn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .tv{color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
-  .tsr{display:flex;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 11px;margin-bottom:5px;font-size:13px}
-  .tsrole{color:var(--muted)}
-  ul{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 12px 12px 30px}
-  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-size:12px;white-space:pre-wrap}
-  .theme-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
-  .theme-actions input,.theme-actions button{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
-  .theme-actions input{width:54ch;max-width:100%;font-family:ui-monospace,monospace;font-size:12px}
-  .theme-actions button{cursor:pointer}
-  .theme-actions [role=status]{color:var(--muted);font-size:12px}
-</style></head><body><div class="wrap">
-<a href="/">&larr; back to gallery</a>
-<img class="shot" src="/thumb/${encodeURIComponent(s.id)}" alt="">
-<h1>${esc(s.siteName)}</h1>
-<div class="ns">${esc(s.northStar || "")}</div>
-${s.url ? `<p class="ns">Source <code>${esc(s.url)}</code></p>` : ""}
-<div class="tags">
-  <span class="tag">${esc(src)}</span>
-  <span class="tag">${esc(s.colorScheme || "")}</span>
-  ${s.industry ? `<span class="tag">${esc(s.industry)}</span>` : ""}
-  ${(s.fonts || []).map((f) => `<span class="tag">${esc(f)}</span>`).join("")}
-</div>
+
+  const main = `
 <h2>Color tokens (${tokens.length})</h2><div class="toks">${sw}</div>
 ${typeScale.length ? `<h2>Type scale</h2><div>${ts}</div>` : ""}
 ${dos ? `<h2>Do</h2><ul>${dos}</ul>` : ""}
@@ -484,7 +398,40 @@ ${donts ? `<h2>Don't</h2><ul>${donts}</ul>` : ""}
   <a href="/api/designs/${encodeURIComponent(s.id)}/design.md">Open DESIGN.md</a>
   <span id="theme-status" role="status"></span>
 </div>
-<pre>${esc(designMarkdown(s))}</pre>
+<pre>${esc(designMarkdown(s))}</pre>`;
+
+  if (!views.length) {
+    // No gallery artifacts: the token-led page, in the gallery's own styles.
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(s.siteName)} — Design Systems</title>
+<style>
+${KIT_CSS}${KIT_NAV_CSS}
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 70px}
+  .toks{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+  .tok{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px}
+  .chip{width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,.14);flex:none}
+  .tn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tv{color:var(--muted);font-family:var(--mono);font-size:11px}
+  .tsr{display:flex;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 11px;margin-bottom:5px;font-size:13px}
+  .tsrole{color:var(--muted)}
+  ul{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 12px 12px 30px}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-size:12px;white-space:pre-wrap}
+  .theme-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+  .theme-actions input,.theme-actions button{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+  .theme-actions input{width:54ch;max-width:100%;font-family:var(--mono);font-size:12px}
+  .theme-actions button{cursor:pointer}
+  .theme-actions [role=status]{color:var(--muted);font-size:12px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:26px 0 10px}
+</style></head><body>
+${kitNav("designs")}
+<div class="wrap">
+<a href="/">&larr; All design systems</a>
+<h1>${esc(s.siteName)}</h1>
+<p class="lede">${esc(s.northStar || "")}</p>
+${s.url ? `<p class="lede">Source <code>${esc(s.url)}</code></p>` : ""}
+${tags.length ? `<ul class="tags">${tags.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+${main}
 </div>
 <script>
 const reference = document.getElementById('theme-reference');
@@ -501,6 +448,56 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
 });
 </script>
 </body></html>`;
+  }
+
+  // The spoke: the preview beside the panels that hand the system to a tool.
+  const aside = [];
+  const claude = await readClaudePackage(s.id);
+  const claudeFiles = claude?.files ?? [];
+
+  if (views.length > 1) {
+    aside.push(promptPanel(
+      "p-open",
+      `Use the Open Design design system "${s.id}" for my designs.`,
+      "Use it with Open Design",
+    ));
+  }
+  if (claudeFiles.length) {
+    aside.push(promptPanel(
+      "p-claude",
+      `Add the "${s.siteName}" design system to my Claude design systems. Its files, ` +
+        `already in Claude's Design System format, are in ` +
+        `https://github.com/feimacode/open-design-agent-kit/tree/main/claude-design-systems/${s.id}/project. ` +
+        `Build a Design System artifact from them.`,
+      "Add it to Claude Design",
+    ));
+  }
+
+  const kitFiles = [
+    { label: "DESIGN.md", href: `/api/designs/${encodeURIComponent(s.id)}/design.md` },
+    { label: "tokens.css", href: `/api/designs/${encodeURIComponent(s.id)}/file/tokens.css` },
+  ];
+  aside.push(filePanel("Open Design files", kitFiles));
+
+  const claudeFileList = claudeFiles.map((f) => ({
+    label: f.path,
+    href: `/preview/${encodeURIComponent(s.id)}/claude/file/${f.path.split("/").map(encodeURIComponent).join("/")}`,
+  }));
+  if (claudeFileList.length) aside.push(filePanel("Claude Design files", claudeFileList));
+
+  aside.push(`<section>
+  <h2>Theme reference</h2>
+  <pre class="prompt" id="p-reference">${esc(reference)}</pre>
+  <div><button type="button" class="btn" data-copy="p-reference">Copy reference</button></div>
+</section>`);
+
+  return designDetailHtml({
+    design: { siteName: s.siteName, northStar: s.northStar || "" },
+    views,
+    main,
+    aside: aside.join("\n"),
+    tags,
+  });
 }
 
 // ------------------------------------------------------------------ server
@@ -715,6 +712,25 @@ const server = createServer(async (req, res) => {
 
     // Ids are UUIDs (refero) or slugs (opendesign), so the pattern is
     // deliberately permissive but still excludes path separators.
+    // A file from a system's Open Design package, for download.
+    const mPkgFile = p.match(/^\/api\/designs\/([^/]+)\/file\/(.+)$/);
+    if (mPkgFile) {
+      const id = decodeURIComponent(mPkgFile[1]);
+      const rel = decodeURIComponent(mPkgFile[2]);
+      const pkg = await readOpenDesignPackage(id);
+      const file = pkg?.files?.find((f) => f.path === rel);
+      if (!file) return json(res, 404, { error: "file not in package", id, path: rel });
+      const bytes = file.encoding === "base64"
+        ? Buffer.from(file.content, "base64")
+        : Buffer.from(file.content, "utf8");
+      res.writeHead(200, {
+        "content-type": contentTypeFor(rel),
+        "content-length": bytes.length,
+        "content-disposition": `attachment; filename="${rel.split("/").pop()}"`,
+      });
+      return res.end(bytes);
+    }
+
     const mDesign = p.match(/^\/(?:api\/designs|api\/styles)\/([^/]+?)(\/design\.md)?$/);
     if (mDesign) {
       const id = decodeURIComponent(mDesign[1]);
@@ -733,7 +749,49 @@ const server = createServer(async (req, res) => {
       const id = decodeURIComponent(mPage[1]);
       const full = await loadFull(id);
       if (!full) return json(res, 404, { error: "design not in cache", id });
-      return sendHtml(res, detailHtml(full));
+      return sendHtml(res, await detailHtml(full));
+    }
+
+    // ------------------------------------------------ the cached kit artifacts
+    // The Agent Kit's rendered preview, the Claude Design view and its
+    // cover. All three are cached local bytes, served with the kit policy.
+    const mKit = p.match(/^\/preview\/([^/]+)\/(open-design|claude|claude\/cover\.html)$/);
+    if (mKit) {
+      const id = decodeURIComponent(mKit[1]);
+      const kind = mKit[2];
+      const rel = kind === "claude" ? "claude/view.html" : kind === "claude/cover.html" ? "claude/cover.html" : "preview.html";
+      const bytes = await readGalleryArtifact(id, rel);
+      if (!bytes) return json(res, 404, { error: "artifact not cached", id, rel });
+      let body = bytes.toString("utf8");
+      if (rel === "claude/view.html") {
+        // The cover is referenced relatively; point it at its served route.
+        body = body.replace(/src="cover\.html"/g, `src="/preview/${encodeURIComponent(id)}/claude/cover.html"`);
+      }
+      res.writeHead(200, {
+        ...htmlHeaders("kit"),
+        "content-length": Buffer.byteLength(body),
+        "cache-control": "public, max-age=31536000, immutable",
+      });
+      return res.end(body);
+    }
+
+    // A file from a system's Claude Design package, for download.
+    const mKitFile = p.match(/^\/preview\/([^/]+)\/claude\/file\/(.+)$/);
+    if (mKitFile) {
+      const id = decodeURIComponent(mKitFile[1]);
+      const rel = decodeURIComponent(mKitFile[2]);
+      const pkg = await readClaudePackage(id);
+      const file = pkg?.files?.find((f) => f.path === rel);
+      if (!file) return json(res, 404, { error: "file not in package", id, path: rel });
+      const bytes = file.encoding === "base64"
+        ? Buffer.from(file.content, "base64")
+        : Buffer.from(file.content, "utf8");
+      res.writeHead(200, {
+        "content-type": contentTypeFor(rel),
+        "content-length": bytes.length,
+        "content-disposition": `attachment; filename="${rel.split("/").pop()}"`,
+      });
+      return res.end(bytes);
     }
 
     // Thumbnails are served from the LOCAL cache. No redirect to a CDN, so
@@ -750,7 +808,17 @@ const server = createServer(async (req, res) => {
         });
         return res.end(thumb.buf);
       }
-      // No bitmap for this entry (OpenDesign) — render a generated swatch.
+      // The Agent Kit's rendered cover, for the OpenDesign systems.
+      const cover = await readGalleryThumb(id);
+      if (cover) {
+        res.writeHead(200, {
+          "content-type": "image/webp",
+          "content-length": cover.length,
+          "cache-control": "public, max-age=31536000, immutable",
+        });
+        return res.end(cover);
+      }
+      // No bitmap for this entry — render a generated swatch.
       const d = byId.get(id);
       if (d) {
         const svg = swatchSvg(d);

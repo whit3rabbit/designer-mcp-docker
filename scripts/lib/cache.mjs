@@ -49,6 +49,25 @@ export const THUMBS_DIR = join(CACHE_DIR, "thumbs");
 export const STYLES_DIR = join(CACHE_DIR, "styles");
 export const SYSTEMS_DIR = join(CACHE_DIR, "systems");
 
+/**
+ * The Claude Design layer, one directory per system.
+ *
+ * The Agent Kit ships Claude's own file format for every design system —
+ * tokens.json, design-system.json, README.md and a cover preview. These are
+ * what Claude builds a Design System artifact from, so they are kept apart
+ * from the OpenDesign package files they accompany.
+ */
+export const CLAUDE_DIR = join(CACHE_DIR, "claude");
+
+/**
+ * The gallery artifacts the Agent Kit publishes for every system:
+ * the rendered preview, the Claude Design view, its cover, and a thumbnail.
+ *
+ * These are built by the kit's own gallery pipeline and fetched once, so the
+ * server serves them from disk and never reaches the network.
+ */
+export const GALLERY_DIR = join(CACHE_DIR, "gallery");
+
 export const SOURCE = {
   REFERO: "refero",
   OPENDESIGN: "opendesign",
@@ -157,8 +176,74 @@ export async function readOpenDesignPackage(id) {
   return readJson(join(SYSTEMS_DIR, "packages", `${id}.json`));
 }
 
+/** Write the OpenDesign package file inventory for one system. */
+export async function writeOpenDesignPackageFiles(id, files) {
+  await writeJsonAtomic(join(SYSTEMS_DIR, "packages", `${id}.json`), { files });
+}
+
 export async function writeOpenDesignPackage(id, files) {
   await writeJsonAtomic(join(SYSTEMS_DIR, "packages", `${id}.json`), { files });
+}
+
+/**
+ * The Claude Design package for one system, or null.
+ *
+ * Files are stored as `{ path, content }` pairs under
+ * `<cache>/claude/<slug>.json`.
+ */
+export async function readClaudePackage(id) {
+  if (!/^[a-z0-9-]+$/i.test(id)) return null;
+  return readJson(join(CLAUDE_DIR, `${id}.json`));
+}
+
+/** Write the Claude Design package for one system. */
+export async function writeClaudePackage(id, files) {
+  await writeJsonAtomic(join(CLAUDE_DIR, `${id}.json`), { updatedAt: Date.now(), files });
+}
+
+/**
+ * The Agent Kit's curated descriptors.
+ *
+ * Tokens give theme, accent, type and shape; these give what tokens cannot:
+ * the mood, the industry and the surface each system is for. The gallery
+ * filters on them, which is how a reader thinks about a design system.
+ *
+ * Stored as `{ <slug>: { kind, moods[], industries[], surfaces[] } }`.
+ */
+export const DESCRIPTORS_PATH = join(CACHE_DIR, "descriptors.json");
+
+/** The descriptors for every catalogued design system, or an empty map. */
+export async function readDescriptors() {
+  const raw = await readJson(DESCRIPTORS_PATH);
+  return raw?.systems ?? {};
+}
+
+/** Write the descriptors for every design system. */
+export async function writeDescriptors(systems) {
+  await writeJsonAtomic(DESCRIPTORS_PATH, { updatedAt: Date.now(), systems });
+}
+
+/**
+ * A cached gallery artifact for one system, as raw bytes.
+ *
+ * `rel` is a path inside the system's gallery directory, e.g.
+ * "preview.html" or "claude/view.html". Returns null when the artifact was
+ * never fetched, so the caller can fall back to its own rendering.
+ */
+export async function readGalleryArtifact(id, rel) {
+  if (!/^[a-z0-9-]+$/i.test(id)) return null;
+  if (!/^[a-z0-9._/-]+$/i.test(rel) || rel.includes("..")) return null;
+  const path = join(GALLERY_DIR, id, rel);
+  if (!existsSync(path)) return null;
+  return readFile(path);
+}
+
+/** The cached thumbnail for one system, or null. */
+export async function readGalleryThumb(id) {
+  if (!/^[a-z0-9-]+$/i.test(id)) return null;
+  const path = join(GALLERY_DIR, "thumbs", `${id}.webp`);
+  if (!existsSync(path)) return null;
+  return readFile(path);
 }
 
 /** Local thumbnail path for a design id, if one has been cached. */

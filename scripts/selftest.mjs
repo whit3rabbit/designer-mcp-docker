@@ -304,6 +304,47 @@ try {
       ? ok("opendesign thumbnail served (generated swatch)")
       : bad(`opendesign thumb returned ${odThumb.status}`);
   }
+
+  // ------------------------------------------------------- the Agent Kit layer
+  // The gallery shows each design system two ways: as an Open Design
+  // preview and as a Claude Design package. Both come from the local cache.
+  const kit = designs.find((d) => d.source === "opendesign" && existsSync(join(CACHE_DIR, "gallery", d.id, "preview.html")));
+  if (kit) {
+    const detail = await fetch(`http://127.0.0.1:${PORT}/design/${kit.id}`).then((r) => r.text());
+    detail.includes("/open-design") && detail.includes("/claude")
+      ? ok(`design-system page shows both tabs (${kit.id})`)
+      : bad("design-system page is missing a tab");
+
+    const open = await fetch(`http://127.0.0.1:${PORT}/preview/${kit.id}/open-design`);
+    const openBody = await open.text();
+    open.status === 200 && openBody.includes("<!doctype html>")
+      ? ok(`Open Design preview served (${kit.id})`)
+      : bad(`open-design preview returned ${open.status}`);
+
+    const claude = await fetch(`http://127.0.0.1:${PORT}/preview/${kit.id}/claude`);
+    claude.status === 200 && (await claude.text()).includes("<!doctype html>")
+      ? ok(`Claude Design view served (${kit.id})`)
+      : bad(`claude view returned ${claude.status}`);
+
+    const claudeFile = await fetch(`http://127.0.0.1:${PORT}/preview/${kit.id}/claude/file/README.md`);
+    claudeFile.status === 200
+      ? ok(`Claude Design file served (${kit.id})`)
+      : bad(`claude file returned ${claudeFile.status}`);
+
+    const pkgFile = await fetch(`http://127.0.0.1:${PORT}/api/designs/${kit.id}/file/tokens.css`);
+    pkgFile.status === 200 && (await pkgFile.text()).includes(":root")
+      ? ok(`Open Design package file served (${kit.id})`)
+      : bad(`package file returned ${pkgFile.status}`);
+
+    // The cached artifacts must be self-contained: no page may reach out.
+    const artifacts = [openBody, await (await fetch(`http://127.0.0.1:${PORT}/preview/${kit.id}/claude`)).text()];
+    const external = artifacts.filter((t) => /https?:\/\/[^\s"']+\.(?:css|js|png|jpg|webp|woff2?)/i.test(t));
+    external.length === 0
+      ? ok("cached kit artifacts reference no external assets")
+      : bad(`cached kit artifacts reach out: ${external[0].match(/https?:\/\/[^\s"']+/)?.[0]}`);
+  } else {
+    console.log("  (no Agent Kit gallery artifacts cached — skipping the kit checks)");
+  }
 } catch (e) {
   bad(`preview server failed: ${e.message}${previewErr ? ` | ${previewErr.slice(0, 200)}` : ""}`);
 } finally {
@@ -768,6 +809,35 @@ try {
     mismatched.isError && unknown.isError && outside.isError
       ? ok("OpenDesign rejects a conflicting source, mistyped reference, and invalid file path")
       : bad("OpenDesign accepted an invalid source, reference, or file path");
+
+    // The Claude Design layer, when the Agent Kit has been fetched.
+    const claudeSystem = designs.find(
+      (d) => d.source === "opendesign" && existsSync(join(CACHE_DIR, "claude", `${d.id}.json`)),
+    );
+    if (claudeSystem) {
+      const ref = `designer:opendesign:${claudeSystem.id}`;
+      const got = await call("design_get", { identifier: ref });
+      const info = data(got);
+      const claudeFiles = info.package?.claudeFiles ?? [];
+      const readme = claudeFiles.find((f) => f.path === "README.md");
+      const claudeRead = await call("design_claude_package", { identifier: ref, path: "README.md" });
+      const claudeBody = data(claudeRead);
+      const descriptor = info.package?.descriptor;
+
+      claudeFiles.length > 0 && readme && claudeBody.path === "README.md" &&
+        claudeBody.bytes === readme.bytes && claudeBody.content.includes("#")
+        ? ok(`Claude Design package reads for ${claudeSystem.id} (${claudeFiles.length} files)`)
+        : bad("Claude Design package reads disagree with the inventory");
+
+      descriptor && Array.isArray(descriptor.moods) && Array.isArray(descriptor.industries)
+        ? ok(`design_get carries the curated descriptor for ${claudeSystem.id}`)
+        : bad("design_get is missing the curated descriptor");
+
+      const badPath = await call("design_claude_package", { identifier: ref, path: "../escape.md" });
+      badPath.isError ? ok("Claude Design reads reject an invalid file path") : bad("Claude Design read accepted an invalid file path");
+    } else {
+      console.log("  (no Claude Design packages cached — skipping the kit checks)");
+    }
   }
 } catch (e) {
   bad(`generic MCP server failed: ${e.message}`);

@@ -194,6 +194,14 @@ async function main() {
     console.log("  thumbs          skipped (--no-thumbs)");
   }
 
+  // ------------------------------------------------- the Agent Kit layers
+  // The Claude Design packages, the rendered gallery artifacts and the
+  // curated mood/industry descriptors. All three are optional: a cache that
+  // predates the Agent Kit simply has none, and the gallery falls back.
+  await copyFile("descriptors.json");
+  await copyDir("claude");
+  await copyDir("gallery");
+
   // --------------------------------------------- components and presets
   await copyFile("components.json");
   await copyDir("components");
