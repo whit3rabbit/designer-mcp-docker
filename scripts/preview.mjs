@@ -25,6 +25,9 @@
  *   GET /api/search?q=         ranked search over the catalog
  *   GET /thumb/:id             local thumbnail bytes
  *   GET /design/:id            detail page
+ *   GET /templates             design-system template gallery
+ *   GET /template/:slug        one template's tokens, theme, components, files
+ *   GET /template/:slug/thumb  local cover image bytes (WebP)
  *   GET /skill                 downloadable skill archive
  *   GET /healthz               readiness probe
  *
@@ -43,18 +46,26 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { htmlHeaders, loadFrontend } from "./lib/frontend.mjs";
 import {
   mergeDesign,
   readComponentsIndex,
   readComponent,
   readPresetsIndex,
   readPresetCatalog,
+  readDesignSystemsIndex,
+  readDesignSystem,
 } from "./lib/cache.mjs";
 import {
+  assetsHtml,
   componentsHtml,
   componentDetailHtml,
+  tailwindCatalogHtml,
+  tailwindExampleHtml,
   presetsHtml,
   presetDetailHtml,
+  templatesHtml,
+  templateDetailHtml,
   nav,
   NAV_CSS,
 } from "./lib/ui.mjs";
@@ -70,6 +81,7 @@ const HOST = process.env.HOST || "127.0.0.1";
 // Where the skill lives. In the image it is /app/skills/designer-mcp; in a
 // checkout it is <repo>/skills/designer-mcp.
 const SKILL_DIR = process.env.SKILL_DIR || join(HERE, "..", "skills", "designer-mcp");
+const frontend = await loadFrontend(process.env.DESIGN_FRONTEND_DIR || join(HERE, "..", "dist", "frontend"));
 
 // The upstream package renders DESIGN.md from the full style record. Import it
 // from the installed package so both surfaces stay identical. Resolve it
@@ -360,7 +372,6 @@ function card(s) {
       '<div class="links">' +
         '<a href="/design/' + encodeURIComponent(s.id) + '">Detail</a>' +
         '<a href="/api/designs/' + encodeURIComponent(s.id) + '/design.md">DESIGN.md</a>' +
-        '<a href="' + esc(s.url || '#') + '" target="_blank" rel="noopener">Site</a>' +
       '</div>' +
     '</div></div>';
 }
@@ -420,6 +431,7 @@ function detailHtml(s) {
   const dos = (s.fullResult?.designSystem?.dos || []).map((d) => '<li>' + esc(d) + '</li>').join("");
   const donts = (s.fullResult?.designSystem?.donts || []).map((d) => '<li>' + esc(d) + '</li>').join("");
   const src = s.source || "refero";
+  const reference = `designer:${src}:${s.id}`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(s.siteName)} — Design Systems</title>
@@ -444,11 +456,17 @@ function detailHtml(s) {
   .tsrole{color:var(--muted)}
   ul{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 12px 12px 30px}
   pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-size:12px;white-space:pre-wrap}
+  .theme-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+  .theme-actions input,.theme-actions button{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+  .theme-actions input{width:54ch;max-width:100%;font-family:ui-monospace,monospace;font-size:12px}
+  .theme-actions button{cursor:pointer}
+  .theme-actions [role=status]{color:var(--muted);font-size:12px}
 </style></head><body><div class="wrap">
 <a href="/">&larr; back to gallery</a>
 <img class="shot" src="/thumb/${encodeURIComponent(s.id)}" alt="">
 <h1>${esc(s.siteName)}</h1>
 <div class="ns">${esc(s.northStar || "")}</div>
+${s.url ? `<p class="ns">Source <code>${esc(s.url)}</code></p>` : ""}
 <div class="tags">
   <span class="tag">${esc(src)}</span>
   <span class="tag">${esc(s.colorScheme || "")}</span>
@@ -460,8 +478,29 @@ ${typeScale.length ? `<h2>Type scale</h2><div>${ts}</div>` : ""}
 ${dos ? `<h2>Do</h2><ul>${dos}</ul>` : ""}
 ${donts ? `<h2>Don't</h2><ul>${donts}</ul>` : ""}
 <h2>DESIGN.md</h2>
+<div class="theme-actions">
+  <input id="theme-reference" aria-label="Theme reference" value="${esc(reference)}" readonly spellcheck="false">
+  <button type="button" id="copy-theme">Copy theme reference</button>
+  <a href="/api/designs/${encodeURIComponent(s.id)}/design.md">Open DESIGN.md</a>
+  <span id="theme-status" role="status"></span>
+</div>
 <pre>${esc(designMarkdown(s))}</pre>
-</div></body></html>`;
+</div>
+<script>
+const reference = document.getElementById('theme-reference');
+const status = document.getElementById('theme-status');
+document.getElementById('copy-theme').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(reference.value);
+    status.textContent = 'Theme reference copied.';
+  } catch {
+    reference.focus();
+    reference.select();
+    status.textContent = 'Theme reference selected. Copy it with your keyboard.';
+  }
+});
+</script>
+</body></html>`;
 }
 
 // ------------------------------------------------------------------ server
@@ -471,6 +510,11 @@ function json(res, code, body) {
   res.end(payload);
 }
 
+function sendHtml(res, body, kind) {
+  res.writeHead(200, { ...htmlHeaders(kind), "content-length": Buffer.byteLength(body) });
+  return res.end(body);
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
@@ -478,10 +522,16 @@ const server = createServer(async (req, res) => {
 
     if (p === "/healthz") return json(res, 200, { ok: true, styles: catalog.length, updatedAt: loadedAt });
 
-    if (p === "/" || p === "/index.html") {
-      const html = galleryHtml();
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
-      return res.end(html);
+    if (p === "/" || p === "/index.html") return sendHtml(res, galleryHtml());
+
+    if (p === "/assets" || p === "/assets/") return sendHtml(res, assetsHtml(frontend.publicManifest));
+    if (p === "/assets/manifest.json") {
+      return frontend.publicManifest ? json(res, 200, frontend.publicManifest) :
+        json(res, 404, { error: "frontend assets have not been built" });
+    }
+    if (p.startsWith("/assets/")) {
+      if (await frontend.asset(req, res, p)) return;
+      return json(res, 404, { error: "frontend asset not found" });
     }
 
     if (p === "/api/designs" || p === "/api/styles") {
@@ -509,9 +559,22 @@ const server = createServer(async (req, res) => {
 
     // ---------------------------------------------------- component library
     if (p === "/components" || p === "/components/") {
-      const html = componentsHtml(await readComponentsIndex());
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
-      return res.end(html);
+      return sendHtml(res, componentsHtml(await readComponentsIndex(), frontend.thumbnailPath));
+    }
+
+    if (["/tailwind", "/tailwind/", "/tailwind/hyperui", "/tailwind/shadcn"].includes(p)) {
+      const source = p.endsWith("/shadcn") ? "shadcn" : "hyperui";
+      return sendHtml(res, tailwindCatalogHtml(source, frontend.tailwindGroups(source)));
+    }
+    const tailwindDetail = /^\/tailwind\/(hyperui|shadcn)\/([a-z0-9-]+)$/.exec(p);
+    if (tailwindDetail) {
+      const [, source, slug] = tailwindDetail;
+      const group = frontend.tailwindGroups(source).find((item) => item.slug === slug);
+      const selected = url.searchParams.get("variant");
+      const item = selected ? group?.variants.find(({ id }) => id === selected) : group?.variants[0];
+      const example = item && await frontend.tailwindExample(item);
+      return example ? sendHtml(res, tailwindExampleHtml(source, group, item.id, example)) :
+        json(res, 404, { error: "Tailwind component example not in cache" });
     }
 
     if (p === "/api/components") {
@@ -532,14 +595,31 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { total: list.length, components: list });
     }
 
+    const mThumbnail = p.match(/^\/component\/([a-z0-9-]+)\/thumbnail\/([a-z0-9-]+)$/);
+    if (mThumbnail) {
+      const [, slug, id] = mThumbnail;
+      const component = await readComponent(slug);
+      const item = component?.variants?.find((variant) => variant.id === id);
+      const file = item && frontend.thumbnailAsset(slug, item);
+      if (file && await frontend.asset(req, res, file, "no-cache")) return;
+      return json(res, 404, { error: "matching component thumbnail not built" });
+    }
+
+    const mPreview = p.match(/^\/component\/([a-z0-9-]+)\/preview\/([a-z0-9-]+)$/);
+    if (mPreview) {
+      const [, slug, id] = mPreview;
+      const component = await readComponent(slug);
+      const item = component?.variants?.find((variant) => variant.id === id);
+      const document = item && frontend.previewDocument(slug, item);
+      return document ? sendHtml(res, document, "demo") : json(res, 404, { error: "matching component preview not built" });
+    }
+
     const mComponent = p.match(/^\/component\/([^/]+)$/);
     if (mComponent) {
       const slug = decodeURIComponent(mComponent[1]);
       const component = await readComponent(slug);
       if (!component) return json(res, 404, { error: "component not in cache", slug });
-      const html = componentDetailHtml(component);
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
-      return res.end(html);
+      return sendHtml(res, componentDetailHtml(component, component.variants?.map((item) => frontend.previewPath(slug, item))));
     }
 
     const mComponentApi = p.match(/^\/api\/component\/([^/]+)$/);
@@ -552,9 +632,7 @@ const server = createServer(async (req, res) => {
 
     // ---------------------------------------------------- preset catalogs
     if (p === "/presets" || p === "/presets/") {
-      const html = presetsHtml(await readPresetsIndex());
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
-      return res.end(html);
+      return sendHtml(res, presetsHtml(await readPresetsIndex()));
     }
 
     if (p === "/api/presets") {
@@ -566,9 +644,7 @@ const server = createServer(async (req, res) => {
       const kind = decodeURIComponent(mPreset[1]);
       const catalog = await readPresetCatalog(kind);
       if (!catalog) return json(res, 404, { error: "preset catalog not in cache", kind });
-      const html = presetDetailHtml(catalog);
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
-      return res.end(html);
+      return sendHtml(res, presetDetailHtml(catalog));
     }
 
     const mPresetApi = p.match(/^\/api\/presets\/([^/]+)$/);
@@ -577,6 +653,56 @@ const server = createServer(async (req, res) => {
       const catalog = await readPresetCatalog(kind);
       if (!catalog) return json(res, 404, { error: "preset catalog not in cache", kind });
       return json(res, 200, catalog);
+    }
+
+    // --------------------------------------------- design-system templates
+    if (p === "/templates" || p === "/templates/") {
+      return sendHtml(res, templatesHtml(await readDesignSystemsIndex()));
+    }
+
+    if (p === "/api/templates") {
+      return json(res, 200, await readDesignSystemsIndex());
+    }
+
+    // Covers are the vendored thumbnailImage files, served as local bytes.
+    // No redirect, no CDN: the gallery works with no network at all.
+    const mTemplateThumb = p.match(/^\/template\/([^/]+)\/thumb$/);
+    if (mTemplateThumb) {
+      const slug = decodeURIComponent(mTemplateThumb[1]);
+      const record = await readDesignSystem(slug);
+      const rel = record?.thumbnailImage;
+      if (record && rel && !rel.includes("..")) {
+        const img = join(CACHE_DIR, "design-systems", rel);
+        if (existsSync(img)) {
+          const buf = await readFile(img);
+          const ext = /\.(jpe?g|png|webp)$/i.exec(rel)?.[1]?.toLowerCase();
+          const mime =
+            ext === "png" ? "image/png" : ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "image/webp";
+          res.writeHead(200, {
+            "content-type": mime,
+            "content-length": buf.length,
+            "cache-control": "public, max-age=31536000, immutable",
+          });
+          return res.end(buf);
+        }
+      }
+      return json(res, 404, { error: "no template cover", slug });
+    }
+
+    const mTemplate = p.match(/^\/template\/([^/]+)$/);
+    if (mTemplate) {
+      const slug = decodeURIComponent(mTemplate[1]);
+      const record = await readDesignSystem(slug);
+      if (!record) return json(res, 404, { error: "template not in cache", slug });
+      return sendHtml(res, templateDetailHtml(record, frontend.templateLinks(slug)));
+    }
+
+    const mTemplateApi = p.match(/^\/api\/template\/([^/]+)$/);
+    if (mTemplateApi) {
+      const slug = decodeURIComponent(mTemplateApi[1]);
+      const record = await readDesignSystem(slug);
+      if (!record) return json(res, 404, { error: "template not in cache", slug });
+      return json(res, 200, record);
     }
 
     if (p === "/api/search") {
@@ -607,9 +733,7 @@ const server = createServer(async (req, res) => {
       const id = decodeURIComponent(mPage[1]);
       const full = await loadFull(id);
       if (!full) return json(res, 404, { error: "design not in cache", id });
-      const html = detailHtml(full);
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-length": Buffer.byteLength(html) });
-      return res.end(html);
+      return sendHtml(res, detailHtml(full));
     }
 
     // Thumbnails are served from the LOCAL cache. No redirect to a CDN, so
@@ -738,7 +862,7 @@ server.listen(PORT, HOST, () => {
     bySource[s] = (bySource[s] || 0) + 1;
   }
   console.log(
-    `design-preview on http://${HOST}:${PORT} — ${catalog.length} designs ` +
+    `design-preview on http://${HOST}:${server.address().port} — ${catalog.length} designs ` +
       `(${Object.entries(bySource).map(([k, v]) => `${k}: ${v}`).join(", ")})`,
   );
 });

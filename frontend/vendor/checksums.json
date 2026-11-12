@@ -1,0 +1,87 @@
+[
+  {
+    "file": "style.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/style.json",
+    "sha256": "e90e1e22d2eef2bbb6bee852ecc44a42586535f6a4bc982302f7e7a87ace24f8"
+  },
+  {
+    "file": "utils.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/utils.json",
+    "sha256": "a30a08e7b68095b910fffa389177d3ecb83f02c9a4d6e4d78b29777d5655c874"
+  },
+  {
+    "file": "button.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/button.json",
+    "sha256": "60478b560fd65cf1bc90506a5b3484142dad269a15c298d7e2c58a3bd82442bb"
+  },
+  {
+    "file": "card.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/card.json",
+    "sha256": "de51cd4bbcc943c96c4ea344286c9075b932680fa06befe9ae4b158b46bab4b6"
+  },
+  {
+    "file": "dialog.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/dialog.json",
+    "sha256": "b243f8fbf8f32ab619fda077086c24c08fb495380476593cf6a1e980d9a966f5"
+  },
+  {
+    "file": "tabs.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/tabs.json",
+    "sha256": "c26b1276a2c1669c690ea7d7e070e69098e60deba4df51fcd1265b154d6b2786"
+  },
+  {
+    "file": "tooltip.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/tooltip.json",
+    "sha256": "e29e8f322ad793fb7c8032e7980d836e2b87d64134f502ec2e64fe5a8a8a4438"
+  },
+  {
+    "file": "dropdown-menu.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/dropdown-menu.json",
+    "sha256": "6705a26ba632f91d9dd5a1c5a07fd5569c502eab1fccb791b8d2a22d48210c57"
+  },
+  {
+    "file": "accordion.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/accordion.json",
+    "sha256": "af975ad9e25db1a5b291fa76db8ad4f6e3d734b5a02fe7a29128427ca0222f23"
+  },
+  {
+    "file": "input.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/input.json",
+    "sha256": "44e054a4b0836c2f75656ebe47c3c61679176d1d716e57a3bcbf5012f4adfe63"
+  },
+  {
+    "file": "badge.json",
+    "url": "https://ui.shadcn.com/r/styles/radix-vega/badge.json",
+    "sha256": "4913cf83e8c7a1ba89bbd636fb0730d8ec7fae703ecf0b08a5ca08502e9d63c2"
+  },
+  {
+    "file": "theme.json",
+    "url": "https://ui.shadcn.com/r/themes/neutral.json",
+    "sha256": "f895f5848b74f800282fb1a1d2cea25ed646b663881769a992fd164939a5fc00"
+  },
+  {
+    "file": "shadcn-LICENSE.md",
+    "url": "https://raw.githubusercontent.com/shadcn-ui/ui/dd41d19e2f80ff6891951f7ced74c2c9a650b065/LICENSE.md",
+    "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+  },
+  {
+    "file": "react-remove-scroll-bar-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE",
+    "sha256": "a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84"
+  },
+  {
+    "file": "gsap-LICENSE.txt",
+    "url": "https://gsap.com/community/standard-license/",
+    "sha256": "caebcf3a57bd278569c3c45eb67db340aabd90fa03d130d935a5972f5d777c5e"
+  },
+  {
+    "file": "shadcn-tailwind.css",
+    "url": "https://registry.npmjs.org/shadcn/-/shadcn-4.23.0.tgz",
+    "sha256": "4c371f7a1ff5d219ae2f7ff28bd256b4346fd546fe46fbae22092e57db2f0fae",
+    "package": {
+      "name": "shadcn",
+      "version": "4.23.0",
+      "license": "MIT"
+    }
+  }
+]

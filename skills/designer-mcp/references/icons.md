@@ -8,7 +8,7 @@ In product UI, treat icons as typography — functional, not decorative.
 - [Icon Sizing](#icon-sizing)
 - [Optical Corrections](#optical-corrections)
 - [Style Consistency](#style-consistency)
-- [Icon + Text Pairing](#icon-text-pairing)
+- [Icon + Text Pairing](#icon--text-pairing)
 - [Color](#color)
 - [Accessibility](#accessibility)
 - [Pre-Ship Checklist](#pre-ship-checklist)

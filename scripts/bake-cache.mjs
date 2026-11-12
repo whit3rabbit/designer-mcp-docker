@@ -31,6 +31,8 @@
  *   components/      one file per component, with every variant's source
  *   presets.json     the preset catalog index
  *   presets/         one file per preset catalog
+ *   design-systems.json      the vendored design-system template index
+ *   design-systems/          the six systems verbatim + one record per system
  *
  * Usage
  *   node scripts/bake-cache.mjs
@@ -45,6 +47,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { installDesignSystems } from "./lib/ds-manifest.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
@@ -196,6 +199,12 @@ async function main() {
   await copyDir("components");
   await copyFile("presets.json");
   await copyDir("presets");
+
+  // ------------------------------------- vendored design-system templates
+  // These come from the repo (data/design-systems/), not the fetch cache —
+  // they are static source assets, so a missing tree is a real error.
+  const ds = await installDesignSystems(OUT);
+  console.log(`  design-systems  ${ds.total} systems  ${fmt(ds.bytes)}`);
 
   const total = await dirBytes(OUT);
   console.log("");

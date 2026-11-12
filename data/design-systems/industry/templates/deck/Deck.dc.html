@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Deck" description="A twenty-one-slide presentation starter: cover, contents, dividers, columns, quadrants, a data table, SVG charts and timeline, bleed imagery, a quote and a close, on the theme's tokens" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css" />
+<title>Industry — deck</title>
+<script src="./ds-base.js"></script>
+<script src="./image-slot.js"></script>
+<style>
+/* Template scaffolding — slide layout and projection-scale sizing only; every
+   color, font, radius and shadow comes from ../../styles.css. Change one
+   number here to re-size the whole deck.
+   THE WHOLE-GRID DECK (review rounds 4-5, replacing the containers-only
+   reading at Barron's pick): the modular grid the blueprint grammar
+   implies is drawn in full on every slide — the Grid Systems cover reading
+   of the same direction. Type registers baseline-ON-rule, display sizes
+   step up hard (Müller-Brockmann size contrast), photographs become grid
+   objects, and the system's "+" registration marks keep marking what is
+   measured. The field is EQUAL-MARGINED — 120px from all four stage
+   edges — and nearly every element seats on a DRAWN rule (each seat's
+   comment carries its derivation). */
+deck-stage {
+  --type-display: 288px;  /* 140 → 288: the grid variant's size contrast */
+  --type-title: 96px;     /* 76 → 96 */
+  --type-subtitle: 40px;
+  --type-body: 34px;
+  --type-small: 28px;
+  --type-kicker: 24px;
+  --pad-x: 120px; /* round 2 (Barron): equal field margins — 120 on all four sides */
+  --page-foot-note: "Confidential — July 2026"; /* the deck-wide imprint text (page furniture; see the PAGE FURNITURE note below) */
+  --pad-top: 96px;
+  --pad-bottom: 120px;
+  --baseline: 48px; /* grid unit — one default-text line: the 34px Barlow body at its ~1.41
+     deck leading (a compact sans). The field's bottom rule is the 20th gridline (960); in
+     this variant the cover/close meta seats a half-step ABOVE it, on the 936 cell-bottom
+     rule (see .pin-bottom), and 960 itself stays the hard vertical budget: the bleed's
+     note ends exactly ON it, the reviewed deck's own footer convention. */
+}
+
+.slide {
+  display: flex; flex-direction: column;
+  isolation: isolate; /* the slide is its own stacking context, so the board's
+     negative z-index (below) floors it above the slide's OWN background but
+     beneath every in-flow and positioned child — without isolation a negative
+     z-index would drop the board behind the slide background entirely, and
+     with z-index:auto a positioned board paints ABOVE in-flow ink (CSS paint
+     order), the opposite of the drawn-grid intent */
+  background: var(--color-bg); color: var(--color-text);
+  font-family: var(--font-body);
+  text-wrap: pretty; /* inherited: better breaks, no orphans on wrapped blocks */
+  padding: var(--pad-top) var(--pad-x) var(--pad-bottom);
+  print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+
+/* — the board: the whole modular grid, drawn — */
+/* The variant's one big move. The field is equal-margined: 120px from every
+   stage edge (x 120..1800, y 120..960), so the frame reads symmetric and the
+   bottom rule IS the deck's established 960 footer/budget line. Columns:
+   four 384px modules with 48px gutters (pitch 432) — one baseline unit of
+   gutter, the Grid Systems cover's wider vertical doubling. Rows: seven
+   groups at pitch 120 (2.5 baseline units), each a 96px cell plus a 24px
+   caption row — the cover's doubled-line rhythm, every rule top on the
+   deck's 48/24px baseline lattice. Drawn as
+   border + four repeating gradients (origin border-box, so offsets count
+   from the field edge); zero-flow overlay like the reviewed deck's cells —
+   delete it and no baseline moves. Ink rules on paper; the dividers and
+   bleeds re-derive the rule color per ground (see below). Four "+" marks
+   register the field corners; content-anchored crosses stay on the
+   containers that keep them. */
+.board {
+  --board-rule: color-mix(in srgb, var(--color-divider) 50%, transparent); /* review
+     round 10 (Barron, pre-ship): the grid fades by half — scoped here so the
+     chart grids and timeline line (data furniture on the same divider token)
+     keep their full ink. The table has no rules of its own — the board rules
+     it — so its ruling fades with the board, a deliberate part of the fade. */
+  position: absolute; z-index: -1; /* beneath all content — see .slide's isolation
+     note. The bleed slide overrides this: there the board deliberately lies ON
+     the photograph, beneath the scrim (see .bleed .board) */
+  left: var(--pad-x); top: calc(2.5 * var(--baseline));
+  width: calc(1680px + 1px); height: calc(17.5 * var(--baseline) + 1px);
+  border: 1px solid var(--board-rule, var(--color-divider));
+  background-origin: border-box; background-clip: border-box;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, var(--board-rule, var(--color-divider)) 0 1px, transparent 1px 120px),
+    repeating-linear-gradient(to bottom, transparent 0 96px, var(--board-rule, var(--color-divider)) 96px 97px, transparent 97px 120px),
+    repeating-linear-gradient(to right, var(--board-rule, var(--color-divider)) 0 1px, transparent 1px 432px),
+    repeating-linear-gradient(to right, transparent 0 384px, var(--board-rule, var(--color-divider)) 384px 385px, transparent 385px 432px);
+}
+
+/* — shared pieces — */
+/* Baseline grid: text sits on a 48px rhythm (--baseline) measured from the
+   slide's top edge. Snapped text blocks are trimmed to their cap and baseline
+   edges (text-box), so a block's bottom edge IS its last baseline and the next
+   block's first baseline lands N gridlines down with
+   margin-top: calc(N * var(--baseline) - 1cap). Compact rhythms (chart axes
+   and ticks) sit on the 24px half-step. Review the rhythm with ?baselines in
+   the URL, or press B (script in the helmet) — half-step lines draw
+   fainter than full ones. In this variant the board's rules are a subset of
+   the same lattice: row-group tops are full gridlines, cell bottoms are
+   half-steps, so "baseline on the rule" and "baseline on the grid" are one
+   statement. */
+.kicker {
+  position: absolute; top: calc(2 * var(--baseline) - 1cap); /* baseline on the reviewed
+     deck's own kicker line (96) — now half a unit ABOVE the field's 120 top rule,
+     so the rule and its corner crosses stay clean */
+  left: var(--pad-x); text-box: trim-both cap alphabetic;
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-kicker); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-accent);
+  font-feature-settings: "tnum" 1;
+}
+.k-right { left: auto; right: var(--pad-x); } /* the cover/close kicker rides the
+   top rule flush right — the Grid Systems cover's author line */
+.slide-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-title); line-height: calc(2 * var(--baseline)); letter-spacing: 0; margin: 0;
+  margin-left: -0.052em; /* optical left alignment — measured for Barlow
+     Condensed SemiBold in the reviewed deck; em-scaled, so it holds at 96px */
+  text-box: trim-both cap alphabetic;
+}
+.pin-bottom { position: absolute; left: var(--pad-x); right: var(--pad-x); bottom: calc(var(--pad-bottom) + var(--baseline) / 2); } /* baseline
+   on the 936 caption rule — inside the field, clear of the 960 corner crosses;
+   the last caption row [936,960] is the imprint's band */
+.meta { display: flex; align-items: baseline; gap: 18px; font-size: var(--type-kicker); color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.meta span { text-box: trim-both cap alphabetic; } /* baseline on the 936 caption rule — see .pin-bottom */
+
+/* PAGE FURNITURE — on by default. To remove the page numbers and footer
+   text deck-wide, add data-no-page-furniture to the deck's <x-import>
+   mount (a one-line tweak — it renders on the <deck-stage>); to change
+   the text, edit --page-foot-note in
+   the deck's token block. The imprint sits where this board documents its
+   imprint's band: flush left on the axis, baseline ON the 936 caption rule
+   (the last caption row [936,960] of the field), at the meta row's scale
+   and 55% ink, the number tabular. Carried by the content slides (hero,
+   quote, split and the half-bleeds included — on the half-bleeds it
+   follows the copy half, because small muted type cannot pass the
+   type-over-photography rule) AND by the dividers: a blueprint sheet
+   carries its imprint on every ground, so the dividers keep it with the
+   ink re-derived to the page-corner marks' 55% paper (measured against
+   the steel ground in the render audit). The cover and close keep their
+   meta rows on the same rule instead, and the full bleed's photograph
+   owns its edges. Every slide still counts, so the printed number stays
+   truthful to position. */
+deck-stage { counter-reset: page; }
+.slide { counter-increment: page; }
+.page-foot {
+  position: absolute; left: var(--pad-x); bottom: calc(var(--pad-bottom) + var(--baseline) / 2); /* baseline ON the 936 caption rule, like .pin-bottom */
+  font-size: var(--type-kicker);
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  text-box: trim-both cap alphabetic; /* bottom edge = baseline */
+}
+.page-foot::before { content: counter(page) " · "; font-feature-settings: "tnum" 1; }
+.page-foot::after { content: var(--page-foot-note); }
+deck-stage[data-no-page-furniture] .page-foot, deck-stage[data-no-page-furniture] .page-head { display: none !important; }
+.divider .page-foot { color: color-mix(in srgb, var(--color-bg) 55%, transparent); } /* the imprint survives the steel sheet in the page corners' paper-alpha ink */
+.half-bleed:not(.flip) .page-foot { left: 984px; } /* the imprint follows the copy half, seated on column 3's rule — type never sits on the photograph (deck-templates.md law) */
+
+/* — cover and close — */
+/* The Grid Systems cover, in industry's inks: the full board behind a
+   display line seated baseline-ON-rule (row-group 5's top, y 600), with the
+   description split into two caption columns under it — a short left cell
+   on the axis, the long cell on column 2 — first baselines ON the 696
+   caption rule, clear of the display's descenders (~55px below 600). The
+   kicker rides flush right above the field; the meta sits on the last
+   caption rule (936), inside the field. Most of the grid stays empty on
+   purpose. */
+.cover { justify-content: flex-start; }
+.cover .rise { position: absolute; inset: 0 var(--pad-x); }
+.display {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-display); line-height: calc(6 * var(--baseline)); letter-spacing: 0; margin: 0;
+  margin-left: -0.052em; /* optical left alignment, em-scaled — see .slide-title */
+  margin-top: calc(12.5 * var(--baseline) - 1cap); /* baseline exactly on the group-5 top rule (600) */
+  text-box: trim-both cap alphabetic;
+}
+.cover-sub { font-size: var(--type-small); line-height: var(--baseline); margin: 0;
+  position: absolute; left: 0; max-width: 768px;
+  top: calc(14.5 * var(--baseline) - 1cap); /* first baseline ON the 696 caption rule —
+     clear of the 288px display's descenders (~55px below 600) */
+  text-box: trim-both cap alphabetic; }
+.cover-sub-a { left: 0; max-width: 360px; }
+.cover-sub-b { left: 432px; max-width: 816px; } /* column 2's left edge (x 552) */
+
+/* — contents — */
+/* Contents as the cover's caption rows: no panel, no added rules — the
+   board IS the ruling. Each entry's baseline sits ON a caption rule
+   (456 / 576 / 696 / 816), the 24px caption row beneath reading as the
+   doubled line of the reference cover. Numbers hold the axis; labels start
+   on column 2 (x 552) — secondary starts in this deck always sit on a
+   column edge. */
+.toc { position: absolute; inset: 0 var(--pad-x); font-size: var(--type-subtitle); }
+.toc-row { position: absolute; left: 0; right: 0; }
+.toc-row > span { text-box: trim-both cap alphabetic; position: absolute; top: 0; }
+.toc-row > .toc-label { left: 432px; }
+.toc-num { font-size: var(--type-kicker); color: var(--color-accent); font-feature-settings: "tnum" 1; }
+.toc-row { top: calc(9.5 * var(--baseline)); } /* baseline on the 456 caption rule; the rows
+   re-seat below via nth-child so markup stays the reviewed deck's */
+.toc-row:nth-child(2) { top: calc(12 * var(--baseline)); }
+.toc-row:nth-child(3) { top: calc(14.5 * var(--baseline)); }
+.toc-row:nth-child(4) { top: calc(17 * var(--baseline)); }
+.toc-row > span { top: calc(-1cap); } /* each span trims to its cap; the row's
+   top IS the rule, so the baseline lands on it */
+
+/* — section dividers — */
+/* Dividers keep their own ground — the deep steel blueprint sheet — and the
+   variant draws the board through it in paper-alpha hairlines: the section
+   break is a fresh sheet of the same grid. Ghost numeral and title seat
+   baseline-ON-rule like everything else (ghost on 600, title on 816), both
+   flush on the axis; the "+" page corners keep their registration spots.
+   Contrast re-derived for the steel ground: paper type 12.6:1, ghost at
+   ~2.2:1 (a drawing showing through the sheet), board rules decorative at
+   9% paper (halved in round 10's pre-ship fade). */ /* seats: ghost baseline ON the group-5 top rule (600),
+   title ON the 816 caption rule — see each declaration */
+.divider { justify-content: flex-start; background: var(--color-accent-900); color: var(--color-bg); }
+.divider .board { --board-rule: color-mix(in srgb, var(--color-bg) 9%, transparent); } /* half of the pre-round-10 18% — the fade keeps the per-ground ratio */
+.divider .board > .corner { color: color-mix(in srgb, var(--color-bg) 55%, transparent); }
+.divider .rise { position: absolute; inset: 0 var(--pad-x); }
+.page-corner {
+  position: absolute; width: 15px; height: 15px;
+  color: color-mix(in srgb, var(--color-bg) 55%, transparent);
+}
+.page-corner::before, .page-corner::after { content: ""; position: absolute; background: currentColor; }
+.page-corner::before { left: 7px; top: 0; width: 1px; height: 100%; }
+.page-corner::after  { top: 7px; left: 0; width: 100%; height: 1px; }
+.page-corner.tl { top: 41px; left: 41px; }
+.page-corner.tr { top: 41px; right: 41px; }
+.page-corner.bl { bottom: 41px; left: 41px; }
+.page-corner.br { bottom: 41px; right: 41px; }
+
+/* — registration crosses (the cell-corner grammar, kept) — */
+.cell { position: absolute; border: 1px solid var(--color-divider); pointer-events: none; }
+.cell > .corner, .board > .corner { position: absolute; width: 15px; height: 15px; color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.cell > .corner::before, .cell > .corner::after,
+.board > .corner::before, .board > .corner::after { content: ""; position: absolute; background: currentColor; }
+.cell > .corner::before, .board > .corner::before { left: 7px; top: 0; width: 1px; height: 100%; }
+.cell > .corner::after, .board > .corner::after  { top: 7px; left: 0; width: 100%; height: 1px; }
+.cell > .corner.tl, .board > .corner.tl { top: -8px; left: -8px; }
+.cell > .corner.tr, .board > .corner.tr { top: -8px; right: -8px; }
+.cell > .corner.bl, .board > .corner.bl { bottom: -8px; left: -8px; }
+.cell > .corner.br, .board > .corner.br { bottom: -8px; right: -8px; }
+/* -8px = the 7px arm offset + the 1px border: absolute offsets resolve from
+   the PADDING box, inside the border — each cross centers exactly on its
+   rule intersection, the reviewed deck's convention. */
+.ghost-num {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 480px; line-height: 1; letter-spacing: 0;
+  color: var(--color-accent-700);
+  position: absolute; top: calc(12.5 * var(--baseline) - 1cap); /* baseline on the
+     group-5 top rule (600) */
+  text-box: trim-both cap alphabetic;
+  margin-left: -0.036em; /* ghosts lead with "0" — optical value from the reviewed deck, em-scaled */
+}
+.divider .slide-title { position: absolute; top: calc(17 * var(--baseline) - 1cap); } /* baseline on the 816 caption rule */
+
+/* — content slides — */
+.content { padding-top: calc(5 * var(--baseline)); /* title baseline on the 5th gridline —
+   row 2's top rule (240), clear of the pinned kicker row */ }
+.content > .slide-title, .content > .chart-head { margin-top: -1cap; } /* cap-trimmed: the baseline, not the cap top, sits on the rule */
+.content > .bullets { margin-top: calc(2.5 * var(--baseline) - 1cap); } /* first baseline on
+   the group-3 top rule (360), one row group below the title's */
+.content > figure { margin-top: calc(2 * var(--baseline)); } /* svg top on the 336 caption
+   rule; the plots' axis line (svg y 360) lands ON the 696 caption rule */
+.content > .table { margin-top: calc(0.5 * var(--baseline)); } /* table top at 264: the 96px
+   header row closes its baseline ON the group-3 top rule (360) */
+.content > .chart-caption { margin-top: calc(2 * var(--baseline) - 1cap); }
+.bullets { display: flex; flex-direction: column; max-width: 1220px; margin: 0; padding: 0; list-style: none; font-size: var(--type-body); }
+.bullets li { position: relative; line-height: var(--baseline); text-box: trim-both cap alphabetic; }
+.bullets li + li { margin-top: calc(2.5 * var(--baseline) - 1cap); } /* one thought per
+   row group: single-line bullets seat on successive group-top rules
+   (360 / 480 / 600) — the variant's pitch (the reviewed deck: every other
+   gridline) */
+.bullets li::before, .bullets li::after { content: ""; position: absolute; background: var(--color-accent); }
+.bullets li::before { left: -37px; top: calc(0.5cap - 8px); width: 2px; height: 16px; }
+.bullets li::after  { left: -44px; top: calc(0.5cap - 1px); width: 16px; height: 2px; }
+
+/* — column layouts — */
+/* Columns are the board's own bays: the two-column setting takes two
+   modules per column (x 120 and 984, 816px each, the drawn 48px gutter
+   between), and the three-column setting takes one module apiece (x 120,
+   552, 984) leaving module 4 DELIBERATELY empty — the Grid Systems cover's
+   empty-cell statement; on a four-module board three equal full-width
+   columns cannot seat on drawn rules, so the grid wins and the measure
+   narrows (a module runs ≈21 characters of condensed head, ≈26 of small
+   note — notes, not essays). No rules are added: the board is the ruling.
+   Seats: head baselines ON the group-3 top rule (360), note baselines ON
+   the 456 caption rule, wrapped lines riding the 48px lattice below. */
+.cols { display: grid; column-gap: var(--baseline); margin-top: calc(2.5 * var(--baseline)); /* container top ON the group-3 rule; the cap term lives on the h3, where it resolves in the heading face (the two-family decks' -1cap lesson) */ }
+.cols-2 { grid-template-columns: 816px 816px; }
+.cols-3 { grid-template-columns: repeat(3, 384px); }
+.cols h3 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-subtitle); line-height: var(--baseline); margin: 0;
+  margin-top: -1cap; /* baseline ON the group-3 top rule (360); 1cap in the h3's own face */
+  text-box: trim-both cap alphabetic; }
+.cols p { font-size: var(--type-small); line-height: var(--baseline); margin: 0;
+  margin-top: calc(2 * var(--baseline) - 1cap); /* first baseline ON the 456 caption rule */
+  text-box: trim-both cap alphabetic; }
+
+/* — quadrants — */
+/* The board IS the matrix — no division is drawn because every division
+   is already there: the vertical axis is the columns 2/3 gutter (center
+   960), the horizontal axis is the group-5 top rule (600). Cells are
+   two-module x two-row-group bays: heads seat their baselines ON the band
+   top rules (360 upper, 600 lower — the lower heads hang from the crossing
+   rule itself, the way every seated element does), one-liners ON the
+   caption rules below (456 / 696), wraps on the lattice. The axis pair
+   seats ON the group-7 top rule (840), left label on the axis, right label
+   flush right (the cover kicker's k-right precedent), one row group clear
+   of the 936 imprint. Left column = lower x; the y reading (top row
+   smaller work) is carried by the cell copy — a y pair has no seat that
+   doesn't fight the imprint band or the axis, so the horizontal pair does
+   the labeling (the shared-spec minimum). */
+.quad { display: grid; grid-template-columns: 816px 816px; column-gap: var(--baseline);
+  grid-template-rows: calc(5 * var(--baseline)) calc(5 * var(--baseline));
+  margin-top: calc(2.5 * var(--baseline)); /* matrix top = the group-3 top rule (360) */ }
+.quad h3 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-subtitle); line-height: var(--baseline); margin: 0;
+  margin-top: -1cap; /* baseline ON the cell's band-top rule (360 / 600) */
+  text-box: trim-both cap alphabetic; }
+.quad p { font-size: var(--type-small); line-height: var(--baseline); margin: 0;
+  margin-top: calc(2 * var(--baseline) - 1cap); /* one-liner ON the caption rule (456 / 696) */
+  text-box: trim-both cap alphabetic; }
+.quad-axis { display: flex; justify-content: space-between;
+  margin-top: -1cap; /* label baselines ON the group-7 top rule (840) */
+  font-size: var(--type-kicker); letter-spacing: 0.08em; text-transform: uppercase;
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.quad-axis span { text-box: trim-both cap alphabetic; }
+
+/* — data table (component class at projection scale) — */
+/* The board rules the table: the component's own hairlines are suppressed
+   (a variant style call — no rules are drawn twice) and the rows take the
+   board's 120px row groups ONE-PER-ROW, each row's text baseline ON its
+   caption rule (456 / 576 / 696 / 816), the header on the group-3 top rule
+   (360). Columns seat on the grid columns — Role on the axis, Value on
+   column 2 (552), ground on column 3 (984), Use on column 4 (1416) — and
+   the swatch hangs LEFT of the axis like every other mark, its bottom edge
+   on the row's rule. */
+.slide .table { max-width: 1680px; width: 1680px; font-size: 29px; font-feature-settings: "tnum" 1;
+  table-layout: fixed; border-collapse: collapse; }
+/* Column plan: three 432px columns — one grid module each — and the rest
+   to Use. Carried on the header row's cells (table-layout: fixed reads row
+   one) rather than a <colgroup>: the Design Component pipeline parses the
+   template outside a real <table> context, where col elements are dropped,
+   and a fixed-layout table without them would fall back to equal columns. */
+.slide .table th:nth-child(-n+3) { width: 432px; }
+.slide .table thead tr { height: calc(2 * var(--baseline)); }
+.slide .table tbody tr { height: calc(2.5 * var(--baseline)); } /* one board row group per data row */
+.slide .table th, .slide .table td {
+  text-box: trim-both cap alphabetic; text-align: left; font-weight: 400;
+  border: none; background: none; vertical-align: bottom;
+  padding: 0 24px calc(0.5 * var(--baseline)) 0;
+}
+.slide .table th { font-size: var(--type-kicker); }
+.slide .table thead th { padding-bottom: 0; } /* bottom-anchored: the header row closes ON the
+   group-3 top rule (360), each data row's LAST baseline sits 24px above its row's bottom —
+   on the caption rules 456 / 576 / 696 / 816 — and a wrapped cell grows upward into
+   its own cell instead of past the field (the vertical budget, kept by construction) */
+.slide .table tbody tr:hover { background: none; }
+.slide .table th:first-child, .slide .table td:first-child { padding-left: 0; position: relative; }
+.slide .table th:last-child, .slide .table td:last-child { padding-right: 0; }
+.slide .table .swatch { position: absolute; left: -72px; bottom: calc(0.5 * var(--baseline)); } /* hangs
+   left of the axis like every mark; bottom edge ON the row's rule */
+.swatch { display: inline-block; width: 48px; height: 48px; border-radius: 0; /* square-corner
+   doctrine; 48px = one grid unit, bottom edge on the row's rule */ box-shadow: var(--shadow-sm); }
+
+/* — hero figure — */
+/* The variant's loudest size contrast: the figure at 432px, flush on the
+   axis, baseline ON the group-5 top rule (600); the caption moves to column
+   3 (x 984), its first baseline ON the 696 caption rule — the number and
+   its note read corner-to-corner across the empty grid. */
+.hero { justify-content: flex-start; }
+.hero-num {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 432px; line-height: 1; letter-spacing: 0; margin: 0;
+  color: var(--color-accent);
+  position: absolute; left: var(--pad-x); top: calc(12.5 * var(--baseline) - 1cap);
+  text-box: trim-both cap alphabetic;
+  margin-left: -0.010em; /* leads with the near-bearingless "1" — reviewed value, em-scaled */
+}
+.hero-caption { font-size: var(--type-small); line-height: var(--baseline); margin: 0;
+  position: absolute; left: 984px; top: calc(14.5 * var(--baseline) - 1cap); max-width: 816px;
+  text-box: trim-both cap alphabetic; }
+
+/* — charts (static SVG on the tokens; no script, no chart library) — */
+/* The plots seat their anatomy ON drawn rules — svg top at 336 (a caption
+   rule), the x-axis ON the 696 caption rule, and the line chart's 10k
+   gridlines (120px apart, the row-group pitch) phased by the axis onto the
+   drawn caption rules (576 / 456). Bar x-geometry is derived for the 1680
+   field. The board's column rules pass behind the plots — the drawing
+   stays on its grid. */
+.chart { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text {
+  font-family: var(--font-body); font-size: 24px;
+  fill: color-mix(in srgb, var(--color-text) 55%, transparent);
+  font-feature-settings: "tnum" 1;
+}
+.chart .grid, .chart .axis { stroke: var(--color-divider); stroke-width: 1; }
+.chart .bar { fill: none; stroke: var(--color-neutral-600); stroke-width: 1; }
+.chart .bar-hi { fill: var(--color-accent); stroke: none; }
+.chart .val { fill: color-mix(in srgb, var(--color-text) 70%, transparent); }
+.chart .ref { stroke: var(--color-accent-700); stroke-width: 1; stroke-dasharray: 8 8; }
+.chart .ref-label { fill: var(--color-accent-700); }
+.chart .hi-label { fill: var(--color-accent-700); }
+.chart .series-a, .key .series-a { stroke: var(--color-accent); stroke-width: 3; fill: none; }
+.chart .series-b, .key .series-b { stroke: var(--color-neutral-800); stroke-width: 3; fill: none; stroke-dasharray: 10 8; }
+.chart-caption { font-size: 25px; line-height: var(--baseline); max-width: 88ch; margin: 0; text-box: trim-both cap alphabetic; }
+.chart-head { display: flex; align-items: baseline; justify-content: space-between;
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: var(--type-title); }
+.chart-legend { display: flex; align-items: baseline; gap: 16px; font-family: var(--font-body); font-weight: 400; font-size: var(--type-kicker); color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.chart-legend span { text-box: trim-both cap alphabetic; }
+.chart-legend .key { width: 60px; height: 4px; overflow: visible; position: relative; top: -7px; }
+.chart-legend .key:not(:first-child) { margin-left: 24px; }
+.chart .tl-line { stroke: var(--color-divider); stroke-width: 1; }
+.chart .tl-node { stroke: var(--color-neutral-600); stroke-width: 1.5; }
+.chart .tl-node-hi-fill { fill: var(--color-accent); }
+.chart .tl-node-hi { stroke: var(--color-bg); stroke-width: 1.5; }
+.chart .tl-date { fill: color-mix(in srgb, var(--color-text) 55%, transparent); letter-spacing: 0.08em; }
+.chart .tl-date-hi { fill: var(--color-accent-700); letter-spacing: 0.08em; }
+.chart .tl-label { fill: var(--color-text); font-size: 30px; font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
+/* The timeline figure drops to the mid-field so its line sits ON the
+   group-4 top rule (480): svg top at 384, dates above, labels below, the
+   notes' baselines landing exactly ON the group-5 top rule (600). Node
+   pitch is 360 — milestone positions are data, not grid furniture. The
+   column-seated alternative (pitch 432, nodes on 120/552/984/1416/1800,
+   re-checked for the round-2 geometry) stays rejected: the fifth
+   milestone's ~340px notes would either overflow the stage or,
+   right-anchored, collide with the fourth's — and mixed anchoring
+   re-breaks the reviewed one-left-edge-per-milestone rule. */
+.fig-timeline { margin-top: calc(3 * var(--baseline)) !important; }
+
+/* — image slide — */
+/* The photograph becomes a grid object: columns 3-4 by row-groups 2-7
+   exactly (x 984..1800, y 240..936), the blueprint frame's "+" marks seated
+   on board intersections. The copy keeps the axis in columns 1-2. */
+.split { flex-direction: row; align-items: flex-start; gap: 0; padding-top: calc(5 * var(--baseline)); }
+.split-copy { flex: none; width: 768px; display: flex; flex-direction: column; }
+.split-copy .slide-title { margin-top: -1cap; }
+.split-copy .note { font-size: var(--type-small); line-height: var(--baseline); margin: calc(2.5 * var(--baseline) - 1cap) 0 0;
+  text-box: trim-both cap alphabetic; max-width: 768px; }
+.split-figure { position: absolute; left: 984px; top: calc(5 * var(--baseline)); width: 816px; height: calc(14.5 * var(--baseline)); margin: 0; }
+.split-figure image-slot { width: 100%; height: 100%; } /* the grid-object box (columns 3-4 ×
+   row-groups 2-7) does the framing; cover is the component's own default */
+.split-figure > .corner { pointer-events: none; } /* the registration crosses overlap the
+   slot by a few px — decorative marks must not eat its hover/drop events
+   (image-slot usage contract); scoped here rather than in styles.css, whose
+   .corner serves the whole system */
+
+/* — full-bleed image slide — */
+/* The board is drawn OVER the photograph in paper-alpha — the blueprint
+   laid onto the image — and UNDER the scrim, so the rules fade out exactly
+   where the type needs its measured ground. Type treatment unchanged from
+   the reviewed deck (it passes the type-over-photography rule): full-ink
+   note, kicker stepped to accent-700. */
+.bleed .board { --board-rule: color-mix(in srgb, var(--color-bg) 13%, transparent); /* half of the pre-round-10 25%, rounded to a whole step */
+  z-index: auto; /* the one slide where the board rides ABOVE its photograph:
+     DOM-order painting — after the positioned figure, before the positioned
+     scrim — so photo → board → scrim → copy stack as documented */ }
+.bleed .board > .corner { color: color-mix(in srgb, var(--color-bg) 55%, transparent); }
+.bleed-figure { position: absolute; inset: 0; margin: 0; }
+.bleed-figure image-slot { width: 100%; height: 100%; } /* framing is the component's (fit=cover default) */
+.bleed-scrim {
+  position: absolute; inset: 0; pointer-events: none; /* the slot beneath is interactive (hover controls, drops) — overlays must not eat its events (image-slot usage contract) */
+  background:
+    linear-gradient(to top,
+      color-mix(in srgb, var(--color-bg) 98%, transparent),
+      color-mix(in srgb, var(--color-bg) 95%, transparent) 24%,
+      color-mix(in srgb, var(--color-bg) 60%, transparent) 42%,
+      transparent 66%),
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--color-bg) 92%, transparent),
+      color-mix(in srgb, var(--color-bg) 80%, transparent) 12%,
+      transparent 26%);
+}
+.bleed-copy { position: absolute; left: var(--pad-x); right: var(--pad-x); bottom: var(--pad-bottom); pointer-events: none; } /* text over the slot — must not eat its hover/drop events */
+.bleed .kicker { color: var(--color-accent-700); pointer-events: none; /* sits on the photograph — same usage contract as the scrim */ }
+.bleed-copy .note {
+  font-size: var(--type-small); line-height: var(--baseline); max-width: 56ch;
+  margin: calc(2 * var(--baseline) - 1cap) 0 0;
+  text-box: trim-both cap alphabetic;
+  color: var(--color-text);
+} /* bottom-anchored block: the note's LAST baseline sits ON the field's 960
+   bottom rule; its earlier baselines (864/912) and the title's (768) ride the
+   48px lattice, not drawn rules — over a photograph the scrim, not the board,
+   is the ground (the board fades out beneath it) */
+
+/* — half-bleed image slides — */
+/* The photograph takes grid columns, not a raw half-stage: it bleeds to
+   three edges and stops at the gutter (base: columns 1-2, inner edge on
+   the 936 gutter rule; .flip mirrors to columns 3-4, starting exactly on
+   column 3's rule at 984), and the copy starts on a column rule — x 984
+   (column 3) for the base, the axis for the mirror. The board draws first,
+   the photograph covers its half. */
+.half-bleed { padding-top: calc(5 * var(--baseline)); }
+.half-bleed > .slide-title { margin-top: -1cap; max-width: 816px; }
+.half-bleed .note {
+  font-size: var(--type-small); line-height: var(--baseline); max-width: 816px;
+  margin: calc(2 * var(--baseline) - 1cap) 0 0;
+  text-box: trim-both cap alphabetic;
+}
+.half-bleed .bullets { margin-top: calc(2.5 * var(--baseline) - 1cap); max-width: 816px; }
+.half-bleed .bullets li + li { margin-top: calc(4 * var(--baseline) - 1cap); } /* items here
+   run up to two lines: the 4-unit gap from a two-line item's last baseline seats
+   each bullet's FIRST baseline back on a group-top rule (360 / 600 / 840), and a
+   one-line item simply leaves more air before the next */
+.half-bleed-figure { position: absolute; inset: 0 auto 0 0; width: 936px; margin: 0; }
+.half-bleed-figure image-slot { width: 100%; height: 100%; } /* framing is the component's (fit=cover default) */
+.half-bleed:not(.flip) > .slide-title { margin-left: calc(864px - 0.052em); } /* column 3 (x 984), preserving the optical shift */
+.half-bleed:not(.flip) .note,
+.half-bleed:not(.flip) .bullets { margin-left: 864px; }
+.half-bleed:not(.flip) .kicker { left: 984px; }
+.half-bleed.flip .half-bleed-figure { inset: 0 0 0 auto; width: 936px; }
+/* With the photograph ending on the 936 gutter rule and the copy on column
+   3 (984), the 48px gutter is the hanging margin: the crosses center on the
+   gutter's own centerline (x 960) with 16px of paper on either side —
+   "whatever sits behind them" now means the gutter itself. */
+.half-bleed:not(.flip) .bullets li::before { left: -25px; }
+.half-bleed:not(.flip) .bullets li::after  { left: -32px; }
+
+/* — quote — */
+/* Flush on the axis, airy MB leading: 64px poster lines on a two-unit
+   (96px) leading, first baseline ON the group-3 top rule (360; the deck's
+   copy sets in two lines, 360/456 — top rule and caption rule); the
+   attribution drops to the 696 caption rule — see the figcaption note. */
+.quote { justify-content: flex-start; }
+.quote .rise { position: absolute; inset: 0 var(--pad-x); }
+.quote blockquote {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 64px; line-height: calc(2 * var(--baseline)); letter-spacing: 0;
+  max-width: 1200px; margin: 0;
+  margin-top: calc(7.5 * var(--baseline) - 1cap); /* first baseline on the group-3 top rule (360) */
+  text-box: trim-both cap alphabetic;
+  text-indent: -0.316em; /* hang the opening “ (measured advance in the Condensed 600) */
+}
+.quote figcaption { font-size: var(--type-small); margin: 0;
+  position: absolute; top: calc(14.5 * var(--baseline) - 1cap); /* baseline on the 696
+     caption rule — a full row-group below the quote's two-line setting (360/456),
+     chosen for air over the nearer 576 rule; re-seat if the quote re-wraps */
+  text-box: trim-both cap alphabetic;
+  text-indent: -0.885em; /* hang the leading em-dash + space (measured advance in Barlow Regular) */ }
+
+/* Review aid: the baseline grid drawn as a hairline under every --baseline
+   step. Debug-only — toggled by ?baselines or the B key; not part of the look. */
+deck-stage[data-baselines] .slide::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom,
+      color-mix(in srgb, var(--color-accent) 35%, transparent) 0 1px,
+      transparent 1px var(--baseline)),
+    repeating-linear-gradient(to bottom,
+      transparent 0 calc(var(--baseline) / 2),
+      color-mix(in srgb, var(--color-accent) 16%, transparent) calc(var(--baseline) / 2) calc(var(--baseline) / 2 + 1px),
+      transparent calc(var(--baseline) / 2 + 1px) var(--baseline));
+}
+
+/* Entrance — end-state is the base style; animate from hidden, gated on the
+   active slide and the motion preference, so print and reduced-motion are safe. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-deck-active] .rise { animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+}
+</style>
+<script>
+// Review aid: baseline-grid overlay — add ?baselines to the URL, or press B to toggle.
+// This runs from <helmet>, before the deck renders, so the stage is looked up when it is
+// needed instead of captured up front; the window flag keeps a second evaluation of
+// this helmet script (a recreated script node) from binding the B key twice.
+(() => {
+  if (window.__deckBaselineAid) return;
+  window.__deckBaselineAid = true;
+  const stage = () => document.querySelector('deck-stage');
+  if (new URLSearchParams(location.search).has('baselines')) {
+    let tries = 600; // wait out the deck's first render (up to ~10s of frames)
+    const arm = () => { const s = stage(); if (s) s.setAttribute('data-baselines', ''); else if (tries-- > 0) requestAnimationFrame(arm); };
+    arm();
+  }
+  addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return; // typing guard, as in deck-stage's own keys
+    if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey) stage()?.toggleAttribute('data-baselines');
+  });
+})();
+</script>
+</helmet>
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+  <section class="slide cover" data-label="Title">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker k-right"><span>Design systems</span></div>
+    <div class="rise">
+      <h1 class="display">Industry</h1>
+      <p class="cover-sub cover-sub-a text-muted">A blueprint wireframe</p>
+      <p class="cover-sub cover-sub-b text-muted">Steel blue on a technical light ground, condensed headings, square corners and registration-marked frames.</p>
+    </div>
+    <div class="pin-bottom meta"><span>Your name</span><span>·</span><span>July 2026</span></div>
+  </section>
+
+  <section class="slide content" data-label="Contents">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <h2 class="slide-title">Contents</h2>
+    <div class="toc rise">
+      <div class="toc-row"><span class="toc-num">01</span><span class="toc-label">Principles</span></div>
+      <div class="toc-row"><span class="toc-num">02</span><span class="toc-label">The ramps</span></div>
+      <div class="toc-row"><span class="toc-num">03</span><span class="toc-label">Imagery</span></div>
+      <div class="toc-row"><span class="toc-num">04</span><span class="toc-label">Roadmap</span></div>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide divider" data-label="Principles">
+    <i class="page-corner tl"></i><i class="page-corner tr"></i><i class="page-corner bl"></i><i class="page-corner br"></i>
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="rise">
+      <div class="ghost-num">01</div>
+      <h2 class="slide-title">Principles</h2>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Working rules">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>01 · Principles</span></div>
+    <h2 class="slide-title">Working rules</h2>
+    <ul class="bullets rise">
+      <li>Everything on the board is a wireframe object — square, hairline-framed, marked.</li>
+      <li>Condensed headings label the drawing; Barlow carries the notes.</li>
+      <li>Steel blue is the one color, and the primary action is the one solid object.</li>
+    </ul>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Two columns">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>01 · Principles</span></div>
+    <h2 class="slide-title">Two columns</h2>
+    <div class="cols cols-2 rise">
+      <div>
+        <h3>Two bays of the board</h3>
+        <p>Each column takes two modules, and the gutter between them is the drawing’s own — no rules are added, because the ruling is already there.</p>
+      </div>
+      <div>
+        <h3>Seated, not floated</h3>
+        <p>Heads seat their baselines on a group rule and the notes on the caption rule below, so both columns read line for line across the gutter.</p>
+      </div>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Three columns">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>01 · Principles</span></div>
+    <h2 class="slide-title">Three columns</h2>
+    <div class="cols cols-3 rise">
+      <div>
+        <h3>One module each</h3>
+        <p>Three columns take one module apiece and leave the fourth empty — on a drawn grid, an empty bay is a statement, not a gap.</p>
+      </div>
+      <div>
+        <h3>A note’s measure</h3>
+        <p>A module runs about twenty-six characters — notes and specifications, not essays. Keep each entry short.</p>
+      </div>
+      <div>
+        <h3>Still seated</h3>
+        <p>Heads on the group rule, notes on the caption rule — the narrow measure changes nothing about where type sits.</p>
+      </div>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Quadrants">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>01 · Principles</span></div>
+    <h2 class="slide-title">Quadrants</h2>
+    <div class="quad rise">
+      <div>
+        <h3>Napkin sketch</h3>
+        <p>Small, rough — where every drawing starts.</p>
+      </div>
+      <div>
+        <h3>Schematic</h3>
+        <p>Small, precise — every line means it.</p>
+      </div>
+      <div>
+        <h3>Mock-up</h3>
+        <p>Big, rough — shape first, dimensions later.</p>
+      </div>
+      <div>
+        <h3>Production drawing</h3>
+        <p>Big, precise — the one the shop builds from.</p>
+      </div>
+    </div>
+    <div class="quad-axis" aria-hidden="true"><span>← rougher</span><span>more precise →</span></div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide divider" data-label="The ramps">
+    <i class="page-corner tl"></i><i class="page-corner tr"></i><i class="page-corner bl"></i><i class="page-corner br"></i>
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="rise">
+      <div class="ghost-num">02</div>
+      <h2 class="slide-title">The ramps</h2>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Color roles">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>02 · The ramps</span></div>
+    <h2 class="slide-title">Color roles</h2>
+    <table class="table rise">
+      <thead>
+        <tr><th>Role</th><th>Value</th><th>On the ground</th><th>Use</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="swatch" style="background: var(--color-text)"></span>Text</td><td>#1d1f20</td><td>14.8:1</td><td>Body copy and headings</td></tr>
+        <tr><td><span class="swatch" style="background: var(--color-accent)"></span>Accent</td><td>#5980a6</td><td>3.7:1</td><td>Frames, marks and large text</td></tr>
+        <tr><td><span class="swatch" style="background: var(--color-accent-700)"></span>Accent 700</td><td>#416180</td><td>5.8:1</td><td>Accent-colored body copy</td></tr>
+        <tr><td><span class="swatch" style="background: var(--color-surface)"></span>Surface</td><td>#e9e9ea</td><td>1.1:1</td><td>Quiet fills in the wireframes</td></tr>
+      </tbody>
+    </table>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide hero" data-label="Contrast">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>02 · The ramps</span></div>
+    <p class="hero-num rise">14.8:1</p>
+    <p class="hero-caption text-muted">Body text against the technical light ground — the drawing is ink on paper, and the steel stays in the linework.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Contrast by step">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>02 · The ramps</span></div>
+    <h2 class="slide-title">Contrast by ramp step</h2>
+    <figure class="rise">
+      <svg class="chart" viewBox="0 0 1680 432" role="img" aria-label="Bar chart: WCAG contrast of each accent ramp step against the Industry ground, from 1.0:1 at step 100 up to 12.6:1 at step 900">
+      <!-- Plot scale is grid-native: 24px (a half-grid step) per contrast unit; round 2
+           seats the axis ON the board's 696 caption rule (svg top on the 336 rule),
+           gridlines every 72px, y-tick baselines on the lattice. The caption's
+           baselines land on gridlines inside the vertical budget (864 and 912,
+           above the 960 field-bottom rule) — checked per deck-templates.md.
+           Wireframe bars: transparent, hairline-stroked, drawn inside the plot (the
+           half-pixel insets keep the 1px stroke's bottom edge on the axis); the one
+           solid object is the highlighted step. -->
+      <line class="grid" x1="0" y1="288" x2="1680" y2="288"/>
+      <line class="grid" x1="0" y1="216" x2="1680" y2="216"/>
+      <line class="grid" x1="0" y1="144" x2="1680" y2="144"/>
+      <line class="grid" x1="0" y1="72" x2="1680" y2="72"/>
+      <line class="ref" x1="0" y1="288" x2="1680" y2="288"/>
+      <!-- the label sits at the left, over the short bars: the ramp's tall
+           bars are at the right on this light ground -->
+      <text class="ref-label" x="0" y="264">3:1 interface minimum</text>
+      <text x="-16" y="288" text-anchor="end">3</text>
+      <text x="-16" y="216" text-anchor="end">6</text>
+      <text x="-16" y="144" text-anchor="end">9</text>
+      <text x="-16" y="72" text-anchor="end">12</text>
+      <text x="-16" y="360" text-anchor="end">0</text>
+      <rect class="bar" x="42.4" y="335.9" width="101.9" height="23.6"/>
+      <rect class="bar" x="229" y="334.3" width="101.9" height="25.2"/>
+      <rect class="bar" x="415.8" y="329" width="101.9" height="30.5"/>
+      <rect class="bar" x="602.4" y="317.8" width="101.9" height="41.7"/>
+      <rect class="bar" x="789" y="299.3" width="101.9" height="60.2"/>
+      <rect class="bar" x="975.8" y="269.3" width="101.9" height="90.2"/>
+      <rect class="bar-hi" x="1161.9" y="221.2" width="102.9" height="138.8"/>
+      <rect class="bar" x="1349" y="147.6" width="101.9" height="211.9"/>
+      <rect class="bar" x="1535.8" y="59.2" width="101.9" height="300.3"/>
+      <text class="val" x="93.4" y="323.4" text-anchor="middle">1.0</text>
+      <text class="val" x="280" y="321.8" text-anchor="middle">1.1</text>
+      <text class="val" x="466.7" y="316.5" text-anchor="middle">1.3</text>
+      <text class="val" x="653.4" y="305.3" text-anchor="middle">1.8</text>
+      <!-- the step-500 value rides 9px higher than its siblings: the 3:1
+           reference line passes just above its bar, through the label's
+           default position -->
+      <text class="val" x="840" y="277.8" text-anchor="middle">2.5</text>
+      <text class="val" x="1026.7" y="256.8" text-anchor="middle">3.8</text>
+      <text class="val" x="1213.4" y="209.2" text-anchor="middle">5.8</text>
+      <text class="val" x="1400" y="135.1" text-anchor="middle">8.9</text>
+      <text class="val" x="1586.7" y="46.7" text-anchor="middle">12.6</text>
+      <text class="hi-label" x="1213.4" y="173.2" text-anchor="middle">body copy</text>
+      <text x="93.4" y="408" text-anchor="middle">100</text>
+      <text x="280" y="408" text-anchor="middle">200</text>
+      <text x="466.7" y="408" text-anchor="middle">300</text>
+      <text x="653.4" y="408" text-anchor="middle">400</text>
+      <text x="840" y="408" text-anchor="middle">500</text>
+      <text x="1026.7" y="408" text-anchor="middle">600</text>
+      <text x="1213.4" y="408" text-anchor="middle">700</text>
+      <text x="1400" y="408" text-anchor="middle">800</text>
+      <text x="1586.7" y="408" text-anchor="middle">900</text>
+      <line class="axis" x1="0" y1="360" x2="1680" y2="360"/>
+    </svg>
+    </figure>
+    <p class="chart-caption text-muted">WCAG contrast of each accent-ramp step against the ground — the dashed line marks the 3:1 interface minimum.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Weekly sessions">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>02 · The ramps</span></div>
+    <div class="chart-head">
+      <h2 class="slide-title">Weekly sessions</h2>
+      <div class="chart-legend">
+        <svg class="key" viewBox="0 0 60 4" aria-hidden="true"><line class="series-a" x1="0" y1="2" x2="60" y2="2"/></svg><span>Desktop</span>
+        <svg class="key" viewBox="0 0 60 4" aria-hidden="true"><line class="series-b" x1="0" y1="2" x2="60" y2="2"/></svg><span>Mobile</span>
+      </div>
+    </div>
+    <figure class="rise">
+      <svg class="chart" viewBox="0 0 1680 432" role="img" aria-label="Line chart: sample weekly sessions in thousands over twelve weeks, desktop rising from about 18 to 26, mobile from about 9 to 18">
+      <!-- Plot scale is grid-native: 12px per thousand puts the 10k gridlines every
+           120px — the board's own row-group pitch — and with the axis phased ON the
+           696 caption rule, the two drawn gridlines land on caption rules (576 / 456;
+           a 30k line would sit on 336 but the scale deliberately tops out
+           below it). The scale tops out above the data rather than at a
+           30k line, keeping the figure inside the slide's vertical budget
+           (deck-templates.md). -->
+      <line class="grid" x1="0" y1="240" x2="1680" y2="240"/>
+      <line class="grid" x1="0" y1="120" x2="1680" y2="120"/>
+      <text x="-16" y="240" text-anchor="end">10</text>
+      <text x="-16" y="120" text-anchor="end">20</text>
+      <text x="-16" y="360" text-anchor="end">0</text>
+      <polyline class="series-a" points="0,141.6 152.8,130.8 305.4,136.8 458.2,116.4 611,103.2 763.6,108.0 916.4,88.8 1069,82.8 1221.8,72.0 1374.6,63.6 1527.2,56.4 1680,46.8"/>
+      <polyline class="series-b" points="0,247.2 152.8,237.6 305.4,222.0 458.2,226.8 611,206.4 763.6,196.8 916.4,181.2 1069,177.6 1221.8,163.2 1374.6,168.0 1527.2,154.8 1680,140.4"/>
+      <text x="0" y="408" text-anchor="middle">1</text>
+      <text x="152.8" y="408" text-anchor="middle">2</text>
+      <text x="305.4" y="408" text-anchor="middle">3</text>
+      <text x="458.2" y="408" text-anchor="middle">4</text>
+      <text x="611" y="408" text-anchor="middle">5</text>
+      <text x="763.6" y="408" text-anchor="middle">6</text>
+      <text x="916.4" y="408" text-anchor="middle">7</text>
+      <text x="1069" y="408" text-anchor="middle">8</text>
+      <text x="1221.8" y="408" text-anchor="middle">9</text>
+      <text x="1374.6" y="408" text-anchor="middle">10</text>
+      <text x="1527.2" y="408" text-anchor="middle">11</text>
+      <text x="1680" y="408" text-anchor="middle">12</text>
+      <line class="axis" x1="0" y1="360" x2="1680" y2="360"/>
+    </svg>
+    </figure>
+    <p class="chart-caption text-muted">Sample data, in thousands — the steel line is the one accent in the figure; the second series stays ink and dashes.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide divider" data-label="Imagery">
+    <i class="page-corner tl"></i><i class="page-corner tr"></i><i class="page-corner bl"></i><i class="page-corner br"></i>
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="rise">
+      <div class="ghost-num">03</div>
+      <h2 class="slide-title">Imagery</h2>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide split" data-label="The duotone treatment">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="split-copy">
+      <div class="kicker"><span>03 · Imagery</span></div>
+      <h2 class="slide-title">The duotone treatment</h2>
+      <p class="note text-muted">Every photograph is washed in the steel accent by the duotone wrapper — and an on-page figure is a wireframe object, hairline-framed with its registration marks.</p>
+    </div>
+    <figure class="split-figure blueprint duotone rise">
+      <image-slot id="photo-split" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The Industry reference photograph, duotoned in the steel accent inside a registration-marked frame"></image-slot>
+      <!-- corners FOLLOW the slot: both are positioned, so DOM order decides the
+           paint; before the migration the corners out-painted a non-positioned img
+           by default, and this keeps that stacking -->
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+    </figure>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide bleed" data-label="Full bleed">
+    <figure class="bleed-figure duotone">
+      <image-slot id="photo-bleed" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The Industry reference photograph at full bleed, covering the stage"></image-slot>
+    </figure>
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="bleed-scrim"></div>
+    <div class="kicker"><span>03 · Imagery</span></div>
+    <div class="bleed-copy rise">
+      <h2 class="slide-title">Full bleed</h2>
+      <p class="note text-muted">One photograph, edge to edge — the scrim is the ground token rising from the foot, and the frame stays behind: a framed figure sits on the board, a bleed is the board.</p>
+    </div>
+  </section>
+
+  <section class="slide half-bleed" data-label="Half bleed · copy right">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <figure class="half-bleed-figure duotone">
+      <image-slot id="photo-half-left" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The Industry reference photograph, bleeding to the left half of the stage"></image-slot>
+    </figure>
+    <div class="kicker"><span>03 · Imagery</span></div>
+    <h2 class="slide-title rise">Half bleed</h2>
+    <ul class="bullets rise">
+      <li>The photograph bleeds to three edges and holds half the stage</li>
+      <li>The copy keeps the content rhythm — same gridlines as every slide</li>
+      <li>Marks still hang left of the text, whatever sits behind them</li>
+    </ul>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide half-bleed flip" data-label="Half bleed · copy left">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <figure class="half-bleed-figure duotone">
+      <image-slot id="photo-half-right" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The Industry reference photograph, bleeding to the right half of the stage"></image-slot>
+    </figure>
+    <div class="kicker"><span>03 · Imagery</span></div>
+    <h2 class="slide-title rise">Mirrored</h2>
+    <p class="note text-muted rise">The flip class changes the photograph’s side and the copy returns to the text axis — one pattern, both directions.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide quote" data-label="Quote">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>03 · Imagery</span></div>
+    <figure class="rise">
+      <!-- keep the leading “ — the blockquote's negative text-indent hangs it in the margin -->
+      <blockquote>“Cards and figures stay transparent line drawings; the primary button is the one solid object on the board.”</blockquote>
+      <!-- keep the leading "— " — the figcaption's negative text-indent hangs it -->
+      <figcaption class="text-muted">— the Industry readme</figcaption>
+    </figure>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide divider" data-label="Roadmap">
+    <i class="page-corner tl"></i><i class="page-corner tr"></i><i class="page-corner bl"></i><i class="page-corner br"></i>
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="rise">
+      <div class="ghost-num">04</div>
+      <h2 class="slide-title">Roadmap</h2>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Timeline">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker"><span>04 · Roadmap</span></div>
+    <h2 class="slide-title">The year, by milestone</h2>
+    <figure class="rise fig-timeline">
+      <svg class="chart" viewBox="0 0 1680 240" role="img" aria-label="Timeline of five milestones from research in January to scale the following January; the beta milestone in July is current">
+      <!-- One left edge per column: the texts anchor at the column axis and
+           each node's LEFT INK EDGE sits on the same axis — the nodes are
+           "+" registration crosses (two strokes, drawn like the corner
+           marks), so the vertical stroke sits at x+8 and the horizontal
+           runs x..x+16; the current milestone is the one solid steel object,
+           a 16px filled square behind a paper cross. Vertically the figure
+           top and the line (y=96) sit on full gridlines, the notes on the
+           half-step at y=216; the dates (y=62) and labels (y=158) sit off
+           the 24px lattice on purpose — the reviewed decks chose optical
+           spacing over the mechanical grid here: ink-to-ink the cluster
+           opens gently downward from date to node to label to note. The
+           node lattice is inset from the right edge (pitch 360) so the last
+           milestone's text flows right like the others, while the line runs
+           the full width — time continues past the last node. Notes up to
+           about 24 characters at this size stay clear of the next column;
+           longer ones need a wider pitch or fewer milestones. On the round-2
+           board the line (svg y 96) sits ON the group-4 top rule (480) and
+           the notes (y 216) ON the group-5 top rule (600); dates and labels
+           keep their optical seats. -->
+      <line class="tl-line" x1="0" y1="96" x2="1680" y2="96"/>
+      <text class="tl-date" x="0" y="62">JAN</text>
+      <text class="tl-date" x="360" y="62">APR</text>
+      <text class="tl-date-hi" x="720" y="62">JUL</text>
+      <text class="tl-date" x="1080" y="62">OCT</text>
+      <text class="tl-date" x="1440" y="62">JAN</text>
+      <g class="tl-node"><line x1="8" y1="88" x2="8" y2="104"/><line x1="0" y1="96" x2="16" y2="96"/></g>
+      <g class="tl-node"><line x1="368" y1="88" x2="368" y2="104"/><line x1="360" y1="96" x2="376" y2="96"/></g>
+      <rect class="tl-node-hi-fill" x="720" y="88" width="16" height="16"/>
+      <g class="tl-node-hi"><line x1="728" y1="91" x2="728" y2="101"/><line x1="723" y1="96" x2="733" y2="96"/></g>
+      <g class="tl-node"><line x1="1088" y1="88" x2="1088" y2="104"/><line x1="1080" y1="96" x2="1096" y2="96"/></g>
+      <g class="tl-node"><line x1="1448" y1="88" x2="1448" y2="104"/><line x1="1440" y1="96" x2="1456" y2="96"/></g>
+      <text class="tl-label" x="0" y="158">Research</text>
+      <text class="tl-label" x="360" y="158">Prototype</text>
+      <text class="tl-label" x="720" y="158">Beta</text>
+      <text class="tl-label" x="1080" y="158">Launch</text>
+      <text class="tl-label" x="1440" y="158">Scale</text>
+      <text x="0" y="216">scope and interviews</text>
+      <text x="360" y="216">first working build</text>
+      <text x="720" y="216">fifty design partners</text>
+      <text x="1080" y="216">general availability</text>
+      <text x="1440" y="216">second platform</text>
+      </svg>
+    </figure>
+    <p class="chart-caption text-muted">Each milestone keeps one left edge — type and mark aligned — with the spacing opening gently downward from date to note, and the current step the one solid square.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide cover" data-label="Close">
+    <div class="board" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="kicker k-right"><span>Design systems</span></div>
+    <div class="rise">
+      <h2 class="display">Thank you</h2>
+      <p class="cover-sub text-muted">Copy this folder for your next deck — the tokens and markup patterns carry the look.</p>
+    </div>
+    <div class="pin-bottom meta"><span>you@example.com</span></div>
+  </section>
+
+</x-import>
+</x-dc>
+</body>
+</html>

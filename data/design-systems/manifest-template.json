@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "design-system-manifest/v1",
+  "$comment": "A design-system manifest: the machine-readable contract for one design system. Fill every section; keep it beside the work and in step with the tokens. Sections mirror a design-system editor: overview, colors, typography, spacing, corner radius, shadows, components, assets.",
+  "name": "",
+  "slug": "",
+  "description": "",
+  "overview": {
+    "$comment": "What the system is for and the rules it follows. Read before designing anything.",
+    "direction": "",
+    "principles": [],
+    "antiPatterns": [],
+    "usingTokens": "",
+    "usingComponents": "",
+    "accessibility": ""
+  },
+  "colors": {
+    "$comment": "Roles first, then ramp steps. hex values. Never invent a color outside roles and ramps. swatches is the flat list for manifests seeded from a parsed DESIGN.md.",
+    "ground": "",
+    "text": "",
+    "accent": "",
+    "roles": {
+      "bg": "",
+      "surface": "",
+      "text": "",
+      "accent": "",
+      "accent2": "",
+      "divider": ""
+    },
+    "ramps": {
+      "neutral": {},
+      "accent": {},
+      "accent2": {}
+    },
+    "swatches": [],
+    "usage": ""
+  },
+  "typography": {
+    "$comment": "Two font roles and a fixed px scale. Never name a font family directly; use the tokens. list is the flat family list for manifests seeded from a parsed DESIGN.md.",
+    "heading": {
+      "family": "",
+      "familyToken": "--font-heading",
+      "weight": "",
+      "weights": []
+    },
+    "body": {
+      "family": "",
+      "familyToken": "--font-body"
+    },
+    "scale": [],
+    "list": [],
+    "usage": ""
+  },
+  "spacing": {
+    "$comment": "The spacing scale in px, plus the density multiplier that produced it.",
+    "density": 1,
+    "scale": []
+  },
+  "radius": {
+    "$comment": "Corner radius tokens. Zero is a valid, deliberate choice.",
+    "sm": "",
+    "md": "",
+    "lg": ""
+  },
+  "shadows": {
+    "$comment": "Elevation tokens, already tuned to the ground color. Use them rather than ad-hoc box-shadows.",
+    "sm": "",
+    "md": "",
+    "lg": ""
+  },
+  "components": {
+    "$comment": "The CSS class library. Build with these rather than inventing parallel ones.",
+    "classes": []
+  },
+  "assets": {
+    "$comment": "How imagery and icons are treated. Every content photograph goes through the treatment.",
+    "imageTreatment": "",
+    "iconSet": "",
+    "photos": []
+  },
+  "tokens": {
+    "$comment": "The full flat token list: { name, value, kind } with kind in color|font|spacing|radius|shadow.",
+    "all": []
+  },
+  "files": {
+    "$comment": "Every file of the source system, folder-relative. binary:true marks non-text assets.",
+    "all": []
+  },
+  "starterTemplates": {
+    "$comment": "Copyable starting points that consume the system the intended way.",
+    "all": []
+  },
+  "theme": {
+    "$comment": "The generation knobs the system was derived from. Edit these, then regenerate, not the output.",
+    "params": {}
+  }
+}

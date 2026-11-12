@@ -14,6 +14,24 @@
 # The baked cache is produced OUTSIDE the container by `npm run bake`, from a
 # cache that was populated by the fetchers above. A mounted /cache still
 # overrides it at runtime, so a deployment can refresh without rebuilding.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend-build
+
+WORKDIR /build
+RUN apk add --no-cache zip chromium font-liberation
+ENV DESIGN_CHROMIUM_PATH=/usr/bin/chromium
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+COPY frontend/deck/package.json frontend/deck/package-lock.json ./frontend/deck/
+RUN npm ci --prefix frontend --ignore-scripts && \
+    npm ci --prefix frontend/deck --ignore-scripts
+COPY frontend/ ./frontend/
+COPY scripts/lib/frontend-paths.mjs scripts/lib/frontend.mjs ./scripts/lib/
+COPY scripts/fetch-tailwind.mjs ./scripts/
+RUN node scripts/fetch-tailwind.mjs
+COPY bake/components.json bake/design-systems.json ./bake/
+COPY bake/components/ ./bake/components/
+COPY bake/design-systems/ ./bake/design-systems/
+RUN --network=none node frontend/build.mjs --out /frontend-cache
+
 FROM node:22-alpine
 
 WORKDIR /app
@@ -26,8 +44,8 @@ RUN apk add --no-cache zip git
 # `sharp` is optional: it is only needed by the thumbnail compressor. It
 # ships prebuilt binaries for linux-x64, linux-arm64 and darwin, so the
 # same script runs on the host and in this multi-arch image.
-COPY package.json ./
-RUN npm install --omit=dev --ignore-scripts && npm cache clean --force
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # Fetchers, preview server, MCP entrypoints.
 COPY scripts/ ./scripts/
@@ -35,6 +53,9 @@ COPY scripts/ ./scripts/
 # The skill ships inside the image so a container-only deployment can serve
 # it for download, and so `docker run ... cat /app/skills/...` works offline.
 COPY skills/ ./skills/
+
+# A catalog volume can hide /cache, so keep immutable browser assets alongside the skill.
+COPY --from=frontend-build /frontend-cache/ /app/frontend-cache/
 
 # The baked catalog: designs, AI components and preset catalogs.
 # Produced by `npm run bake`. Kept last so it is one layer.
@@ -46,6 +67,7 @@ RUN node scripts/package-skill.mjs --out /app/dist && \
     rm -rf /app/dist
 
 ENV DESIGN_CACHE_DIR=/cache \
+    DESIGN_FRONTEND_DIR=/app/frontend-cache \
     REFERO_CACHE_DIR=/cache \
     REFERO_CACHE_TTL_MS=315360000000 \
     PORT=8787 \

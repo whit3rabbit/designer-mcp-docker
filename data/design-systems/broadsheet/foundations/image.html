@@ -1,0 +1,39 @@
+<!-- @dsCard group="Foundations" name="Imagery" subtitle="Process plates — photographs print as misregistered separations; interface imagery is screened like newsprint." viewport="640x480" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Broadsheet — Imagery</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from ../styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.stack { display: grid; gap: var(--space-3); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; }
+code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.92em; }
+.frame img { width: 100%; border-radius: var(--radius-md); }
+.codeblock { padding: var(--space-3); background: var(--color-surface); border-radius: var(--radius-sm); font-size: 12px; overflow: auto; }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Image treatment</div>
+  <p class="note">Wrap any interface image in <code>&lt;div class="halftone"&gt;&lt;img …&gt;&lt;/div&gt;</code> and it takes the simpler dot screen below. (The system's own reference photographs live in <code>assets/</code>.)</p>
+  <pre class="codeblock"><code>&lt;div class="halftone"&gt;
+  &lt;img src=&quot;…&quot; alt=&quot;…&quot; /&gt;
+&lt;/div&gt;</code></pre>
+  <div class="demo-head">Usage</div>
+  <p class="note">Content photographs print as their four misregistered process plates with <code>.cmyk</code> — one swappable image in a <code>.print</code> wrapper; the filter defs ship in <code>print-plates.js</code>, inlined in the compiled bundle every template page loads (a page linking <code>styles.css</code> directly adds the one script tag beside the stylesheet). Interface imagery can take the simpler <code>.halftone</code> dot screen. Never place a raw, untreated image.</p>
+</main>
+</body>
+</html>

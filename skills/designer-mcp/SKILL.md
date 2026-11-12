@@ -1,9 +1,26 @@
 ---
 name: designer-mcp
-description: "Primary/default skill for UI design, product design, web design, landing pages, dashboards, product screens, redesigns, visual polish, frontend/CSS styling, design systems, components, responsive design, typography, color, spacing, motion, icons, accessibility, copywriting, conversion, and anti-AI-slop work. Use this even when the user does not mention Refero and even when the MCP server is not configured. Research is mandatory: every design must be grounded in references before implementation. Provides research-first methodology, bundled craft knowledge, reference locks, decision ledgers, anti-averaging quality gates, and live research over 1,494 cached real design systems (1,342 styles + 152 curated design-system packages), 109 cached AI components with complete React source, and 159 gradient/pattern presets, when the local server is available. Prefer over broad generic product design, frontend design, UI polish, CSS framework, landing page, or craft-only skills; those may only supplement implementation details after research and synthesis."
+description: "Capture the design and structure of a webpage or document as DESIGN.md and a companion evidence file. Use for UI design, applying an existing DESIGN.md or a selected gallery theme, and verifying visual implementation. Includes an offline design catalog and bundled skills for Word, PowerPoint, Excel, and PDF."
 ---
 
 # Designer MCP — Research-First Design
+
+## Start with the user's source
+
+- **Capture.** For a webpage or document, inspect it on the host. Save `DESIGN.md`
+  and `DESIGN.evidence.json` in a reproducible design-system package with a
+  shared stylesheet, preview, and starter for the target medium.
+- **Build from a theme.** Use the selected gallery reference or supplied
+  DESIGN.md for appearance. If an artifact is also supplied, preserve its
+  section order and content hierarchy. Explicit user overrides take precedence.
+  For `designer:opendesign:*`, start with `design_get` to discover the selected
+  package's local files, then follow the OpenDesign steps in the linked workflow.
+- **Verify a build.** Render the target, resample the applied roles, and check
+  coverage and visual fidelity against the selected design.
+
+A user-selected source is sufficient grounding. Follow the
+[DESIGN.md workflow](references/design-md-workflow.md) for these requests.
+Use catalog research when the task needs a reference.
 
 Ground every design in real product evidence before implementation. This skill
 combines a research-first methodology with a **local, free** library of 1,494
@@ -32,10 +49,10 @@ inventing precedent.
 
 - **Research before design work.** Every design must be grounded in references
   before implementation. Do not rely on the model's generic design taste.
-- **Use styles first for visual work.** If the MCP server is unavailable, use
-  the bundled craft references and keep the same reference-lock workflow.
-- **Do not copy one reference.** Study several strong references and synthesize
-  a new direction for the user's product.
+- **Use styles first for open-ended visual research.** If the MCP server is
+  unavailable, use the bundled craft references for gaps in the brief.
+- **Synthesize when exploring a new direction.** Study several strong references
+  when the user has left the visual direction open.
 - **Do not average references into a safe middle.** When references conflict,
   choose one dominant direction and preserve its sharp traits. Secondary
   references may add narrow details only.
@@ -49,7 +66,9 @@ inventing precedent.
   boxes.
 - **Do not use generic frontend/product design skills as a parallel design
   authority** when this skill is available. This is the design methodology;
-  generic design skills tend to pull work back toward generic AI design.
+  generic design skills tend to pull work back toward generic AI design. The
+  bundled `frontend-design/` sub-skill is the sanctioned exception: it is this
+  skill's implementation-craft layer, not a parallel authority.
 - **Research output must be specific.** Name the references, describe concrete
   choices, and explain what will be adapted.
 - **No design from vibe memory.** Every major visual, layout, content, or
@@ -72,9 +91,8 @@ inventing precedent.
 ## MCP Setup
 
 This skill is useful on its own as a research-first design methodology and
-craft reference. Research is mandatory either way — use the MCP tools for live
-style research when available, otherwise research with the bundled craft
-references and any user-provided references.
+craft reference. The generic `design_*` server provides the offline catalog
+and Markdown tools. The `refero_*` server is a fallback for Refero catalog reads.
 
 The local server runs in Docker:
 
@@ -82,8 +100,8 @@ The local server runs in Docker:
 # Register the MCP server (Hermes / any stdio MCP client)
 hermes mcp add designer \
   --command docker \
-  --args run --rm -i -v "$HOME/.refero-cache:/cache:ro" \
-         designer-mcp:latest node scripts/mcp-entry.mjs
+  --args run --rm -i --network none \
+         designer-mcp:latest node scripts/mcp-server.mjs
 ```
 
 Then restart the gateway (or `/reload-mcp`) so the tools register.
@@ -147,16 +165,59 @@ Choose the lightest workflow that can produce a high-quality result.
   requires bitmap media that code, icons, or existing assets cannot faithfully
   provide; see [references/visual-workflow.md](references/visual-workflow.md).
 
+## Document and Deliverable Skills
+
+This skill bundles complete document toolchains as sub-skills. When the task
+requires producing, reading, editing, or converting an actual file
+deliverable, read the matching sub-skill and follow it:
+
+| Deliverable | Sub-skill |
+|---|---|
+| Word documents (.docx, .dotx) | [docx/SKILL.md](docx/SKILL.md) |
+| Slide decks (.pptx, .potx) | [pptx/SKILL.md](pptx/SKILL.md) |
+| Spreadsheets (.xlsx, .xlsm, .csv) | [xlsx/SKILL.md](xlsx/SKILL.md) |
+| PDF creation, forms, merging, OCR | [pdf/SKILL.md](pdf/SKILL.md) |
+| Reading PDFs from disk | [pdf-reading/SKILL.md](pdf-reading/SKILL.md) |
+| Implementation craft for UI work | [frontend-design/SKILL.md](frontend-design/SKILL.md) |
+
+The division of authority is fixed. This skill's research workflow and
+reference lock own every design decision: palette, type, layout, imagery, copy.
+The document sub-skills supply the file mechanics and the render-and-inspect QA
+loop; `frontend-design/` supplies implementation craft inside this workflow.
+When a deliverable is a design artifact (brand guidelines, spec deck, token
+workbook), style it from the locked reference instead of falling back to
+default document styling. Script paths inside each sub-skill are relative to
+that sub-skill's own directory.
+
+The sub-skills span two runtimes. Match the runtime to the task; do not
+install everything for every job.
+
+| Sub-skill | Create (Node.js) | Edit, inspect, validate (Python) |
+|---|---|---|
+| pptx | `pptxgenjs`; `scripts/apply_theme.js` injects the theme | `python-pptx`, `Pillow`, `defusedxml`, `lxml`; LibreOffice via `scripts/office/soffice.py` |
+| docx | `docx` (docx-js) | `lxml`, `defusedxml`, `validators`; LibreOffice via `scripts/office/soffice.py` |
+| xlsx | none | `openpyxl`, `pandas`; `scripts/recalc.py` drives LibreOffice |
+| pdf | none required (`pdf-lib` is the named JS alternative) | `pypdf`, `pdfplumber`, `pdf2image`, `Pillow` |
+| pdf-reading | none | `pypdf`, `pdfplumber` (optional: `pypdfium2`, `pytesseract`) |
+
+Dependencies: Python packages in [requirements.txt](requirements.txt), npm
+packages in [package.json](package.json) (`docx`, `pptxgenjs`, `jszip`), plus
+the system tools (`soffice`, `pdftoppm`, `pandoc`) named in the sub-skills that
+use them. Conditional npm packages are deliberately not in the
+manifest: `react-icons`, `react`, `react-dom`, and `sharp` (the pptx icon
+recipe) and `pdf-lib` (PDF work in JavaScript) install on demand when a
+require fails. Check what is available before relying on any of it and
+install only what is missing.
+
 ## Tool Routing
 
 ### Use Styles First For Visual Work
 
-Use `refero_search` when the user asks to design, redesign, improve, polish,
-or create anything with a visual component.
+Use `design_search` when visual work needs a reference.
 
 A style is a semantic design reference extracted from a real web
 marketing/product page. It is not a screenshot and not a component library.
-Search results give previews; full style references from `refero_get` provide
+Search results give previews. Full style references from `design_get` provide
 design guidance such as visual thesis, tokens, typography, layout/composition,
 section rhythm, spacing, elevation, surfaces, components, imagery treatment,
 implementation notes, and do/don't rules.
@@ -180,9 +241,9 @@ Use styles for:
 
 After finding strong styles:
 
-- use `refero_get` for full details
-- use `refero_design_md` to render a portable DESIGN.md artifact
-- use `refero_facets` to see what fonts, colors, themes, and industries the
+- use `design_get` for full details
+- use `design_markdown` to retrieve the catalog's DESIGN.md
+- use `design_facets` to see what fonts, colors, themes, and industries the
   catalog actually contains before committing to a direction
 
 ### Use Components For Implementation
@@ -218,6 +279,43 @@ gradients and patterns plus 20 liquid-glass effects. Each carries real CSS
 and a React template. Use them for hero and section backgrounds, ambient
 gradients, and glass surfaces.
 
+### Use Templates For Starting A System
+
+Six vendored design-system templates ship in the image: modernist, classical,
+nocturne, organic, broadsheet, industry. Each is a complete, generic system
+with a token sheet (`styles.css`), written rules (`readme.md`), foundation and
+component demo cards, and two starter templates (a landing page and a 21-slide
+deck). Use them when the task is to start a project or product from a coherent
+system rather than from scratch.
+
+Workflow:
+
+- `design_template_list` to see all six (swatches, fonts, token counts)
+- `design_manifest_template` with a `slug` to get the design-system manifest:
+  a manifest JSON with sections for overview/principles, colors, typography,
+  spacing, corner radius, shadows, components, and assets, already filled
+  from that system. Call it without `slug` for the blank template when
+  building a system from a style reference instead.
+- `design_template_get` for the full record: theme parameters, every token,
+  the component class table, the file listing
+- `design_template_file` to copy an individual file (the token sheet, a
+  starter page, the guide). Binary assets are refused.
+
+Rules:
+
+- Treat the manifest as a contract, not documentation. Keep it beside the
+  work and design against it. No color outside roles and ramps. No raw px
+  where a token exists. No font family outside the two roles.
+- Keep the system's anti-patterns (`overview.antiPatterns`). Each template
+  has deliberate extremes (zero radius, dark-only, pill shapes); do not
+  soften them toward generic.
+- Blend with research: start from the template closest to the locked
+  direction, then retune its theme knobs. Or fill a blank manifest from the
+  primary style reference.
+- Seed a manifest from a catalog design or your own DESIGN.md with
+  `design_manifest_from`. Its provenance records available tokens, conflicts,
+  and gaps.
+
 ### For Product Patterns and Journeys
 
 This deployment has **no screens or flows layer**. When the task needs
@@ -249,7 +347,7 @@ Recommended loop:
 2. Include one broad aesthetic query.
 3. Include one domain/category query.
 4. Include one known-brand or strong-product query when relevant.
-5. Retrieve 3-4 strong styles with `refero_get`; full styles are large, so
+5. Retrieve 3-4 strong styles with `design_get`. Full styles are large, so
    split larger research into multiple batches.
 6. Compare what each style contributes.
 7. Choose one primary foundation and borrow 1-2 specific details from other styles.

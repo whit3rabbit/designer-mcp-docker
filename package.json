@@ -11,11 +11,16 @@
     "opendesign": "node scripts/fetch-opendesign.mjs",
     "components": "node scripts/fetch-gradientdeck.mjs",
     "presets": "node scripts/fetch-presets.mjs",
+    "templates": "node scripts/stage-design-systems.mjs",
     "thumbs": "node scripts/fetch-thumbs.mjs --compress",
     "thumbs:raw": "node scripts/fetch-thumbs.mjs",
     "compress": "node scripts/compress-thumbs.mjs",
     "all": "npm run fetch && npm run opendesign && npm run components && npm run presets && npm run thumbs",
     "bake": "node scripts/bake-cache.mjs",
+    "frontend:build": "node frontend/build.mjs",
+    "frontend:fetch-tailwind": "node scripts/fetch-tailwind.mjs",
+    "frontend:refresh": "node scripts/fetch-frontend.mjs --latest",
+    "frontend:test": "node frontend/test-browser.mjs",
     "preview": "node scripts/preview.mjs",
     "mcp": "node scripts/mcp-server.mjs",
     "build": "npm run bake && docker build -t designer-mcp:latest .",
@@ -26,10 +31,14 @@
     "up": "docker compose up -d",
     "down": "docker compose down",
     "logs": "docker compose logs -f",
-    "test": "node scripts/selftest.mjs"
+    "test": "node scripts/test-design-md.mjs && node scripts/selftest.mjs"
   },
   "dependencies": {
-    "fidgetcoding-refero-mcp": "^0.2.0"
+    "culori": "4.0.2",
+    "fidgetcoding-refero-mcp": "^0.2.0",
+    "markdown-it": "14.3.3",
+    "postcss": "8.5.32",
+    "yaml": "2.9.1"
   },
   "optionalDependencies": {
     "sharp": "^0.35.5"

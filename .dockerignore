@@ -2,6 +2,7 @@
 
 # Installed inside the image by `npm install` in the Dockerfile.
 node_modules/
+**/node_modules/
 
 # The style cache is mounted at runtime, never baked in. Baking 117MB would
 # make the image stale the moment a style is updated.
@@ -9,6 +10,10 @@ cache/
 
 # Build output
 dist/
+
+# Vendored template source. It reaches the image only through bake output
+# (`npm run bake` copies data/design-systems into bake/), never directly.
+data/
 
 # VCS and tooling
 .git
@@ -19,6 +24,7 @@ dist/
 # Docs are not needed at runtime. Keep them out of the image.
 docs/
 README.md
+AGENTS.md
 agents-license.txt
 
 # Local env / secrets
@@ -32,3 +38,31 @@ agents-license.txt
 Thumbs.db
 .vscode/
 .idea/
+
+# Python bytecode from the skills' helper scripts, never shipped
+__pycache__/
+*.pyc
+
+# macOS cruft that bloats the context on non-HFS volumes:
+# resource forks ("._foo" beside every "foo") and volume metadata
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows / Linux cross-platform cruft
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Scratch and test artifacts, never needed at runtime
+skills/tmp/
+skills/designer-mcp/tmp/
+CHANGELOG.md

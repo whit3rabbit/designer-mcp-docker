@@ -1,0 +1,463 @@
+<!-- @template name="Landing" description="A one-page product landing in the system's own voice — an invented product (Holdfast: a fastener catalog), a condensed hero, a numbered spec-sheet plate, wireframe cells and a duotone photograph" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Industry — landing</title>
+<script src="./ds-base.js"></script>
+<style>
+/* Template scaffolding — page layout and web-scale sizing only; every color,
+   font, radius and shadow comes from ../../styles.css. The voice is the
+   deck's, re-derived for a scrolling page: an engineering document — Barlow
+   Condensed titles in uppercase over Barlow text, visible drawn structure
+   (1px caption rules; wireframe cells with registration-cross corners for
+   the feature cards — the system's own card grammar; a registration-marked
+   spec plate for the numbers), the steel accent as the single color,
+   photographs duotoned like screen prints.
+
+   THE RHYTHM: a 24px leading unit (16px Barlow body at 1.5 — the system's
+   0.85 density runs compact), 12px half-step; line-heights and block
+   margins in unit multiples, heads cap-trimmed, ?baselines/B to review.
+   The deck's seat-pinning relaxes to per-block discipline on a fluid page.
+   The system's own interface components keep their styles.css leading.
+
+   THE LANDING LAWS (shared by all six systems' landing templates):
+   #1 display headers break per sentence (.line spans); #2 the landing
+   advertises an invented product played straight — industry's is Holdfast,
+   a bolt-and-fastener catalog written like the datasheet it is; #3
+   spacing is cluster-scoped (display leading ratio-governed ≈1.04 for the
+   uppercase condensed — the display-block lattice exemption — tight
+   single-unit gaps inside a cluster, the air between sections); #4 no
+   hero eyebrow — the nav brand names the product.
+
+   Measured Barlow values carry verbatim from the deck template: optical
+   left alignment -0.052em where caps lead a condensed display line, quote
+   hang -0.316em (Condensed 600), attribution hang -0.885em (Regular). */
+:root {
+  --leading: 24px;
+  --half: 12px;
+  --edge: clamp(20px, 5vw, 72px);
+  --measure: 60ch;
+}
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; text-wrap: pretty; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 var(--edge); }
+/* the component demo pads the masthead with its own spacing; on the page the
+   masthead's contents take the page gutter and sit on the wrap's text axis
+   (padding-only — full-width paint such as a masthead rule is untouched) */
+.nav { padding-inline: max(var(--edge), calc((100% - 1200px) / 2 + var(--edge))); }
+.nav a { white-space: nowrap; }
+.nav a[aria-current='location'] { color: var(--color-accent-700); } /* in-page anchor,
+   not a page link — 'location' is the truthful value. The 700 step, not the
+   base accent: at 14px this is small text, where the base steel's 3.7:1
+   large-text value does not reach (5.8:1 measured — the same call broadsheet's
+   round 2 made, and the kickers already make here) */
+@media (max-width: 480px) { .nav a { display: none; } } /* phone width: the nav
+   keeps brand + the one action (layout-only — the component's look is untouched) */
+
+/* — caption rules (the deck's grammar: the label sits ABOVE a drawn 1px
+   rule and the content seats below it — structure made visible) — */
+.kicker {
+  display: block; font-size: 13px; line-height: var(--half);
+  letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600;
+  color: var(--color-accent-700); /* accent-colored small text takes the deep
+     step — 5.8:1, where the base steel is a 3.7:1 large-text value */
+  font-feature-settings: "tnum" 1;
+  margin: 0 0 var(--half);
+}
+.caption-rule { height: 1px; border: 0; margin: 0 0 calc(var(--leading) - var(--half));
+  background: var(--color-divider); }
+
+/* — hero — */
+.hero { padding: calc(4 * var(--leading)) 0 calc(3 * var(--leading)); }
+.display {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: clamp(48px, 7vw, 96px);
+  line-height: clamp(50px, 7.3vw, 100px); /* law #3: ratio-governed ≈1.04, a
+     deliberate step below the lowercase systems' 1.06-1.11 band — uppercase
+     condensed carries no descenders to clear; the display-block lattice
+     exemption */
+  letter-spacing: 0.01em; text-transform: uppercase; margin: 0;
+  margin-left: -0.052em; /* optical left alignment — the deck's measured Condensed 600 value */
+  text-box: trim-both cap alphabetic;
+}
+.display .line { display: block; } /* law #1 */
+.hero .sub { font-size: 16px; line-height: var(--leading); max-width: var(--measure);
+  margin: calc(1.5 * var(--leading) - 1cap) 0 0;
+  text-box: trim-both cap alphabetic; }
+.hero .row { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--leading); }
+
+/* — the spec sheet (this system diverges from the shared stat-band chassis
+   here): where the chassis set four display numerals on a steel field,
+   Holdfast prints SHEET 01 of its own drawing set — a hairline-framed
+   plate with registration crosses (the frame every drawn object in this
+   system wears) carrying an engineering title block and the four product
+   claims as numbered datasheet rows. For a catalog "written like the
+   datasheet it is", tabulated data is the native grammar for numbers.
+   The steel ground leaves the page with the band — the deck's dividers
+   keep theirs, and the solid accent button returns to being the one
+   solid object on the board. Downstream sections number themselves into
+   the set with the deck's own kicker grammar ("02 · ").
+
+   Rhythm: the title block is a 2-unit band (24px line + half-step padding
+   each side, wrap-safe); header row 1.5 units, data rows 2 units, text
+   centered on its band (the documented optical row-centering exception —
+   no cap trim inside row bands, so the authored line boxes carry the
+   math); the plate's internal rules land on the band seams. Figures in
+   the table are COLUMNS and take tabular figures per the deck's figure
+   policy — the display-numeral proportional exception retired with the
+   stat band. The downstream kickers number into the set with the deck's
+   bare "NN · " grammar while only the plate says the word "Sheet" — the
+   linkage is deliberately soft; the sections read as numbered notes
+   around the one drawn sheet, not as four dressed plates. — */
+.sheet { padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading)); }
+.plate { position: relative; border: 1px solid var(--color-divider); }
+.plate > .corner { position: absolute; width: 15px; height: 15px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent); pointer-events: none; }
+.plate > .corner::before { content: ""; position: absolute; left: 7px; top: 0; width: 1px; height: 100%; background: currentColor; }
+.plate > .corner::after  { content: ""; position: absolute; top: 7px; left: 0; width: 100%; height: 1px; background: currentColor; }
+.plate > .corner.tl { top: -8px; left: -8px; }
+.plate > .corner.tr { top: -8px; right: -8px; }
+.plate > .corner.bl { bottom: -8px; left: -8px; }
+.plate > .corner.br { bottom: -8px; right: -8px; }
+/* the title block — the drawing's own naming furniture: a flexing title
+   cell, then register cells (doc, revision, sheet count) divided by
+   hairlines, all at the kicker's scale. The title prints in full text
+   ink — it is the section's heading; the register cells take 70% ink,
+   5.8:1 measured on this ground, where the system's 55% furniture
+   convention is a large-text value (3.6:1) */
+.title-block { display: flex; flex-wrap: wrap; align-items: stretch;
+  border-bottom: 1px solid var(--color-divider); }
+.title-block > span { padding: var(--half) var(--leading);
+  font-size: 13px; line-height: var(--leading); letter-spacing: 0.08em;
+  text-transform: uppercase; font-weight: 600; font-feature-settings: "tnum" 1; }
+.tb-title { flex: 1; min-width: 16ch; }
+.tb-cell { border-left: 1px solid var(--color-divider); white-space: nowrap;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); }
+/* the spec table — the system's own .table component at landing scale (the
+   deck resizes it the same way). The № column takes the deep accent step,
+   the same call as the kickers (5.8:1 at 13px, where the base steel's
+   3.7:1 is a large-text value); values set in the condensed face at the
+   cell-heading scale, so the numbers stay the section's loudest objects */
+.spec { table-layout: fixed; }
+.spec col.c-num { width: calc(3 * var(--leading)); }
+.spec col.c-prop { width: 30%; }
+.spec col.c-val { width: 21%; }
+.spec th, .spec td { padding: var(--half) var(--leading) var(--half) 0; vertical-align: middle; }
+.spec th:first-child, .spec td:first-child { padding-left: var(--leading); }
+.spec th { font-size: 13px; line-height: var(--half); font-weight: 600; /* the
+     section's furniture weight — otherwise the UA's default th bold makes
+     the header row the sheet's only 700, by accident rather than decision */
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* the component's
+     11px/60% header re-derived for the landing: 13px is still small text,
+     where 70% measures 5.8:1 and 60% falls short of 4.5:1 */ }
+.spec td { font-size: 15px; line-height: var(--leading); }
+.spec .s-num { font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
+  color: var(--color-accent-700); font-feature-settings: "tnum" 1; }
+.spec .s-val { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 22px; line-height: var(--leading); letter-spacing: 0.02em;
+  font-feature-settings: "tnum" 1; white-space: nowrap; }
+.spec .s-rem { color: color-mix(in srgb, var(--color-text) 78%, transparent); }
+.spec tbody tr:last-child td { border-bottom: 0; } /* the notes rule closes the
+   rows — avoid a doubled line against .sheet-note's divider */
+.spec tbody tr:hover { background: none; } /* a printed sheet, not an
+   interactive grid */
+.sheet-note { margin: 0; padding: var(--half) var(--leading);
+  border-top: 1px solid var(--color-divider);
+  font-size: 13px; line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* 5.8:1 — see .spec th */ }
+
+/* — wireframe feature cells (the system's OWN card grammar: square,
+   thin-bordered, registration-cross corners, no surface fill) — */
+.features { padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading)); }
+.features > .caption-rule { margin-bottom: calc(var(--leading) + 8px); } /* the cells'
+   registration crosses hang 8px above the frame's padding edge (7px of ink
+   past the 1px border) — a drawn rule keeps one full unit of air to the
+   nearest ink, so the rule clears the cross ink by 25px, not a sliver */
+.cells { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(20px, 3vw, 48px);
+  margin-top: calc(var(--leading) - var(--half)); }
+.cell-frame { position: relative; border: 1px solid var(--color-divider);
+  padding: var(--leading); } /* one full unit on every side — the cap-trimmed
+     heading seats with the same air above it as the text keeps to the frame's
+     left and right */
+.cell-frame > .corner { position: absolute; width: 15px; height: 15px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent); pointer-events: none; }
+.cell-frame > .corner::before { content: ""; position: absolute; left: 7px; top: 0; width: 1px; height: 100%; background: currentColor; }
+.cell-frame > .corner::after  { content: ""; position: absolute; top: 7px; left: 0; width: 100%; height: 1px; background: currentColor; }
+.cell-frame > .corner.tl { top: -8px; left: -8px; }
+.cell-frame > .corner.tr { top: -8px; right: -8px; }
+.cell-frame > .corner.bl { bottom: -8px; left: -8px; }
+.cell-frame > .corner.br { bottom: -8px; right: -8px; }
+.cell-frame h2 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 22px; line-height: var(--leading); letter-spacing: 0.02em; text-transform: uppercase;
+  margin: 0; text-box: trim-both cap alphabetic; }
+.cell-frame p { font-size: 15px; line-height: var(--leading); margin: calc(var(--leading) - 1cap) 0 0;
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  text-box: trim-both cap alphabetic; }
+
+/* — imagery split (the duotone screen print inside a wireframe frame —
+   the figure takes the same marked treatment as every framed object) — */
+.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--leading) clamp(24px, 5vw, 96px); align-items: center;
+  padding: calc(2 * var(--leading)) 0 calc(3 * var(--leading)); }
+.split-title { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 32px; line-height: calc(1.5 * var(--leading)); letter-spacing: 0.02em; text-transform: uppercase;
+  margin: 0; text-box: trim-both cap alphabetic; }
+.split-copy .note { font-size: 15px; line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  margin: calc(var(--leading) - 1cap) 0 0; max-width: 48ch; text-box: trim-both cap alphabetic; }
+.split-figure { margin: 0; } /* .blueprint owns the frame: position, the 1px
+     border, and — critically — the overflow exemption that lets the
+     registration crosses live outside the box (.blueprint.duotone
+     { overflow: visible } in styles.css; a bare .duotone clips them) */
+.split-figure > .corner { position: absolute; width: 15px; height: 15px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent); pointer-events: none; /* the
+     registration crosses overlap the slot by a few px — decorative marks
+     must not eat its hover/drop events (image-slot usage contract) */ }
+.split-figure > .corner::before { content: ""; position: absolute; left: 7px; top: 0; width: 1px; height: 100%; background: currentColor; }
+.split-figure > .corner::after  { content: ""; position: absolute; top: 7px; left: 0; width: 100%; height: 1px; background: currentColor; }
+.split-figure > .corner.tl { top: -8px; left: -8px; }
+.split-figure > .corner.tr { top: -8px; right: -8px; }
+.split-figure > .corner.bl { bottom: -8px; left: -8px; }
+.split-figure > .corner.br { bottom: -8px; right: -8px; }
+.split-figure image-slot { width: 100%; aspect-ratio: 1600 / 1187; } /* the bundled
+   photograph's natural ratio pins the box, so a swapped image cover-crops
+   into the same frame (cover framing is the component's own) */
+
+/* — quote (condensed, uppercase-free — the one lowercase condensed moment;
+   hangs at the deck's measured advances) — */
+.quote { padding: calc(2.5 * var(--leading)) 0 calc(3.5 * var(--leading)); }
+.quote blockquote {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: clamp(26px, 2.8vw, 36px); line-height: calc(1.5 * var(--leading));
+  letter-spacing: 0; max-width: 36ch; margin: 0;
+  text-indent: -0.316em; /* hang the opening “ (the deck's measured advance in the Condensed 600) */
+  text-box: trim-both cap alphabetic;
+}
+.quote figcaption { font-size: 15px; line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* small-text ink on the
+     paper ground: 70% measures 5.8:1 (55% is a large-text value here — 3.6:1) */
+  margin: calc(2 * var(--leading) - 1cap) 0 0; /* two grid units below the quote's
+     last baseline — one reads as part of the quote block; the attribution needs air */
+  text-indent: -0.885em; /* hang the leading em-dash + space (measured in Barlow Regular) */
+  text-box: trim-both cap alphabetic; }
+
+@media (max-width: 720px) {
+  /* the phone gutter (--edge bottoms out at 20px) is narrower than the hung
+     marks' measured advances, so a hung “ or em-dash would press into or past
+     the viewport edge — seat the quote flush below this width; the hang
+     returns with the wider gutter */
+  .quote blockquote, .quote figcaption { text-indent: 0; }
+}
+
+/* — close (paper, a caption rule above; the primary is the system's solid
+   accent action — everything else stays a line drawing) — */
+.close { padding: calc(2.5 * var(--leading)) 0 calc(2 * var(--leading)); }
+.close h3 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 24px; line-height: var(--leading); letter-spacing: 0.02em; text-transform: uppercase;
+  margin: 0; text-box: trim-both cap alphabetic; }
+.close .sub { font-size: 15px; line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  margin: calc(var(--leading) - 1cap) 0 0; max-width: var(--measure); text-box: trim-both cap alphabetic; }
+.signup { display: flex; gap: var(--space-3); align-items: stretch; max-width: 480px;
+  margin-top: var(--leading); }
+.signup .input { flex: 1; }
+.signup .input, .signup .btn { min-height: 36px; } /* one control height floor; the row
+  stretches, so whichever of the pair is taller sets both and they read as one row */
+footer { padding: calc(2 * var(--leading)) 0; font-size: 13px; line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* 5.8:1 — see .quote figcaption */ }
+
+/* — responsive collapse — */
+@media (max-width: 880px) {
+  .cells { grid-template-columns: 1fr; gap: calc(var(--leading) + 16px); } /* stacked
+     frames: both cells' crosses overhang 7px of ink into the gap, so the
+     clamp's 20px floor left 6px cross-to-cross — a 40px gap keeps a full
+     unit of air (26px) between the facing crosses */
+}
+@media (max-width: 720px) {
+  .hero { padding-top: calc(2.5 * var(--leading)); }
+  /* the sheet re-stacks: the title block drops its register cells to a
+     second ruled row, and each table row becomes its own small plate —
+     № and property on the register line, the value beneath, the remark
+     last. (Linearizing the table trades its grid semantics for reading
+     order; the row order is unchanged.) */
+  .tb-title { flex-basis: 100%; border-bottom: 1px solid var(--color-divider); }
+  .title-block > .tb-cell { padding-inline: var(--half); flex: 1 0 auto; } /* beats the
+     base span padding's specificity; the cells flex to close the register
+     row against the frame. (All title-block children are spans, so
+     :first-of-type can never name a register cell — the sibling selector
+     below is the one that works) */
+  .tb-title + .tb-cell { border-left: 0; padding-left: var(--leading); } /* first register
+     cell: its hairline would double the plate's own left border */
+  .spec thead { position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap; } /* visually hidden, not
+     display:none — the stacked rows carry their own register (№ + property),
+     so the column heads are redundant on screen, but they stay in the
+     accessibility tree for readers that still expose the table semantics */
+  .spec, .spec tbody, .spec td { display: block; }
+  .spec tr { display: grid; grid-template-columns: max-content 1fr;
+    column-gap: var(--half); row-gap: var(--half); align-items: baseline;
+    padding: var(--leading);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent); }
+  .spec tr:last-child { border-bottom: 0; }
+  .spec th, .spec td { padding: 0; border: 0; }
+  .spec th:first-child, .spec td:first-child { padding-left: 0; } /* matches the
+     desktop rule's specificity, or the № keeps its 24px inset and floats
+     off the stacked rows' shared axis */
+  .spec .s-num { grid-column: 1; }
+  .spec .s-prop { grid-column: 2; }
+  .spec .s-val, .spec .s-rem { grid-column: 1 / -1; }
+  .spec .s-blank { display: none; } /* the desktop table's "no remark" dash
+     would dangle as a stray mark in the stacked row */
+  .split { grid-template-columns: 1fr; }
+  .split-figure { order: -1; }
+}
+@media (max-width: 360px) {
+  /* the narrowest screens: one register row no longer fits, so the title
+     block re-forms as its own grid — doc and revision share a ruled row,
+     the sheet count takes the next — and a wrap can never leave a cell
+     floating without a rule */
+  .title-block { display: grid; grid-template-columns: 1fr 1fr; }
+  .tb-title { grid-column: 1 / -1; border-bottom: 0; } /* the rules move to the cells' tops */
+  .title-block > .tb-cell { border-left: 0; border-top: 1px solid var(--color-divider);
+    padding-left: var(--leading); }
+  .tb-title + .tb-cell + .tb-cell { border-left: 1px solid var(--color-divider);
+    padding-left: var(--half); } /* the revision keeps its divider against the doc cell */
+  .tb-cell:last-child { grid-column: 1 / -1; }
+}
+
+/* Review aid: the 24px rhythm drawn as hairlines — debug chrome, toggled by
+   ?baselines or the B key, never part of the look. */
+body[data-baselines] { position: relative; }
+body[data-baselines]::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom,
+      color-mix(in srgb, var(--color-accent) 35%, transparent) 0 1px,
+      transparent 1px var(--leading)),
+    repeating-linear-gradient(to bottom,
+      transparent 0 var(--half),
+      color-mix(in srgb, var(--color-accent) 16%, transparent) var(--half) calc(var(--half) + 1px),
+      transparent calc(var(--half) + 1px) var(--leading));
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="nav-brand">Holdfast</span>
+  <a href="#catalog" aria-current="location">Catalog</a>
+  <a href="#spec">To spec</a>
+  <a href="#order">Order</a>
+  <button type="button" class="btn btn-primary">Open the catalog</button>
+</nav>
+<div class="wrap">
+
+  <section class="hero">
+    <h1 class="display"><span class="line">Four thousand fasteners.</span> <span class="line">One promise: they hold.</span></h1>
+    <p class="sub">Holdfast is a bolt-and-fastener catalog for people who torque things down: every SKU measured, load-rated and photographed against a ruler, with stock counts that tell the truth — and dispatch before the coffee cools.</p>
+    <div class="row">
+      <button type="button" class="btn btn-primary">Open the catalog</button>
+      <button type="button" class="btn btn-ghost">Request the spec book</button>
+    </div>
+  </section>
+
+  <section class="sheet" id="sheet" aria-label="Holdfast — standard performance data">
+    <div class="plate">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <header class="title-block">
+        <span class="tb-title">Holdfast — standard performance data</span>
+        <span class="tb-cell">HF-100</span>
+        <span class="tb-cell">Rev C</span>
+        <span class="tb-cell">Sheet 01 of 04</span>
+      </header>
+      <table class="table spec">
+        <colgroup><col class="c-num"><col class="c-prop"><col class="c-val"><col class="c-rem"></colgroup>
+        <thead>
+          <tr><th scope="col">No.</th><th scope="col">Property</th><th scope="col">Value</th><th scope="col">Remark</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="s-num">01</td><td class="s-prop">Fasteners in the book</td><td class="s-val">4,218</td><td class="s-rem">Net of discontinued lines</td></tr>
+          <tr><td class="s-num">02</td><td class="s-prop">Tolerance, verified</td><td class="s-val">±0.01 mm</td><td class="s-rem">On every dimension in the drawing</td></tr>
+          <tr><td class="s-num">03</td><td class="s-prop">Dock to doorstep</td><td class="s-val">48 h</td><td class="s-rem">Weekends included</td></tr>
+          <tr><td class="s-num">04</td><td class="s-prop">Stripped threads on record</td><td class="s-val">0</td><td class="s-rem s-blank"><span aria-hidden="true">—</span></td></tr>
+        </tbody>
+      </table>
+      <p class="sheet-note">Values hold for the current printing; earlier revisions are void.</p>
+    </div>
+  </section>
+
+  <!-- the drawing set continues: sections below number themselves with the
+       deck's own kicker grammar — the spec plate above is sheet 01 -->
+  <section class="features" id="catalog">
+    <span class="kicker">02 · What the book holds</span>
+    <hr class="caption-rule" />
+    <div class="cells">
+      <div class="cell-frame">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h2>To specification</h2>
+        <p>Every fastener is measured before it is listed: thread pitch, shank, head, coating, proof load. If the caliper and the catalog disagree, the catalog is wrong and we reprint it.</p>
+      </div>
+      <div class="cell-frame">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h2>Tabulated</h2>
+        <p>One datasheet per SKU — torque tables, shear ratings, and the drawing with every dimension on it. Print it, laminate it, argue with it at the bench. The sheet wins.</p>
+      </div>
+      <div class="cell-frame">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h2>In stock, in truth</h2>
+        <p>The count on the page is the count on the shelf, recounted nightly. When it says six hundred, there are six hundred — and when it says none, we name the day more arrive.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="split" id="spec">
+    <div class="split-copy">
+      <span class="kicker">03 · To spec</span>
+      <hr class="caption-rule" />
+      <h2 class="split-title">Photographed like a drawing</h2>
+      <p class="note">Every product photograph runs through the steel duotone — desaturated, washed in the accent, printed like a screen print. The part reads as engineering, not marketing, which is what it is.</p>
+    </div>
+    <figure class="split-figure blueprint duotone">
+      <image-slot id="photo-split" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="Product photograph duotoned in the steel accent inside a registration-marked frame"></image-slot>
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+    </figure>
+  </section>
+
+  <section class="quote">
+    <figure>
+      <!-- keep the leading “ — the blockquote's negative text-indent hangs it in the margin -->
+      <blockquote>“We bolted the whole mezzanine with their M12s. The inspector asked where we bought them, and wrote it down for himself.”</blockquote>
+      <!-- keep the leading "— " — the figcaption's negative text-indent hangs it -->
+      <figcaption>— D. Imrie, structural foreman</figcaption>
+    </figure>
+  </section>
+
+  <section class="close" id="order">
+    <span class="kicker">04 · The order desk</span>
+    <hr class="caption-rule" />
+    <h3>The spec book, quarterly</h3>
+    <p class="sub">New SKUs, revised torque tables, and the occasional recall notice, set in type you can read with gloves on. No discounts, no countdowns — fasteners are not impulsive.</p>
+    <div class="signup">
+      <input class="input" type="email" placeholder="you@example.com" aria-label="Email address" />
+      <button type="button" class="btn btn-primary">Subscribe</button>
+    </div>
+  </section>
+
+  <footer>Built from this project’s theme.json — see readme.md.</footer>
+</div>
+<script src="image-slot.js"></script>
+<script>
+// Review aid: baseline-grid overlay — add ?baselines to the URL, or press B to toggle.
+(() => {
+  if (new URLSearchParams(location.search).has('baselines')) document.body.setAttribute('data-baselines', '');
+  addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey) document.body.toggleAttribute('data-baselines');
+  });
+})();
+</script>
+</body>
+</html>

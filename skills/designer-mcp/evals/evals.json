@@ -12,9 +12,9 @@
         "references/mcp-tools.md"
       ],
       "expected_behavior": [
-        "Searches styles first with refero_search before proposing any palette",
+        "Searches styles first with design_search before proposing any palette",
         "Runs 3+ differently-worded searches (aesthetic, domain, and known-brand angles) rather than one query",
-        "Retrieves full styles with refero_get, not just search previews",
+        "Retrieves full styles with design_get, not just search previews",
         "Names the specific styles reviewed and what each contributes",
         "Locks a primary reference with 3-5 preserved traits and 1-2 borrowed details",
         "Does not average references into a safe middle",
@@ -63,10 +63,10 @@
         "references/mcp-tools.md"
       ],
       "expected_behavior": [
-        "Calls refero_facets before promising a direction, to see what is actually present",
+        "Calls design_facets before promising a direction, to see what is actually present",
         "Reports concrete font families and theme counts rather than generic claims",
         "Notes that colorScheme can be 'mixed' and that upstream's theme filter silently drops mixed styles",
-        "Uses refero_list with filters to browse, and refero_search for ranked matches"
+        "Uses design_list with filters to browse, and design_search for ranked matches"
       ]
     },
     {
@@ -93,7 +93,7 @@
       ],
       "expected_behavior": [
         "Triggers the skill from the description without the words 'designer-mcp' or 'Refero' appearing in the query",
-        "Routes to refero_search for visual direction",
+        "Routes to design_search for visual direction",
         "Does not ask the user to install or enable a skill that is already loaded",
         "Uses domain-appropriate queries like 'premium fintech website with restrained typography'"
       ]
@@ -112,7 +112,88 @@
         "Still requires research grounding before any visual recommendation",
         "Uses the bundled craft references as the source when the MCP is unavailable"
       ]
+    },
+    {
+      "id": "docx-deliverable-routes-to-sub-skill",
+      "query": "Turn this research summary into a polished Word document I can send to a client.",
+      "files": [
+        "SKILL.md",
+        "docx/SKILL.md"
+      ],
+      "expected_behavior": [
+        "Routes the deliverable to docx/SKILL.md via the Document and Deliverable Skills section",
+        "Takes typography, palette and layout direction from a designer-mcp reference lock, not default document styling",
+        "Follows the docx skill's file mechanics (docx-js for creation, render-and-inspect QA with soffice/pdftoppm)",
+        "Does not invent Word file mechanics that the docx skill already specifies"
+      ]
+    },
+    {
+      "id": "pdf-reference-material-reads-first",
+      "query": "Here is a brand guidelines PDF. Read it, then design a landing page consistent with it.",
+      "files": [
+        "SKILL.md",
+        "pdf-reading/SKILL.md"
+      ],
+      "expected_behavior": [
+        "Routes the reading task to pdf-reading/SKILL.md and the design task to the research workflow",
+        "Extracts concrete tokens (palette, type, imagery rules) from the PDF before proposing a direction",
+        "Treats the PDF as user-provided reference material within the reference lock, not as a license to copy verbatim",
+        "Rasterizes pages for visual inspection when the extraction is ambiguous"
+      ]
+    },
+    {
+      "id": "design-system-template-start",
+      "query": "Start a new product landing page from a generic design system template, and give me a manifest of its tokens and rules.",
+      "files": [
+        "SKILL.md",
+        "references/mcp-tools.md"
+      ],
+      "expected_behavior": [
+        "Lists templates with design_template_list, then picks one that matches the brief and says why",
+        "Calls design_manifest_template with the chosen slug and saves the manifest beside the work",
+        "Builds against the manifest contract: no color outside roles and ramps, no raw px where a token exists",
+        "Copies starter files with design_template_file instead of inventing parallel markup",
+        "Does not invent tool names beyond design_template_list/get/file and design_manifest_template"
+      ]
+    },
+    {
+      "id": "capture-web-and-use-gallery-theme",
+      "query": "Capture the structure of this landing page and make a reusable starter using the gallery theme I picked. Set the primary action to #264739.",
+      "files": ["SKILL.md", "references/design-md-workflow.md"],
+      "expected_behavior": [
+        "Uses the exact copied gallery reference or its raw Markdown and skips catalog exploration",
+        "Preserves reading order and content roles while applying theme appearance and the requested override",
+        "Produces DESIGN.md, a companion with provenance, a shared stylesheet and token preview, and a starter that uses the package",
+        "Resamples the rendered starter and reports required token coverage"
+      ]
+    },
+    {
+      "id": "capture-scanned-pdf-without-mcp",
+      "query": "Disassemble this scanned PDF into a design system I can reuse for a similar report.",
+      "files": ["SKILL.md", "references/design-md-workflow.md", "pdf-reading/SKILL.md"],
+      "expected_behavior": [
+        "Uses the host and inspects a rendered page even without MCP",
+        "Preserves the observed order and roles, labels estimates, and leaves unsupported tokens out of the contract",
+        "Builds a reproducible package and reports that automated Markdown validation is pending"
+      ]
     }
   ],
-  "results": []
+  "results": [
+    {
+      "eval_id": "capture-web-and-use-gallery-theme",
+      "date": "2026-11-11",
+      "runner": "Codex CLI 0.154.0",
+      "model": "CLI default",
+      "outcome": "passed on final run",
+      "notes": "Earlier runs exposed missing read-only MCP annotations, native Chrome startup failure in the nested harness, and starter copy carried over from the source. The final run resolved the copied ID through Docker MCP, preserved the original section order and heading levels, used new sample copy, and kept the user override. The bundled Chromium host check passed 9 of 9 desktop and 8 of 8 mobile required roles. The rendered heading used the local Georgia fallback."
+    },
+    {
+      "eval_id": "capture-scanned-pdf-without-mcp",
+      "date": "2026-11-11",
+      "runner": "Codex CLI 0.154.0",
+      "model": "CLI default",
+      "outcome": "passed on final run",
+      "notes": "The first run wrote a token table in place of portable front matter. The final run used alpha YAML, committed measured page dimensions, and kept raster estimates in evidence and recipes. The starter printed as a single custom-size page in the host check. MCP validation was pending by design for this scenario."
+    }
+  ]
 }

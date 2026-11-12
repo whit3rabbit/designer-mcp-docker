@@ -4,6 +4,7 @@
  *
  * Checks the things that actually broke during development:
  *   1. the cache exists, is complete, and both sources are tagged
+ *      (plus the vendored design-system template layer)
  *   2. the upstream renderer is importable and produces a DESIGN.md
  *   3. thumbnails are cached locally (the gallery must not need the network)
  *   4. the preview server starts, serves the gallery, and answers the API
@@ -11,6 +12,7 @@
  *   6. the generic MCP server exposes `design_*` tools over both sources
  *
  * Usage: node scripts/selftest.mjs [--cache <dir>]
+ * Defaults to the baked catalog when available so npm test checks the image inputs.
  */
 
 import { spawn } from "node:child_process";
@@ -24,12 +26,13 @@ const ROOT = resolve(HERE, "..");
 
 const argv = process.argv.slice(2);
 const cacheArg = argv.indexOf("--cache");
+const bakedCache = join(ROOT, "bake");
 const CACHE_DIR =
   cacheArg >= 0 && argv[cacheArg + 1]
     ? resolve(argv[cacheArg + 1])
     : process.env.DESIGN_CACHE_DIR ||
       process.env.REFERO_CACHE_DIR ||
-      join(ROOT, "cache");
+      (existsSync(join(bakedCache, "catalog.json")) ? bakedCache : join(ROOT, "cache"));
 
 let failures = 0;
 const ok = (msg) => console.log(`  \x1b[32m✓\x1b[0m ${msg}`);
@@ -71,6 +74,36 @@ if (!existsSync(catalogPath)) {
 
   const untagged = designs.filter((s) => !s.source).length;
   untagged === 0 ? ok("every design carries a source tag") : bad(`${untagged} designs have no source tag`);
+
+  // The vendored design-system template layer.
+  const dsIndexPath = join(CACHE_DIR, "design-systems.json");
+  if (!existsSync(dsIndexPath)) {
+    bad(`no design-systems index at ${dsIndexPath} — run: npm run templates`);
+  } else {
+    const ds = JSON.parse(readFileSync(dsIndexPath, "utf8"));
+    ds.total === 6
+      ? ok(`design-systems index has ${ds.total} templates`)
+      : bad(`design-systems index has ${ds.total} templates, expected 6`);
+    let dsOk = true;
+    for (const entry of ds.systems) {
+      const record = JSON.parse(
+        readFileSync(join(CACHE_DIR, "design-systems", `${entry.slug}.json`), "utf8"),
+      );
+      if (record.manifest?.schemaVersion !== "design-system-manifest/v1") {
+        bad(`template ${entry.slug} has no filled manifest`);
+        dsOk = false;
+      }
+      if (!(record.tokens?.length >= 48)) {
+        bad(`template ${entry.slug} has ${record.tokens?.length} tokens, expected 48+`);
+        dsOk = false;
+      }
+    }
+    if (!existsSync(join(CACHE_DIR, "design-systems", "manifest-template.json"))) {
+      bad("manifest-template.json missing from the design-systems layer");
+      dsOk = false;
+    }
+    dsOk && ok("all six template records carry the manifest schema and 48+ tokens");
+  }
 }
 
 // ------------------------------------------------------- 2. renderer
@@ -144,6 +177,7 @@ const preview = spawn("node", [join(HERE, "preview.mjs")], {
 });
 let previewErr = "";
 preview.stderr.on("data", (d) => (previewErr += d.toString()));
+let galleryTheme;
 
 await new Promise((r) => setTimeout(r, 2500));
 try {
@@ -184,6 +218,11 @@ try {
 
   const detail = await fetch(`http://127.0.0.1:${PORT}/design/${refero.id}`).then((r) => r.text());
   detail.includes("Color tokens") ? ok("detail page renders") : bad("detail page wrong");
+  galleryTheme = { reference: `designer:refero:${refero.id}`, md };
+  detail.includes(`value="${galleryTheme.reference}"`) && detail.includes("Copy theme reference") &&
+    detail.includes(`href="/api/designs/${refero.id}/design.md"`)
+    ? ok("detail page provides the exact reference and raw Markdown link")
+    : bad("detail page is missing the theme handoff");
 
   // ------------------------------------------------- AI component library
   const comps = await fetch(`http://127.0.0.1:${PORT}/api/components`).then((r) => r.json());
@@ -227,6 +266,31 @@ try {
     pHtml.includes("preset") ? ok("preset page renders") : bad("preset page wrong");
   } else {
     bad("no presets in the cache — run: node scripts/fetch-presets.mjs");
+  }
+
+  // ------------------------------------------------- design-system templates
+  const tmpl = await fetch(`http://127.0.0.1:${PORT}/api/templates`).then((r) => r.json());
+  if (tmpl.total) {
+    ok(`api/templates reports ${tmpl.total} templates`);
+    const slug = tmpl.systems[0].slug;
+
+    const tHtml = await fetch(`http://127.0.0.1:${PORT}/templates`).then((r) => r.text());
+    tHtml.includes("System templates") ? ok("template gallery page renders") : bad("template gallery wrong");
+
+    const tOne = await fetch(`http://127.0.0.1:${PORT}/api/template/${slug}`).then((r) => r.json());
+    tOne.manifest?.schemaVersion === "design-system-manifest/v1"
+      ? ok(`api/template/${slug} carries the filled manifest`)
+      : bad(`api/template/${slug} has no filled manifest`);
+
+    const cover = await fetch(`http://127.0.0.1:${PORT}/template/${slug}/thumb`, { redirect: "manual" });
+    cover.status === 200 && (cover.headers.get("content-type") || "").startsWith("image/")
+      ? ok(`template cover serves local bytes (${cover.headers.get("content-type")})`)
+      : bad(`template cover returned ${cover.status}`);
+
+    const tDetail = await fetch(`http://127.0.0.1:${PORT}/template/${slug}`).then((r) => r.text());
+    tDetail.includes("Color roles") ? ok("template detail page renders") : bad("template detail wrong");
+  } else {
+    bad("no design-system templates in the cache — run: npm run templates");
   }
 
   // An OpenDesign entry, if present.
@@ -349,9 +413,12 @@ try {
   const dtools = await dcall("tools/list", {});
   const names = (dtools.result?.tools || []).map((t) => t.name);
   const expected = [
-    "design_search", "design_get", "design_list", "design_facets", "design_markdown",
+    "design_search", "design_get", "design_package_file", "design_list", "design_facets", "design_markdown",
     "design_component_search", "design_component_get", "design_component_code",
     "design_preset_search", "design_preset_get",
+    "design_template_list", "design_template_get", "design_template_file",
+    "design_manifest_template", "design_markdown_parse", "design_manifest_from",
+    "design_markdown_render", "design_markdown_validate",
   ];
   const missing = expected.filter((t) => !names.includes(t));
   missing.length === 0
@@ -428,6 +495,198 @@ try {
     bad("design_preset_search found no presets");
   }
 
+  // The design-system template layer and the manifest templating.
+  const tl = await dcall("tools/call", { name: "design_template_list", arguments: {} });
+  const tlr = JSON.parse(tl.result.content[0].text);
+  if (tlr.total > 0) {
+    ok(`design_template_list reports ${tlr.total} templates`);
+    const tslug = tlr.templates[0].slug;
+
+    const tg = await dcall("tools/call", {
+      name: "design_template_get",
+      arguments: { slug: tslug },
+    });
+    const tgr = JSON.parse(tg.result.content[0].text);
+    tgr.manifest?.schemaVersion === "design-system-manifest/v1" && tgr.tokens?.length >= 48
+      ? ok(`design_template_get returns '${tslug}' with ${tgr.tokens.length} tokens and a filled manifest`)
+      : bad(`design_template_get wrong for '${tslug}'`);
+
+    const tf = await dcall("tools/call", {
+      name: "design_template_file",
+      arguments: { slug: tslug, path: "styles.css" },
+    });
+    const tfr = JSON.parse(tf.result.content[0].text);
+    tfr.content?.includes(":root")
+      ? ok(`design_template_file returns the token sheet (${tfr.bytes} bytes)`)
+      : bad("design_template_file did not return the token sheet");
+
+    const dm = await dcall("tools/call", {
+      name: "design_manifest_template",
+      arguments: { slug: tslug },
+    });
+    const dmr = JSON.parse(dm.result.content[0].text);
+    dmr.colors?.roles && dmr.components?.classes?.length
+      ? ok(`design_manifest_template fills the manifest for '${tslug}'`)
+      : bad("design_manifest_template did not fill the manifest");
+
+    const blank = await dcall("tools/call", {
+      name: "design_manifest_template",
+      arguments: {},
+    });
+    const br = JSON.parse(blank.result.content[0].text);
+    br.schemaVersion === "design-system-manifest/v1" && !br.name
+      ? ok("design_manifest_template returns the blank template")
+      : bad("blank manifest template wrong");
+  } else {
+    bad("no design-system templates in the cache — run: npm run templates");
+  }
+
+  // DESIGN.md parsing and manifest seeding, on both sources.
+  const referoDoc = designs.find((d) => (d.source || "refero") === "refero");
+  const odDoc = designs.find((d) => d.source === "opendesign");
+
+  if (referoDoc) {
+    const pr = await dcall("tools/call", {
+      name: "design_markdown_parse",
+      arguments: { identifier: referoDoc.id },
+    });
+    const prr = JSON.parse(pr.result.content[0].text);
+    prr.format === "refero" && prr.parsed?.colors?.length > 0 && prr.parsed?.do?.length > 0
+      ? ok(`design_markdown_parse renders '${prr.siteName}' (${prr.parsed.colors.length} swatches, ${prr.parsed.do.length} do rules)`)
+      : bad(`design_markdown_parse wrong for refero: format=${prr.format}, colors=${prr.parsed?.colors?.length}`);
+
+    // The content escape hatch: parse markdown the agent already has.
+    const pc = await dcall("tools/call", {
+      name: "design_markdown_parse",
+      arguments: {
+        content: "---\nsource_url: https://x.test\nsite_name: Pasted Doc\n---\n\n# Pasted Doc\n\n> A pasted reference.\n\n## Colors\n\n| Hex | Name | Role | Group |\n| --- | --- | --- | --- |\n| `#101010` | Ink | copy | neutral |\n",
+      },
+    });
+    const pcr = JSON.parse(pc.result.content[0].text);
+    pcr.format === "refero" && pcr.parsed?.name === "Pasted Doc" && pcr.parsed?.colors?.[0]?.hex === "#101010"
+      ? ok("design_markdown_parse handles pasted content")
+      : bad(`design_markdown_parse content path wrong: ${pcr.format}/${pcr.parsed?.name}`);
+  } else {
+    bad("no refero designs in the cache");
+  }
+
+  if (odDoc) {
+    const po = await dcall("tools/call", {
+      name: "design_markdown_parse",
+      arguments: { identifier: odDoc.id },
+    });
+    const por = JSON.parse(po.result.content[0].text);
+    ["opendesign", "stitch", "webdesignhot"].includes(por.format) && Object.keys(por.parsed?.sections ?? {}).length > 0
+      ? ok(`design_markdown_parse renders opendesign '${por.siteName}' (${Object.keys(por.parsed.sections).length} sections, ${por.parsed.colors.length} swatches)`)
+      : bad(`design_markdown_parse wrong for opendesign: format=${por.format}`);
+
+    const mf = await dcall("tools/call", {
+      name: "design_manifest_from",
+      arguments: { identifier: odDoc.id },
+    });
+    const mfr = JSON.parse(mf.result.content[0].text);
+    mfr.manifest?.schemaVersion === "design-system-manifest/v1" &&
+    mfr.manifest?.provenance?.format === por.format && mfr.manifest?.tokens?.all?.length > 0
+      ? ok(`design_manifest_from seeds a manifest for '${mfr.siteName}' (provenance: ${mfr.manifest.provenance.filled.length} filled)`)
+      : bad(`design_manifest_from wrong for opendesign: ${JSON.stringify(mfr.manifest?.provenance || mfr.error || "?").slice(0, 120)}`);
+  } else {
+    bad("no opendesign designs in the cache");
+  }
+
+  // Author, import, and check a local document through the normal stdio entry point.
+  const render = await dcall("tools/call", {
+    name: "design_markdown_render",
+    arguments: {
+      name: "Stdio fixture",
+      tokens: {
+        colors: { primary: "#264739" },
+        components: { button: { backgroundColor: "{colors.primary}" } },
+      },
+      body: "## Overview\n\nSample the primary button.",
+    },
+  });
+  const draft = JSON.parse(render.result.content[0].text);
+  draft.format === "stitch" && draft.designMd && draft.diagnostics.length === 0
+    ? ok("design_markdown_render emits a clean Stitch document")
+    : bad("design_markdown_render failed to author the fixture");
+
+  const pastedArgs = {
+    content: draft.designMd,
+    css: ':root { --font-body: Inter, sans-serif; --space-2: 8px; --radius-sm: 2px; }',
+  };
+  const pastedManifest = await dcall("tools/call", {
+    name: "design_manifest_from", arguments: pastedArgs,
+  });
+  const pasted = JSON.parse(pastedManifest.result.content[0].text).manifest;
+  pasted.name === "Stdio fixture" && pasted.typography.body.family === "Inter, sans-serif" &&
+    pasted.radius.sm === "2px" && pasted.spacing.scale.length === 1
+    ? ok("design_manifest_from accepts pasted content and CSS companions")
+    : bad("design_manifest_from did not merge the pasted document and CSS");
+
+  const validated = await dcall("tools/call", {
+    name: "design_markdown_validate",
+    arguments: {
+      ...pastedArgs,
+      observations: [
+        { location: ".button background-color", token: "components.button.backgroundColor", value: "rgb(38, 71, 57)" },
+        { location: "main gap", token: "spacing.2", value: "10px" },
+        { location: "main font-family", token: "typography.body.fontFamily", value: null },
+      ],
+    },
+  });
+  const validation = JSON.parse(validated.result.content[0].text);
+  validation.documentValid && !validation.conforms && validation.summary.pass === 1 &&
+    validation.summary.fail === 1 && validation.summary.unverified === 1
+    ? ok("design_markdown_validate distinguishes pass, fail, and unverified")
+    : bad("design_markdown_validate returned the wrong observation statuses");
+
+  const coverageResult = await dcall("tools/call", {
+    name: "design_markdown_validate",
+    arguments: {
+      content: draft.designMd,
+      requiredTokens: ["components.button.backgroundColor", "colors.primary"],
+      observations: [{ location: "button", token: "components.button.backgroundColor", value: "#264739" }],
+    },
+  });
+  const coverage = JSON.parse(coverageResult.result.content[0].text);
+  coverage.documentValid && !coverage.conforms && coverage.coverage.pass === 1 && coverage.coverage.missing === 1
+    ? ok("required coverage fails when a declared role is unsampled")
+    : bad("required coverage missed an unsampled role");
+
+  if (galleryTheme) {
+    const theme = await dcall("tools/call", {
+      name: "design_markdown", arguments: { identifier: galleryTheme.reference },
+    });
+    const exactDesign = await dcall("tools/call", {
+      name: "design_get", arguments: { identifier: galleryTheme.reference },
+    });
+    const wrongSource = await dcall("tools/call", {
+      name: "design_get", arguments: { identifier: "designer:refero:agentic" },
+    });
+    const exactRecord = JSON.parse(exactDesign.result.content[0].text);
+    `designer:${exactRecord.source}:${exactRecord.id}` === galleryTheme.reference && wrongSource.result?.isError
+      ? ok("design_get resolves gallery references exactly and rejects a missing source/id pair")
+      : bad("design_get did not respect the exact gallery reference");
+    const missing = await dcall("tools/call", {
+      name: "design_markdown_parse", arguments: { identifier: "designer:refero:agentic" },
+    });
+    const downloaded = await dcall("tools/call", {
+      name: "design_markdown_parse", arguments: { content: galleryTheme.md },
+    });
+    JSON.parse(theme.result.content[0].text).designMd === galleryTheme.md &&
+      missing.result?.isError && missing.result.content[0].text.includes("pass the Markdown as content") &&
+      JSON.parse(downloaded.result.content[0].text).format === "refero"
+      ? ok("exact theme matches gallery bytes and missing references have a working content fallback")
+      : bad("exact theme lookup or raw Markdown fallback failed");
+  }
+
+  const invalidMarkdownInput = await dcall("tools/call", {
+    name: "design_markdown_parse", arguments: { content: "é".repeat(100_001) },
+  });
+  invalidMarkdownInput.result?.isError && invalidMarkdownInput.result.content[0].text.includes("UTF-8 bytes")
+    ? ok("design_markdown_parse enforces the UTF-8 byte limit")
+    : bad("design_markdown_parse accepted oversized UTF-8 input");
+
   // A Refero entry and an OpenDesign entry must both resolve and render.
   const referoEntry = designs.find((d) => (d.source || "refero") === "refero");
   const odEntry = designs.find((d) => d.source === "opendesign");
@@ -470,6 +729,45 @@ try {
     mr.designMd?.length > 500
       ? ok(`design_markdown serves the original opendesign document (${mr.designMd.length} bytes)`)
       : bad(`design_markdown too short for opendesign: ${mr.designMd?.length}`);
+  }
+
+  const arc = designs.find((d) => d.source === "opendesign" && d.id === "arc");
+  if (arc) {
+    const identifier = "designer:opendesign:arc";
+    const call = async (name, args = {}) => (await dcall("tools/call", {
+      name, arguments: { identifier, ...args },
+    })).result;
+    const data = (result) => JSON.parse(result.content[0].text);
+    const record = data(await call("design_get"));
+    const fromUrl = data(await call("design_get", {
+      identifier: "https://github.com/nexu-io/open-design/tree/main/design-systems/arc",
+    }));
+    const markdown = data(await call("design_markdown"));
+    const parsed = data(await call("design_markdown_parse"));
+    const manifest = data(await call("design_manifest_from"));
+    const css = data(await call("design_package_file", { path: "tokens.css" }));
+    const source = data(await call("design_package_file", { path: "DESIGN.md" }));
+    const payload = JSON.parse(readFileSync(join(CACHE_DIR, "systems", "arc.json"), "utf8")).system;
+    record.package?.reference === identifier && record.package.manifest.id === "arc" &&
+      [record, fromUrl, markdown, parsed, manifest, css, source].every((d) => d.id === "arc" && d.source === "opendesign") &&
+      parsed.format === "opendesign" && manifest.manifest.tokens.all.length > 0 &&
+      css.content === payload.tokensCss && source.content === markdown.designMd
+      ? ok("Arc resolves by exact reference and package URL, with its original Markdown and CSS")
+      : bad("Arc resolved to the wrong design, or its package files changed");
+
+    const extra = await call("design_package_file", { path: "components.html" });
+    const listed = record.package?.files.find((file) => file.path === "components.html");
+    (record.package?.legacyCache ? !listed && extra.isError :
+      listed?.bytes > 0 && data(extra).bytes === listed.bytes && data(extra).content.includes("<"))
+      ? ok("OpenDesign package file reads match the available inventory")
+      : bad("OpenDesign package file inventory disagrees with the cache");
+
+    const mismatched = await call("design_get", { source: "refero" });
+    const unknown = await call("design_get", { identifier: "designer:opendesign:arcc" });
+    const outside = await call("design_package_file", { path: "../arc.json" });
+    mismatched.isError && unknown.isError && outside.isError
+      ? ok("OpenDesign rejects a conflicting source, mistyped reference, and invalid file path")
+      : bad("OpenDesign accepted an invalid source, reference, or file path");
   }
 } catch (e) {
   bad(`generic MCP server failed: ${e.message}`);

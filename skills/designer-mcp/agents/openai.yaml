@@ -1,4 +1,4 @@
 interface:
-  display_name: "Refero Design"
-  short_description: "Research-first UI and product design"
-  default_prompt: "Use $refero-design to research references and design this interface."
+  display_name: "Designer MCP"
+  short_description: "Capture designs, apply gallery themes, and verify builds"
+  default_prompt: "Use $designer-mcp to capture this source as DESIGN.md and preserve its content hierarchy."

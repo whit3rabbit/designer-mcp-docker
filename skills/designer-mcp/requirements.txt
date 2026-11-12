@@ -1,0 +1,25 @@
+# Python dependencies for the scripts shipped in this skill.
+#
+# Install what you need with:  pip install -r requirements.txt
+# or follow each sub-skill's own check-then-install guidance: try the import,
+# and install only what fails.
+#
+# Core: imported by scripts under docx/, pptx/, xlsx/, pdf/.
+lxml
+defusedxml
+validators
+python-pptx
+Pillow
+pdf2image
+pdfplumber
+pypdf
+openpyxl
+pandas
+
+# Optional: referenced by guidance paths only, not by shipped scripts.
+# markitdown
+# reportlab
+# PyMuPDF
+# pypdfium2
+# pytesseract
+# numpy

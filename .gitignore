@@ -32,3 +32,29 @@ Thumbs.db
 # Python bytecode (the audit scripts in the sibling repo are Python; harmless here)
 __pycache__/
 *.pyc
+
+# macOS cruft beyond .DS_Store
+.AppleDouble
+.LSOverride
+
+# Custom folder icon file (must end with two \r to match the real thing)
+Icon
+
+# Resource forks ("._foo" next to every "foo" on non-HFS volumes)
+._*
+
+# Volume metadata that appears when a repo lives on an external/DMG volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories created on remote AFP shares
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

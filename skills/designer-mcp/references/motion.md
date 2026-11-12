@@ -228,7 +228,7 @@ Maximum effect, minimum risk.
 .list-item-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: all 200ms var(--ease-out);
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
 }
 ```
 

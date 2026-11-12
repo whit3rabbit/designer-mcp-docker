@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Deck" description="A twenty-three-slide presentation starter: cover, contents, dividers, columns, quadrants, a data table, SVG charts, color-separation plates, bleed imagery, a quote and a close, on the theme's tokens" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css" />
+<title>Broadsheet — deck</title>
+<script src="./ds-base.js"></script>
+<script src="./image-slot.js"></script>
+<style>
+/* Template scaffolding — slide layout and projection-scale sizing only; every
+   color, font, radius and shadow comes from ../../styles.css. Change one
+   number here to re-size the whole deck. */
+deck-stage {
+  --type-display: 126px;
+  --type-title: 68px;
+  --type-subtitle: 42px;
+  --type-body: 36px;
+  --type-small: 30px;
+  --type-kicker: 24px;
+  --pad-x: 144px;
+  --page-foot-note: "Confidential — July 2026"; /* the deck-wide folio text (page furniture; see the PAGE FURNITURE note below) */
+  --pad-top: 108px;
+  --pad-bottom: 108px;
+  --baseline: 54px; /* grid unit — one default-text line: the 36px body at its 1.5 deck leading (an airy serif asks for more lead than a compact sans; 20 gridlines tile the 1080 stage exactly) */
+  /* The shared anchor (review round 3): most slides hang their first ink
+     from one top-left spot — the content title's cap corner: x at the text
+     axis, cap top at 4 gridlines minus the title's cap (216 − 68 × 0.670 =
+     170.44px; Source Serif 4's OS/2 capHeight is 670/1000). Same-size
+     titles (dividers, split) anchor with the content classes' own
+     padding/margin calc and register exactly; display-size blocks (cover,
+     hero, quote) trim to their cap and take this constant as padding, so
+     the INK corner aligns even as their baselines sit off-grid (the shared
+     contract's block-positioning exemption — deck-templates.md). The
+     full-bleed slide keeps its foot-pinned type: over photography the
+     scrim grammar owns the layout. */
+  --cap-anchor: 170.44px;
+}
+
+.slide {
+  display: flex; flex-direction: column;
+  background: var(--color-bg); color: var(--color-text);
+  font-family: var(--font-body);
+  text-wrap: pretty; /* inherited: better breaks, no orphans on wrapped blocks */
+  padding: var(--pad-top) var(--pad-x) var(--pad-bottom);
+  print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+/* Press-sheet furniture (reviews round 3-4): corner crop marks and, at
+   the four edge centers, TRUE registration targets — hairline cross,
+   fine circle, solid center dot, the mark a pressman actually registers
+   to (round 4, from Barron's reference; the round-3 stylized crosses and
+   bare rings retire). Painted as gradient stacks in currentColor (ink on
+   paper everywhere now — no dark surfaces remain), at 65% ink — effective
+   #6a6868, 5.0:1 on paper: present as furniture, quieter than type —
+   ornament, not interface. Each target composes in a 36px tile: 36px
+   hairline arms, a 1.5px ring at r≈9.75, a solid dot at r 3.5. The bleed
+   slide goes without: the photograph owns its edges (the half-bleeds'
+   marks-over-plate are round 6's requested exception — see their rule
+   below). */
+.slide::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  --rm: color-mix(in srgb, currentColor 65%, transparent);
+  background:
+    linear-gradient(var(--rm), var(--rm)) 20px 20px / 28px 1px,
+    linear-gradient(var(--rm), var(--rm)) 20px 20px / 1px 28px,
+    linear-gradient(var(--rm), var(--rm)) calc(100% - 20px) 20px / 28px 1px,
+    linear-gradient(var(--rm), var(--rm)) calc(100% - 20px) 20px / 1px 28px,
+    linear-gradient(var(--rm), var(--rm)) 20px calc(100% - 20px) / 28px 1px,
+    linear-gradient(var(--rm), var(--rm)) 20px calc(100% - 20px) / 1px 28px,
+    linear-gradient(var(--rm), var(--rm)) calc(100% - 20px) calc(100% - 20px) / 28px 1px,
+    linear-gradient(var(--rm), var(--rm)) calc(100% - 20px) calc(100% - 20px) / 1px 28px,
+    linear-gradient(var(--rm), var(--rm)) center 25.5px / 36px 1px, /* arm centered on the ring (tile top 8 + r 18 − ½px) */
+    linear-gradient(var(--rm), var(--rm)) center 8px / 1px 36px,
+    radial-gradient(circle, transparent 9px, var(--rm) 9px 10.5px, transparent 11px) center 8px / 36px 36px,
+    radial-gradient(circle, var(--rm) 0 3.5px, transparent 4px) center 8px / 36px 36px,
+    linear-gradient(var(--rm), var(--rm)) center calc(100% - 25.5px) / 36px 1px,
+    linear-gradient(var(--rm), var(--rm)) center calc(100% - 8px) / 1px 36px,
+    radial-gradient(circle, transparent 9px, var(--rm) 9px 10.5px, transparent 11px) center calc(100% - 8px) / 36px 36px,
+    radial-gradient(circle, var(--rm) 0 3.5px, transparent 4px) center calc(100% - 8px) / 36px 36px,
+    linear-gradient(var(--rm), var(--rm)) 8px center / 36px 1px,
+    linear-gradient(var(--rm), var(--rm)) 25.5px center / 1px 36px,
+    radial-gradient(circle, transparent 9px, var(--rm) 9px 10.5px, transparent 11px) 8px center / 36px 36px,
+    radial-gradient(circle, var(--rm) 0 3.5px, transparent 4px) 8px center / 36px 36px,
+    linear-gradient(var(--rm), var(--rm)) calc(100% - 8px) center / 36px 1px,
+    linear-gradient(var(--rm), var(--rm)) calc(100% - 25.5px) center / 1px 36px,
+    radial-gradient(circle, transparent 9px, var(--rm) 9px 10.5px, transparent 11px) calc(100% - 8px) center / 36px 36px,
+    radial-gradient(circle, var(--rm) 0 3.5px, transparent 4px) calc(100% - 8px) center / 36px 36px;
+  background-repeat: no-repeat;
+}
+.bleed::before { content: none; }
+/* Half-bleeds (review round 6 — Barron: show the registration marks at
+   the slide's horizontal center): the full mark set returns, top and
+   bottom center targets included — they sit on the seam where the
+   photograph meets the copy panel, the trim line a pressman would
+   register — and the furniture lifts above the plate (z-index) so the
+   sheet's marks print over the photograph, as press furniture does.
+   Round 4's tipped-in-plate reading (marks under the photo, centers
+   removed) is superseded by this request. */
+.half-bleed::before { z-index: 1; }
+/* The press color bar — the four process patches, cover and close only
+   (the sheet's first and last page carry the control strip). A real
+   element, not the slide's ::after: that pseudo belongs to the
+   ?baselines debug overlay, and sharing it collapsed the overlay to the
+   bar's box on the cover slides (review finding). Review round 5
+   (Barron): the control strips move into the trim margin — this bar
+   sits on the TOP border, its outer edge on the corner marks' 20px
+   line, centered in the gap between the corner mark (ends x=48) and
+   the top-center target (starts x=942), the same band and centerline
+   (x=495) the dividers' strips take. Patches at 16px, down from the
+   old 64x14 floating bar. */
+.color-bar {
+  position: absolute; left: 463px; top: 20px;
+  width: 64px; height: 16px;
+  background: linear-gradient(to right,
+    var(--color-accent) 0 25%, var(--color-accent-2) 25% 50%,
+    var(--color-process-yellow) 50% 75%, var(--color-text) 75%);
+}
+
+/* — shared pieces — */
+/* Baseline grid: text sits on a 54px rhythm (--baseline) measured from the
+   slide's top edge. Snapped text blocks are trimmed to their cap and baseline
+   edges (text-box), so a block's bottom edge IS its last baseline and the next
+   block's first baseline lands N gridlines down with
+   margin-top: calc(N * var(--baseline) - 1cap). Compact rhythms (table rows,
+   chart axes and ticks) sit on the 27px half-step. Review the rhythm with
+   ?baselines in the URL, or press B (script in the helmet) —
+   half-step lines draw fainter than full ones. */
+/* No rules: Broadsheet structures the page with whitespace and the serif
+   scale, never with lines or boxes — so this deck draws no ticks, no
+   divider rules, no contents-row rules. The data table is the one exception:
+   its header and row rules belong to the system's own .table component. Marks
+   that would be rules elsewhere are set as type instead (the bullets'
+   hanging marks — solid bullets, the briefs-column marker). Review round 3:
+   the process inks now arrive through the print treatments — the plate
+   numerals on the dividers and hero, and the four-color separation on every
+   photograph (both in styles.css) — rather than as lone spot moments; the
+   registration marks at the sheet edges are the other print furniture, in
+   currentColor (see .slide::before). Spot usage elsewhere stays deliberate:
+   cyan on the contents numbers and chart highlights, as before. */
+/* No kicker row: the review cut the typographic eyebrows — the uppercase
+   accent slugs that sat over every title were furniture, and this system's
+   own grammar ("size, weight and measure organise the page") says the title
+   carries the slide. Wayfinding stays with the contents page and the
+   dividers' ghost numerals; the title takes the head at a newspaper
+   headline's height (see .content). */
+/* Justified paragraphs — the newspaper grammar: running prose sets justified
+   with automatic hyphenation (Chromium hyphenates against the page's lang;
+   the last line stays ragged-right, text-align-last's default). The justified
+   classes are the paragraph prose: the hero and chart captions and the
+   image-slide notes. Everything else keeps the ragged edge on purpose: the
+   cover subtitle is display-adjacent (a hyphenated break on the cover costs
+   more than the ragged edge), bullets are a LIST (their marks hang left of the axis, and
+   justified list items read as gappy slabs), the quote is display type, and
+   the figcaption/meta lines are single-line furniture. Hyphenation is
+   capped with hyphenate-limit-chars: 6 3 3 (word >= 6 letters, >= 3 each
+   side): unconstrained, Chromium broke five-letter words after two
+   characters ("im-age", "to-ken") in review renders, and the cap trades
+   those stubs for slightly looser lines. Re-check rivers in renders when
+   narrowing any measure below ~30ch. */
+.slide-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-title); line-height: calc(1.5 * var(--baseline)); letter-spacing: -0.015em; margin: 0;
+  margin-left: -0.035em; /* optical left alignment — see the note below */
+  text-box: trim-both cap alphabetic;
+}
+/* Optical left alignment — the same deliberate exception to box-edge
+   alignment the Nocturne deck documents, re-derived for this face (the rules
+   generalize, the numbers never do — see ../../../deck-templates.md). Source
+   Serif's bearings are tighter and flatter than a geometric sans: measured
+   ink edges (render scans agree with the font's hmtx table) put flat-stem
+   caps at 0.039em, round caps at 0.041em, T 0.020em, A 0.007em, W 0.011em in
+   the Semibold, and proportional digits between 0.025 and 0.045em. The cap
+   classes return most of that with -0.035em (flats and rounds land within
+   half a pixel of the axis even at display sizes; T and the diagonals
+   overhang slightly, as hand-set optical margins would). The digit classes
+   take -0.033em with proportional figures: this face defaults to TABULAR
+   figures, whose "1" pads its bearing to 0.074em — 24px at the hero size —
+   so single display numbers set "pnum" (contents numbers and chart
+   text are columns and keep the tabular default). The margins live in each
+   class's own rule; nothing hangs off these classes here (Broadsheet draws
+   no ticks), so no reverse terms are needed except the half-bleed column
+   offset, which folds the term in. */
+.pin-bottom { position: absolute; left: var(--pad-x); right: var(--pad-x); bottom: var(--pad-bottom); }
+.meta { display: flex; align-items: baseline; gap: 18px; font-size: var(--type-kicker); color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.meta span { text-box: trim-both cap alphabetic; } /* pinned at pad-bottom: baseline lands on the 18th gridline at 972 */
+
+/* — page furniture (review round 8, every deck): the folio — */
+/* PAGE FURNITURE — on by default. To remove the page numbers and footer
+   text deck-wide, add data-no-page-furniture to the deck's <x-import>
+   mount (a one-line tweak — it renders on the <deck-stage>); to change
+   the text, edit --page-foot-note in
+   the deck's token block. The folio sits in the sheet margin below the content's
+   972 footer gridline, right-aligned clear of the bottom-right corner mark
+   and the bottom-center target, at the press furniture's 65% ink. Carried
+   by the content slides; the covers keep their meta rows instead, the
+   dividers' margin band already carries the press instruments, and the
+   full bleed's photograph owns its edges — but every slide still counts,
+   so the printed number stays truthful to position. */
+deck-stage { counter-reset: page; }
+.slide { counter-increment: page; }
+.page-foot {
+  position: absolute; right: var(--pad-x); bottom: 38px;
+  font-size: var(--type-kicker); letter-spacing: 0.04em; /* 24px — the six decks share the kicker-scale folio (WCAG large text; measured 5.0:1 at the 65% ink) */
+  color: color-mix(in srgb, currentColor 65%, transparent);
+  text-box: trim-both cap alphabetic;
+}
+.page-foot::before { content: counter(page) " · "; font-feature-settings: "tnum" 1; }
+.page-foot::after { content: var(--page-foot-note); }
+deck-stage[data-no-page-furniture] .page-foot, deck-stage[data-no-page-furniture] .page-head { display: none !important; }
+.half-bleed.flip .page-foot { right: auto; left: var(--pad-x); } /* the folio follows the copy half — type never sits on the photograph (deck-templates.md law) */
+
+/* — cover and close — */
+/* Top-anchored (review round 3): the display's cap corner sits on the
+   shared anchor — the cover reads as page one of the same sheet, not a
+   centered plate. */
+.cover { justify-content: flex-start; padding-top: var(--cap-anchor); }
+.cover .rise { display: flex; flex-direction: column; gap: 42px; }
+.display {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-display); line-height: calc(2.5 * var(--baseline)); letter-spacing: -0.02em; margin: 0;
+  margin-left: -0.035em; /* optical left alignment — see the .slide-title note */
+  text-box: trim-both cap alphabetic; /* box top = cap top, so the cover's padding IS the anchor */
+}
+.cover-sub { font-size: var(--type-subtitle); line-height: var(--baseline); max-width: 36ch; margin: 0; /* the standfirst keeps the ragged edge: it is display-adjacent, and at this 36ch measure justification hyphenates the deck's first line of prose — see the justified-paragraphs note */ }
+
+/* — contents — */
+/* Whitespace rows, not ruled ones: with no rules there is no band to center
+   in, so the row baselines sit straight on every third gridline — the
+   optical-centering exception other decks need for their ruled rows does not
+   arise here. */
+.toc { display: flex; flex-direction: column; max-width: 1040px;
+  font-size: var(--type-subtitle); /* the content margin's 1cap term must resolve against the ROW text's size, so the first row's baseline lands on its gridline */ }
+.toc-row { display: flex; align-items: baseline; gap: 54px; }
+.toc-row > span { text-box: trim-both cap alphabetic; }
+.toc-row + .toc-row { margin-top: calc(3 * var(--baseline) - 1cap); }
+.toc-num { font-size: var(--type-kicker); color: var(--color-accent); }
+
+/* — section dividers — */
+/* Dividers are the press sheet's proof margin (review round 4 — Barron:
+   this template has no dark surfaces; the round-3 ink reverse retires).
+   The slide stays on the paper, and the section break is carried by the
+   press furniture rather than a ground change — the shared contract's
+   ground-of-its-own rule takes this deck as its documented exception
+   (deck-templates.md): a field of misregistered process halftone screens
+   bleeding off the right of the sheet, the plate numeral on the paper
+   (as on the hero), and the pressman's instruments — the ten-step
+   black-and-white wedge, the eight-patch color scale, and a star target.
+   Title and numeral keep their round-3 anchor positions; all type is ink
+   on the page's own values (title 14.9:1). The furniture sits outside
+   .rise on purpose: the sheet's margin is pre-printed, only the content
+   enters. */
+.divider { justify-content: flex-start; padding-top: calc(4 * var(--baseline)); }
+.divider .rise { display: flex; flex-direction: column; align-items: flex-start; }
+.divider .slide-title { margin-top: -1cap; /* cap-trimmed onto the 4th gridline, as on .content */ }
+/* The halftone field — three process screens at the press angles (C 15°,
+   M 75°, Y 0°; the K screen is retired with the K plate — round 4's rule
+   is that darkness only ever arrives as overlap), each a dot lattice
+   rotated to its angle and nudged out of register, multiplied over each
+   other on the paper: the rosette moiré of a print under the loupe,
+   bleeding off the right of the sheet. Review round 5 (Barron: smaller
+   dots, more of a gradient): the screens drop to r 1.4px on a 10px
+   pitch (≈6% coverage a screen, from the old r 2.6 / 14px ≈11%), and
+   the field ramps — a mask fades it up from the paper at its left
+   boundary to full strength at the bleed edge, the screen coming up to
+   density the way a vignetted halftone does. The mask sits on the
+   container so the three multiplied screens fade as one print, keeping
+   the rosette structure through the ramp. */
+.press-field { position: absolute; top: 0; right: 0; bottom: 0; width: 560px; overflow: hidden; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 62%);
+  mask-image: linear-gradient(to right, transparent, #000 62%); }
+.press-field i { position: absolute; inset: -120%; /* wide enough that the 75° screen still covers the field's corners after rotation */ mix-blend-mode: multiply;
+  background-image: radial-gradient(circle, var(--pf-ink) 0 1.4px, transparent 1.7px);
+  background-size: 10px 10px; }
+.press-field .pf-y { --pf-ink: var(--color-process-yellow); transform: rotate(0.001deg) translate(-3px, 4px); }
+.press-field .pf-c { --pf-ink: var(--color-accent); transform: rotate(15deg) translate(2px, -1px); }
+.press-field .pf-m { --pf-ink: var(--color-accent-2); transform: rotate(75deg) translate(4px, 3px); }
+.ghost-num {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 360px; letter-spacing: -0.02em; /* grown from the old ghost's 280 — the plate figure is the divider's statement, and the em-scaled plate spread grows with it */
+  text-box: trim-both cap alphabetic;
+  /* Below the anchored title, cap-trimmed: baseline on the 14th gridline —
+     the numeral takes the open field the centered cluster left behind. The
+     0.12em terms absorb the .cmyk-num component's padding bleed (its
+     uniform negative margin is overridden on the sides we position, so the
+     bleed must be returned explicitly); the -0.033em is the digit classes'
+     optical alignment, as everywhere. */
+  margin: calc(10 * var(--baseline) - 1cap - 0.12em) -0.12em -0.12em calc(-0.033em - 0.12em);
+}
+/* The pressman's scales and the star target (round 4, every divider) —
+   drawn instruments, not images. The wedge steps mix from the ink token
+   in tenths (ink → paper, left to right); the color scale derives its
+   overlap patches by actually multiplying the ink layers
+   (background-blend-mode), so the printed secondaries are the inks' own
+   products; the star target is a repeating-conic burst under a radial
+   mask, the slur gauge a proof sheet carries. All aria-hidden ornament
+   in the sheet margin. Review round 5 (Barron: smaller, aligned with
+   the corner marks' outer edge, centered between the marks; color
+   patches on the top border): both strips leave the content area for
+   the trim margin, patches at 16px outer (border-box; the -1px
+   collapse makes each later patch step 15px, and the first patch's
+   own margin starts the strip 1px left of its left value — so the
+   wedge spans 151px and the color scale 121px). Both strips center
+   on x=494.5 in the gap between the corner mark (ends x=48) and the
+   center target (starts x=942), matching the cover bar's 495 to the
+   half-pixel. The B&W wedge runs along the BOTTOM border — outer
+   edge on the corner marks' 20px line (bottom: 20px); the color
+   scale turns horizontal and takes the TOP border directly above it,
+   outer edge on the same 20px line. The patch letters retire with
+   the size — a real control strip carries none. The star joins the
+   wedge on the bottom band, scaled to it. */
+.scale-bw { position: absolute; left: 420px; bottom: 20px; display: flex; }
+.scale-bw i { width: 16px; height: 16px; border: 1px solid var(--color-divider); margin-left: -1px; }
+.scale-bw i:nth-child(1)  { background: var(--color-text); }
+.scale-bw i:nth-child(2)  { background: color-mix(in srgb, var(--color-text) 89%, var(--color-bg)); }
+.scale-bw i:nth-child(3)  { background: color-mix(in srgb, var(--color-text) 78%, var(--color-bg)); }
+.scale-bw i:nth-child(4)  { background: color-mix(in srgb, var(--color-text) 67%, var(--color-bg)); }
+.scale-bw i:nth-child(5)  { background: color-mix(in srgb, var(--color-text) 56%, var(--color-bg)); }
+.scale-bw i:nth-child(6)  { background: color-mix(in srgb, var(--color-text) 44%, var(--color-bg)); }
+.scale-bw i:nth-child(7)  { background: color-mix(in srgb, var(--color-text) 33%, var(--color-bg)); }
+.scale-bw i:nth-child(8)  { background: color-mix(in srgb, var(--color-text) 22%, var(--color-bg)); }
+.scale-bw i:nth-child(9)  { background: color-mix(in srgb, var(--color-text) 11%, var(--color-bg)); }
+.scale-bw i:nth-child(10) { background: var(--color-bg); }
+.scale-color { position: absolute; left: 435px; top: 20px; display: flex; }
+.scale-color i { width: 16px; height: 16px; border: 1px solid var(--color-divider); margin-left: -1px; }
+.scale-color .sc-c   { background: var(--color-accent); }
+.scale-color .sc-m   { background: var(--color-accent-2); }
+.scale-color .sc-y   { background: var(--color-process-yellow); }
+.scale-color .sc-cm  { background: linear-gradient(var(--color-accent), var(--color-accent)), linear-gradient(var(--color-accent-2), var(--color-accent-2)); background-blend-mode: multiply; }
+.scale-color .sc-my  { background: linear-gradient(var(--color-accent-2), var(--color-accent-2)), linear-gradient(var(--color-process-yellow), var(--color-process-yellow)); background-blend-mode: multiply; }
+.scale-color .sc-cy  { background: linear-gradient(var(--color-accent), var(--color-accent)), linear-gradient(var(--color-process-yellow), var(--color-process-yellow)); background-blend-mode: multiply; }
+.scale-color .sc-cmy { background: linear-gradient(var(--color-accent), var(--color-accent)), linear-gradient(var(--color-accent-2), var(--color-accent-2)), linear-gradient(var(--color-process-yellow), var(--color-process-yellow)); background-blend-mode: multiply; }
+.scale-color .sc-k   { background: var(--color-text); }
+.star-target { position: absolute; left: 619px; bottom: 16px; width: 24px; height: 24px; border-radius: 50%; /* concentric with the wedge's band, a clear gap to its right */
+  background: repeating-conic-gradient(color-mix(in srgb, var(--color-text) 80%, transparent) 0 5deg, transparent 5deg 10deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 1.5px, #000 2.5px 11px, transparent 12px);
+  mask: radial-gradient(circle, transparent 0 1.5px, #000 2.5px 11px, transparent 12px); }
+
+/* — content slides — */
+.content { padding-top: calc(4 * var(--baseline)); /* title baseline on the 4th gridline — with the kicker row cut, the head closes up to a broadsheet headline's drop; the first-element margins below grew a gridline each, so every baseline from the body down holds its old gridline */ }
+.content > .slide-title, .content > .chart-head { margin-top: -1cap; } /* cap-trimmed: the baseline, not the cap top, sits on the gridline */
+.content > .bullets { margin-top: calc(4 * var(--baseline) - 1cap); }
+.content > .table { margin-top: calc(3 * var(--baseline)); } /* top edge on a gridline */
+.content > .toc { margin-top: calc(4 * var(--baseline) - 1cap); } /* first row's baseline four gridlines below the title's (the title rose a gridline; the rows did not) */
+.content > figure { margin-top: calc(2 * var(--baseline)); }
+.content > .chart-caption { margin-top: calc(2 * var(--baseline) - 1cap); }
+.bullets { display: flex; flex-direction: column; max-width: 1200px; margin: 0; padding: 0; list-style: none; font-size: var(--type-body); }
+.bullets li {
+  line-height: var(--baseline); text-box: trim-both cap alphabetic;
+  /* the bullet mark is type, not a rule: a solid bullet (the mark a
+     broadsheet's briefs column sets; the face has no geometric squares, and
+     Google's latin subset wouldn't serve them) hung clear of the text axis
+     by its own measured advance ("• " = 0.305em + 0.233em in the Regular),
+     so wrapped lines stay flush on the axis */
+  text-indent: -0.538em;
+}
+.bullets li::before { content: "• "; }
+.bullets li + li { margin-top: calc(2 * var(--baseline) - 1cap); } /* every other gridline */
+
+/* — column and quadrant layouts (review round 8, every deck) — */
+/* Broadsheet divides with whitespace, never rules: the columns are
+   newspaper setting — justified body copy with hyphenation, one text
+   axis per column — and the quadrant matrix is four whitespace-pitched
+   cells, its axis poles set as type (the small muted single-line
+   furniture class), because marks that would be rules elsewhere are
+   set as type here. Column tops cap-trim onto the bullets' gridline;
+   cell heads take the bold at body size (no kicker row in this deck). */
+.cols { display: grid; gap: calc(2 * var(--baseline)); margin-top: calc(4 * var(--baseline) - 1cap); }
+.cols-2 { grid-template-columns: 1fr 1fr; }
+.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.cols p { font-size: var(--type-small); line-height: var(--baseline); margin: 0;
+  text-align: justify; hyphens: auto; hyphenate-limit-chars: 6 3 3;
+  text-box: trim-both cap alphabetic; }
+.cols h3 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-body); margin: 0 0 calc(1 * var(--baseline) - 1cap);
+  text-box: trim-both cap alphabetic; }
+.quad { display: grid; grid-template-columns: 1fr 1fr; gap: calc(2 * var(--baseline)) 96px;
+  margin-top: calc(4 * var(--baseline) - 1cap); }
+.quad h3 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-body); margin: 0 0 calc(1 * var(--baseline) - 1cap);
+  text-box: trim-both cap alphabetic; }
+.quad p { font-size: var(--type-small); line-height: var(--baseline); margin: 0;
+  text-align: justify; hyphens: auto; hyphenate-limit-chars: 6 3 3;
+  text-box: trim-both cap alphabetic; }
+.quad-axis { display: flex; justify-content: space-between; margin-top: calc(2 * var(--baseline) - 1cap);
+  font-size: var(--type-kicker); color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.quad-axis span { text-box: trim-both cap alphabetic; }
+
+/* — data table (component class at projection scale) — */
+.slide .table { max-width: 1560px; font-size: 31px; }
+/* 108px row pitch (two gridlines): the component's own rules land on
+   gridlines, and — the deliberate optical exception the ruled-row decks
+   share — the cell text centers its cap box between rule centerlines (the
+   collapsed 1px rules paint centered on cell boundaries at gridline-0.5px,
+   hence the 0.5px terms; the cap terms cancel, so the pitch holds in any
+   font). The rules themselves are the system's .table component's: this deck
+   adds no rules of its own. */
+.slide .table th, .slide .table td {
+  text-box: trim-both cap alphabetic;
+  padding: calc(var(--baseline) - 0.5cap - 0.5px) 28px calc(var(--baseline) - 0.5cap - 0.5px);
+}
+.slide .table th { font-size: var(--type-kicker); }
+.slide .table tbody tr:hover { background: none; } /* a projected slide has no hover state */
+.slide .table th:first-child, .slide .table td:first-child { padding-left: 0; }
+.slide .table th:last-child, .slide .table td:last-child { padding-right: 0; }
+.slide .table td:first-child { width: 64px; position: relative; }
+/* Out of flow so its 40px box can't stretch the cap-trimmed row; centered on
+   the 108px row band like the row text (the cell's padding box starts half a
+   collapsed border below the row boundary, so --baseline - 20px lands the
+   40px box on whole pixels at the inter-rule center). Transform-free so
+   exporters that read offsets stay exact. */
+.slide .table .swatch { position: absolute; left: 0; top: calc(var(--baseline) - 20px); }
+.swatch { display: inline-block; width: 40px; height: 40px; border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); }
+
+/* — hero figure — */
+/* Top-anchored (review round 3): the numeral's cap corner sits on the
+   shared anchor. The figure is set as the plate numeral (.cmyk-num,
+   styles.css) — on the paper ground the white-of-the-sheet union is
+   invisible and the plates multiply straight onto the page, so the hero
+   carries the three process plates rather than the single magenta it had
+   (the .paper span carries the figure once for assistive tech; the
+   plate spans are aria-hidden repeats). */
+.hero { justify-content: flex-start; padding-top: var(--cap-anchor); gap: 42px; /* review round 4: the K plate is gone and the remaining spread rides only 0.025em below the baseline, so the caption returns to the deck's standard display gap */ }
+.hero-num {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 320px; letter-spacing: -0.03em;
+  text-box: trim-both cap alphabetic; /* box top = cap top = the anchor */
+  /* the 0.12em terms return the .cmyk-num padding bleed, as on .ghost-num */
+  margin: -0.12em -0.12em -0.12em calc(-0.033em - 0.12em);
+}
+.hero-caption { font-size: var(--type-small); line-height: var(--baseline); max-width: 44ch; margin: 0; text-align: justify; hyphens: auto; hyphenate-limit-chars: 6 3 3; }
+
+/* — charts (static SVG on the tokens; no script, no chart library) — */
+/* Newsprint charts: data ink is near-black with the accent as the one spot
+   color per figure; grid and axis hairlines carry the divider token, solid
+   and full-width (hairlines inside a figure are data furniture, like the
+   table's rules — not page structure). */
+.chart { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text {
+  font-family: var(--font-body); font-size: 24px;
+  fill: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.chart .grid, .chart .axis { stroke: var(--color-divider); stroke-width: 1; }
+.chart .bar { fill: var(--color-neutral-800); }
+.chart .bar-hi { fill: var(--color-accent); }
+.chart .bar, .chart .bar-hi { rx: var(--radius-md); } /* barely-rounded tops at this radius scale; bottoms stay square under the plot clip */
+.chart .val { fill: color-mix(in srgb, var(--color-text) 70%, transparent); }
+.chart .ref { stroke: var(--color-accent-700); stroke-width: 1; stroke-dasharray: 8 8; }
+.chart .ref-label { fill: var(--color-accent-700); }
+.chart .hi-label { fill: var(--color-accent-700); }
+.chart .series-a, .key .series-a { stroke: var(--color-accent); stroke-width: 3; fill: none; }
+.chart .series-b, .key .series-b { stroke: var(--color-neutral-800); stroke-width: 3; fill: none; stroke-dasharray: 10 8; }
+.chart-caption { font-size: 27px; line-height: var(--baseline); max-width: 80ch; margin: 0; text-box: trim-both cap alphabetic; text-align: justify; hyphens: auto; hyphenate-limit-chars: 6 3 3; }
+/* Chart title row — title left, legend right, sharing one baseline. */
+.chart-head { display: flex; align-items: baseline; justify-content: space-between; font-size: var(--type-title); /* so the row's 1cap margin matches the title */ }
+.chart-legend { display: flex; align-items: baseline; gap: 16px; font-size: var(--type-kicker); color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.chart-legend span { text-box: trim-both cap alphabetic; }
+.chart-legend .key { width: 60px; height: 4px; overflow: visible; position: relative; top: -7px; } /* flex sits the box bottom on the baseline; the nudge lifts the key line to the label's optical center */
+.chart-legend .key:not(:first-child) { margin-left: 24px; }
+/* Timeline (same .chart text defaults as the other SVGs). These classes
+   carry color and size only; the geometry — one left edge per column and
+   the optically-set vertical cluster — is documented where it lives, in
+   the pattern comment inside the timeline SVG. The current milestone
+   takes the accent, as the highlighted bar does. */
+.chart .tl-line { stroke: var(--color-divider); stroke-width: 1; }
+.chart .tl-node { color: var(--color-neutral-800); } /* the mark's CROSS draws in currentColor; the quadrant inks are inline styles in the defs (use-shadow scoping) */
+.chart .tl-node-hi { color: var(--color-accent); }
+.chart .tl-date { fill: color-mix(in srgb, var(--color-text) 55%, transparent); letter-spacing: 0.08em; }
+.chart .tl-date-hi { fill: var(--color-accent); letter-spacing: 0.08em; }
+.chart .tl-label { fill: var(--color-text); font-size: 31px; }
+
+/* The separation offsets at projection scale (the .cmyk component leaves
+   them to the page — misregistration is sized to the output): a few pixels
+   at 1920 reads as a press slightly out of true; the fringes live at edges
+   and the dot screen ties the plates back together. */
+.cmyk .sep-m { translate: 5px 3px; }
+.cmyk .sep-y { translate: -5px -3px; }
+.cmyk .sep-k { translate: 3px 6px; }
+/* Round 9: the five static separation figures carry ONE image-slot inside
+   a .print wrapper filtered by the compound #sep-all — the plates extract
+   live from whatever image the slot holds. The .print component (filter,
+   hover register-resolve, slot sizing) and the #sep-all defs are the system's
+   own now — styles.css and print-plates.js, inlined in the bundle
+   every page loads (promoted in the landing divergence; they began here). The offsets
+   above still drive the apart slide's five-img films, which keep their
+   rotated, hover-registering structure (an SVG filter cannot rotate or
+   transition) — that slide's image stays the bundled print until the
+   image-slot change-event follow-up lands. Only the deck's own layout
+   stays local: */
+figure.cmyk.fill .print { position: absolute; inset: 0; height: 100%; }
+
+/* The plates pulled apart (review round 5, from the Cat-3 reference,
+   whose plate images float smaller than their paper field and slide
+   into register on hover). Same five-image .cmyk markup and live SVG
+   separations, but here each plate prints at 54% of the figure and
+   fans toward its own corner — cover-fit plates would all still cover
+   the box and their four-deep multiply reads as mud, so the plates
+   shrink and the paper shows between them, each film showing its own
+   ink with the full stack only where they cross. The invisible sizer
+   image still spans the figure, so the box holds the split column's
+   usual footprint. Hover gathers the fan to the center — the films
+   squared on the light table; the deck's press register belongs to
+   the previous slide, this one is the table. End-state is the base
+   style and the slide reads correctly with no interaction; the
+   transition gates on prefers-reduced-motion below. */
+.cmyk-apart { background: transparent; } /* review round 6 (Barron): no
+   backing panel — the figure's paper fill retires and the films sit
+   directly on the slide's own ground */
+.cmyk-apart::after { content: none; } /* and the box-wide dot screen goes
+   with it: the screen was the figure panel's texture, and without the
+   panel the treatments stand alone */
+.cmyk-apart img + img {
+  inset: auto; left: 50%; top: 50%; width: 54%; height: 54%;
+  transform: translate(-50%, -50%);
+  transition: translate 1.4s ease, rotate 1.4s ease;
+}
+/* Each film lies toward its own corner at a slight angle — squared
+   films read as a CSS grid, tilted ones as sheets set down by hand;
+   hover squares and gathers them. Sizing note for edits: a film
+   PAINTS well past its layout box — the separation filters run in
+   the SVG default filter region (-10%..110% of the box), and their
+   matrices' constant terms lay ink across that whole region, so each
+   54% film (484x324 here) paints as a ≈581x389 sheet (AABB ≈595x411
+   once rotated): the photo plus a solid ink border, the film base
+   carrying its tone. The offsets
+   below keep that PAINTED extent inside the ~896x600 split figure
+   (flex:1 of the 1632px content row less the 640px copy column and
+   96px gap) with a few px to spare — size against the painted sheet,
+   not getBoundingClientRect. */
+.cmyk-apart .sep-c { translate: -138px -82px; rotate: -2.2deg; }
+.cmyk-apart .sep-m { translate: 140px 84px; rotate: 1.9deg; }
+.cmyk-apart .sep-y { translate: -136px 82px; rotate: 1.3deg; }
+.cmyk-apart .sep-k { translate: 138px -84px; rotate: -1.6deg; }
+.cmyk-apart:hover .sep-c, .cmyk-apart:hover .sep-m,
+.cmyk-apart:hover .sep-y, .cmyk-apart:hover .sep-k { translate: 0 0; rotate: 0deg; }
+@media (prefers-reduced-motion: reduce) { .cmyk-apart img + img { transition: none; } }
+
+/* — image slide — */
+/* The copy column top-anchors (review round 3): its title takes the exact
+   content-title position (same calc, cap resolving against the title's own
+   size), while the figure keeps its vertical center — the page reads
+   anchored, the plate sits like a tipped-in print. */
+.split { flex-direction: row; align-items: center; gap: 96px; }
+.split-copy { flex: none; width: 640px; display: flex; flex-direction: column; gap: 42px; align-self: flex-start; }
+.split-copy > .slide-title { margin-top: calc(4 * var(--baseline) - 1cap - var(--pad-top)); }
+.split-copy .note { font-size: var(--type-small); line-height: var(--baseline); margin: 0; text-align: justify; hyphens: auto; hyphenate-limit-chars: 6 3 3; }
+.split-figure { flex: 1; }
+.split-figure img { width: 100%; border-radius: var(--radius-md); }
+
+/* — full-bleed image slide — */
+/* The photograph covers the stage (the slide clips it) through the same
+   four-color separation as every image (the dot screen rides on it). Type sits on the photograph over a scrim
+   built from the ground token: near-opaque at the foot where the title sits,
+   gone by mid-stage so the image stays the subject (the head echo left with
+   the kicker row — nothing sits at the head now, so the image keeps the whole
+   top of the stage). Copy pins to the bottom padding edge like the
+   cover's meta row, so its last baseline lands on the 972 gridline. */
+.bleed-figure { position: absolute; inset: 0; margin: 0; }
+.bleed-figure img { width: 100%; height: 100%; object-fit: cover; }
+.bleed-scrim {
+  pointer-events: none; /* the slot beneath is interactive — overlays must not eat its hover/drops */
+  position: absolute; inset: 0;
+  /* Stops re-derived against the measured rule (deck-templates.md, type
+     over photography): near-paper through the copy block (the note's region
+     measured 2.8:1 under the old 94→55% ramp; the title band sat at min
+     4.0), letting go above it — the newsprint page rising to meet the type. */
+  background:
+    linear-gradient(to top,
+      color-mix(in srgb, var(--color-bg) 98%, transparent),
+      color-mix(in srgb, var(--color-bg) 96%, transparent) 24%,
+      color-mix(in srgb, var(--color-bg) 58%, transparent) 42%,
+      transparent 68%);
+}
+.bleed-copy { position: absolute; left: var(--pad-x); right: var(--pad-x); bottom: var(--pad-bottom); pointer-events: none; } /* text over the slot — must not eat its hover/drop events */
+.bleed-copy .note {
+  font-size: var(--type-small); line-height: var(--baseline); max-width: 52ch;
+  margin: calc(2 * var(--baseline) - 1cap) 0 0; /* note's first baseline two gridlines below the title's */
+  text-box: trim-both cap alphabetic; /* bottom edge = last baseline, pinned to 972 */
+  text-align: justify; hyphens: auto; hyphenate-limit-chars: 6 3 3;
+  color: var(--color-text); /* full ink over photography — the muted 55% alpha
+     composites against the image and measured 3.0:1 where the rule asks 4.5
+     (deck-templates.md, type over photography); the class stays on the
+     markup for derived decks that move the note onto plain ground */
+}
+
+/* — half-bleed image slides — */
+/* The photograph takes half the 1920 stage and bleeds to its three edges; the
+   copy takes the other half on the standard content rhythm (title baseline
+   on the 4th gridline, bullets/notes below as on any content slide). Base
+   class puts the image LEFT and the copy right, one pad-x beyond the image
+   edge; add .flip to mirror (image right, copy back at the text axis).
+   Hanging marks keep hanging left of the copy either way. */
+.half-bleed { padding-top: calc(4 * var(--baseline)); } /* the content slides' headline drop — see .content */
+.half-bleed > .slide-title { margin-top: -1cap; max-width: 640px; }
+.half-bleed .note {
+  font-size: var(--type-small); line-height: var(--baseline); max-width: 640px;
+  margin: calc(3 * var(--baseline) - 1cap) 0 0; /* grew a gridline with the title's rise, holding the note's gridline */
+  text-box: trim-both cap alphabetic; /* the margin calc presupposes the trim */
+  text-align: justify; hyphens: auto; hyphenate-limit-chars: 6 3 3;
+}
+.half-bleed .bullets { margin-top: calc(4 * var(--baseline) - 1cap); max-width: 640px; }
+.half-bleed-figure { position: absolute; inset: 0 auto 0 0; width: 960px; margin: 0; }
+.half-bleed-figure img { width: 100%; height: 100%; object-fit: cover; }
+.half-bleed:not(.flip) > .slide-title { margin-left: calc(960px - 0.035em); } /* the copy column offset, preserving the optical shift */
+.half-bleed:not(.flip) .note,
+.half-bleed:not(.flip) .bullets { margin-left: 960px; }
+.half-bleed.flip .half-bleed-figure { inset: 0 0 0 auto; }
+
+/* — quote — */
+/* Top-anchored (review round 3): the quote's cap corner sits on the shared
+   anchor (the hanging “ keeps hanging left of the axis, and its ink may
+   rise above the cap line — the trim sizes the box, it doesn't clip). */
+.quote { justify-content: flex-start; padding-top: var(--cap-anchor); gap: 54px; }
+.quote .rise { display: flex; flex-direction: column; gap: 54px; }
+.quote blockquote {
+  font-family: var(--font-heading); font-weight: 400; font-style: italic; /* the serif's true italic, loaded by styles.css's ital axis — a synthesized oblique would keep the upright's advances and break the measured hang below */
+  font-size: 58px; line-height: calc(1.5 * var(--baseline)); letter-spacing: -0.01em;
+  max-width: 28ch; margin: 0;
+  text-box: trim-both cap alphabetic; /* box top = cap top = the anchor */
+  text-indent: -0.475em; /* hang the opening “ (measured advance in the italic) */
+}
+.quote figcaption { font-size: var(--type-small); margin: 0; text-indent: -1.045em; /* hang the leading em-dash + space (measured advance in the Regular) */ }
+
+/* Review aid: the baseline grid drawn as a hairline under every --baseline
+   step. Debug-only — toggled by ?baselines or the B key; not part of the look. */
+deck-stage[data-baselines] .slide::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom,
+      color-mix(in srgb, var(--color-accent) 35%, transparent) 0 1px,
+      transparent 1px var(--baseline)),
+    repeating-linear-gradient(to bottom,
+      transparent 0 calc(var(--baseline) / 2),
+      color-mix(in srgb, var(--color-accent) 16%, transparent) calc(var(--baseline) / 2) calc(var(--baseline) / 2 + 1px),
+      transparent calc(var(--baseline) / 2 + 1px) var(--baseline));
+}
+
+/* Entrance — end-state is the base style; animate from hidden, gated on the
+   active slide and the motion preference, so print and reduced-motion are safe. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-deck-active] .rise { animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+}
+</style>
+<script>
+// Review aid: baseline-grid overlay — add ?baselines to the URL, or press B to toggle.
+// This runs from <helmet>, before the deck renders, so the stage is looked up when it is
+// needed instead of captured up front; the window flag keeps a second evaluation of
+// this helmet script (a recreated script node) from binding the B key twice.
+(() => {
+  if (window.__deckBaselineAid) return;
+  window.__deckBaselineAid = true;
+  const stage = () => document.querySelector('deck-stage');
+  if (new URLSearchParams(location.search).has('baselines')) {
+    let tries = 600; // wait out the deck's first render (up to ~10s of frames)
+    const arm = () => { const s = stage(); if (s) s.setAttribute('data-baselines', ''); else if (tries-- > 0) requestAnimationFrame(arm); };
+    arm();
+  }
+  addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return; // typing guard, as in deck-stage's own keys
+    if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey) stage()?.toggleAttribute('data-baselines');
+  });
+})();
+</script>
+</helmet>
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+  <section class="slide cover" data-label="Title">
+    <div class="rise">
+      <h1 class="display">Broadsheet</h1>
+      <p class="cover-sub text-muted">Newsprint set for the web: near-black serif on paper white, the process inks arriving through the print treatments — plates, registration marks and spot color.</p>
+    </div>
+    <div class="pin-bottom meta"><span>Your name</span><span>·</span><span>July 2026</span></div>
+    <div class="color-bar" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Contents">
+    <h2 class="slide-title">Contents</h2>
+    <div class="toc rise">
+      <div class="toc-row"><span class="toc-num">01</span><span>Principles</span></div>
+      <div class="toc-row"><span class="toc-num">02</span><span>The ramps</span></div>
+      <div class="toc-row"><span class="toc-num">03</span><span>Imagery</span></div>
+      <div class="toc-row"><span class="toc-num">04</span><span>Roadmap</span></div>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide divider" data-label="Principles">
+    <div class="press-field" aria-hidden="true"><i class="pf-y"></i><i class="pf-c"></i><i class="pf-m"></i></div>
+    <div class="scale-color" aria-hidden="true"><i class="sc-c"></i><i class="sc-m"></i><i class="sc-y"></i><i class="sc-cm"></i><i class="sc-my"></i><i class="sc-cy"></i><i class="sc-cmy"></i><i class="sc-k"></i></div>
+    <div class="scale-bw" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <i class="star-target" aria-hidden="true"></i>
+    <div class="rise">
+      <h2 class="slide-title">Principles</h2>
+      <div class="ghost-num cmyk-num"><span class="paper">01</span><span class="plate plate-c" aria-hidden="true">01</span><span class="plate plate-m" aria-hidden="true">01</span><span class="plate plate-y" aria-hidden="true">01</span></div>
+    </div>
+  </section>
+
+  <section class="slide content" data-label="Working rules">
+    <h2 class="slide-title">Working rules</h2>
+    <ul class="bullets rise">
+      <li>Sections separate with whitespace, never with rules or boxes.</li>
+      <li>Everything is set in the serif — size, weight and measure organise the page.</li>
+      <li>Cyan marks the interactive; magenta is the rarer second spot color.</li>
+    </ul>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Two columns">
+    <h2 class="slide-title">Two columns</h2>
+    <div class="cols cols-2 rise">
+      <div>
+        <h3>The measure holds</h3>
+        <p>Two columns set like a broadsheet page: justified body copy with automatic hyphenation, each column keeping its own flush-left axis. The gap between them is grid whitespace — no rule divides the columns, because the measure and the gutter do the organising.</p>
+      </div>
+      <div>
+        <h3>One rhythm, both sides</h3>
+        <p>Both columns top-align on the same gridline and share the baseline rhythm, so a line in one column always has a partner across the gutter. Wrapped lines stay flush; the last line of a paragraph stays ragged, as the press would leave it.</p>
+      </div>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Three columns">
+    <h2 class="slide-title">Three columns</h2>
+    <div class="cols cols-3 rise">
+      <div>
+        <h3>Report</h3>
+        <p>Three columns narrow the measure to a news-brief width; the justified setting keeps each column a clean slab of text.</p>
+      </div>
+      <div>
+        <h3>Analysis</h3>
+        <p>Heads take the serif at body size — the deck has no kicker row, so weight and scale do the labelling work.</p>
+      </div>
+      <div>
+        <h3>Comment</h3>
+        <p>Keep copy short at this measure: a brief runs a few lines, and the whitespace beneath ragged column ends is part of the page.</p>
+      </div>
+    </div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Quadrants">
+    <h2 class="slide-title">Quadrants</h2>
+    <div class="quad rise">
+      <div>
+        <h3>Run today</h3>
+        <p>High urgency, low effort — set them and print them before the edition closes.</p>
+      </div>
+      <div>
+        <h3>Hold front page</h3>
+        <p>High urgency, high effort — the stories worth the whole desk’s attention.</p>
+      </div>
+      <div>
+        <h3>Spike</h3>
+        <p>Low urgency, low effort — the pressroom’s polite word for the waste basket.</p>
+      </div>
+      <div>
+        <h3>File for later</h3>
+        <p>Low urgency, high effort — long reads that earn their column inches over weeks.</p>
+      </div>
+    </div>
+    <div class="quad-axis" aria-hidden="true"><span>← lower effort</span><span>higher effort →</span></div>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide divider" data-label="The ramps">
+    <div class="press-field" aria-hidden="true"><i class="pf-y"></i><i class="pf-c"></i><i class="pf-m"></i></div>
+    <div class="scale-color" aria-hidden="true"><i class="sc-c"></i><i class="sc-m"></i><i class="sc-y"></i><i class="sc-cm"></i><i class="sc-my"></i><i class="sc-cy"></i><i class="sc-cmy"></i><i class="sc-k"></i></div>
+    <div class="scale-bw" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <i class="star-target" aria-hidden="true"></i>
+    <div class="rise">
+      <h2 class="slide-title">The ramps</h2>
+      <div class="ghost-num cmyk-num"><span class="paper">02</span><span class="plate plate-c" aria-hidden="true">02</span><span class="plate plate-m" aria-hidden="true">02</span><span class="plate plate-y" aria-hidden="true">02</span></div>
+    </div>
+  </section>
+
+  <section class="slide content" data-label="Color roles">
+    <h2 class="slide-title">Color roles</h2>
+    <table class="table rise">
+      <thead>
+        <tr><th></th><th>Role</th><th>Value</th><th>On the ground</th><th>Use</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="swatch" style="background: var(--color-text)"></span></td><td>Text</td><td>#201e1d</td><td>14.9:1</td><td>Body copy and headings</td></tr>
+        <tr><td><span class="swatch" style="background: var(--color-accent)"></span></td><td>Accent</td><td>#0088b0</td><td>3.7:1</td><td>Spot color, chrome and large text</td></tr>
+        <tr><td><span class="swatch" style="background: var(--color-accent-700)"></span></td><td>Accent 700</td><td>#006786</td><td>5.7:1</td><td>Accent-colored body copy</td></tr>
+        <tr><td><span class="swatch" style="background: var(--color-surface)"></span></td><td>Surface</td><td>#eae9e9</td><td>1.1:1</td><td>Cards and raised fills</td></tr>
+      </tbody>
+    </table>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide hero" data-label="Contrast">
+    <div class="hero-num cmyk-num rise"><span class="paper">14.9:1</span><span class="plate plate-c" aria-hidden="true">14.9:1</span><span class="plate plate-m" aria-hidden="true">14.9:1</span><span class="plate plate-y" aria-hidden="true">14.9:1</span></div>
+    <p class="hero-caption text-muted">Body text against the paper ground — newsprint contrast is carried by ink, and color arrives through the process plates.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Contrast by step">
+    <h2 class="slide-title">Contrast by ramp step</h2>
+    <figure class="rise">
+      <svg class="chart" viewBox="0 0 1632 486" role="img" aria-label="Bar chart: WCAG contrast of each accent ramp step against the Broadsheet ground, from 1.0:1 at step 100 up to 12.5:1 at step 900">
+      <defs>
+        <clipPath id="bar-plot"><rect x="0" y="0" width="1632" height="405"/></clipPath>
+      </defs>
+      <!-- Plot scale is grid-native: 27px (a half-grid step) per contrast unit, axis on a
+           half-grid line, gridlines every 81px, y-tick baselines on their gridlines. The
+           figure is sized so the caption's last baseline lands on the 972 footer gridline —
+           the slide's vertical budget, checked per deck-templates.md. -->
+      <line class="grid" x1="0" y1="324" x2="1632" y2="324"/>
+      <line class="grid" x1="0" y1="243" x2="1632" y2="243"/>
+      <line class="grid" x1="0" y1="162" x2="1632" y2="162"/>
+      <line class="grid" x1="0" y1="81" x2="1632" y2="81"/>
+      <line class="ref" x1="0" y1="324" x2="1632" y2="324"/>
+      <!-- the label sits at the left, over the short bars: on this light ground
+           the ramp's tall bars are at the right, where the Nocturne deck had
+           room for an end-anchored label -->
+      <text class="ref-label" x="0" y="297">3:1 interface minimum</text>
+      <text x="-16" y="324" text-anchor="end">3</text>
+      <text x="-16" y="243" text-anchor="end">6</text>
+      <text x="-16" y="162" text-anchor="end">9</text>
+      <text x="-16" y="81" text-anchor="end">12</text>
+      <text x="-16" y="405" text-anchor="end">0</text>
+      <!-- Bars run 12 past the axis and are clipped back to it, so the rx rounds
+           only the tops and each bar still meets the axis square. -->
+      <g clip-path="url(#bar-plot)">
+      <rect class="bar" x="40.7" y="378" width="100" height="39"/>
+      <rect class="bar" x="222" y="375.3" width="100" height="41.7"/>
+      <rect class="bar" x="403.3" y="369.9" width="100" height="47.1"/>
+      <rect class="bar" x="584.7" y="359.1" width="100" height="57.9"/>
+      <rect class="bar" x="766" y="337.5" width="100" height="79.5"/>
+      <rect class="bar" x="947.3" y="305.1" width="100" height="111.9"/>
+      <rect class="bar-hi" x="1128.7" y="251.1" width="100" height="165.9"/>
+      <rect class="bar" x="1310" y="167.4" width="100" height="249.6"/>
+      <rect class="bar" x="1491.3" y="67.5" width="100" height="349.5"/>
+      </g>
+      <text class="val" x="90.7" y="366" text-anchor="middle">1.0</text>
+      <text class="val" x="272" y="363.3" text-anchor="middle">1.1</text>
+      <text class="val" x="453.3" y="357.9" text-anchor="middle">1.3</text>
+      <text class="val" x="634.7" y="347.1" text-anchor="middle">1.7</text>
+      <!-- the step-500 value rides 9px higher than its siblings: the 3:1
+           reference line passes just above its bar, through the label's
+           default position -->
+      <text class="val" x="816" y="316.5" text-anchor="middle">2.5</text>
+      <text class="val" x="997.3" y="293.1" text-anchor="middle">3.7</text>
+      <text class="val" x="1178.7" y="239.1" text-anchor="middle">5.7</text>
+      <text class="val" x="1360" y="155.4" text-anchor="middle">8.8</text>
+      <text class="val" x="1541.3" y="55.5" text-anchor="middle">12.5</text>
+      <text class="hi-label" x="1178.7" y="203.1" text-anchor="middle">body copy</text>
+      <text x="90.7" y="459" text-anchor="middle">100</text>
+      <text x="272" y="459" text-anchor="middle">200</text>
+      <text x="453.3" y="459" text-anchor="middle">300</text>
+      <text x="634.7" y="459" text-anchor="middle">400</text>
+      <text x="816" y="459" text-anchor="middle">500</text>
+      <text x="997.3" y="459" text-anchor="middle">600</text>
+      <text x="1178.7" y="459" text-anchor="middle">700</text>
+      <text x="1360" y="459" text-anchor="middle">800</text>
+      <text x="1541.3" y="459" text-anchor="middle">900</text>
+      <line class="axis" x1="0" y1="405" x2="1632" y2="405"/>
+    </svg>
+    </figure>
+    <p class="chart-caption text-muted">WCAG contrast of each accent-ramp step against the ground (#f3f2f2) — on a light ground the deep steps carry the contrast, and the dashed line marks the 3:1 interface minimum.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide content" data-label="Weekly sessions">
+    <div class="chart-head">
+      <h2 class="slide-title">Weekly sessions</h2>
+      <div class="chart-legend">
+        <svg class="key" viewBox="0 0 60 4" aria-hidden="true"><line class="series-a" x1="0" y1="2" x2="60" y2="2"/></svg><span>Desktop</span>
+        <svg class="key" viewBox="0 0 60 4" aria-hidden="true"><line class="series-b" x1="0" y1="2" x2="60" y2="2"/></svg><span>Mobile</span>
+      </div>
+    </div>
+    <figure class="rise">
+      <svg class="chart" viewBox="0 0 1632 486" role="img" aria-label="Line chart: sample weekly sessions in thousands over twelve weeks, desktop rising from about 18 to 26, mobile from about 9 to 18">
+      <!-- Plot scale is grid-native: 13.5px per thousand puts the 10k gridlines every
+           135px, the axis on a half-grid line, and y-tick baselines on their gridlines
+           (the scale tops out above the data rather than at a 30k line, keeping the
+           figure inside the slide's vertical budget — deck-templates.md). -->
+      <line class="grid" x1="0" y1="270" x2="1632" y2="270"/>
+      <line class="grid" x1="0" y1="135" x2="1632" y2="135"/>
+      <text x="-16" y="270" text-anchor="end">10</text>
+      <text x="-16" y="135" text-anchor="end">20</text>
+      <text x="-16" y="405" text-anchor="end">0</text>
+      <polyline class="series-a" points="0,159.3 148.4,147.15 296.7,153.9 445.1,130.95 593.5,116.1 741.8,121.5 890.2,99.9 1038.5,93.15 1186.9,81 1335.3,71.55 1483.6,63.45 1632,52.65"/>
+      <polyline class="series-b" points="0,278.1 148.4,267.3 296.7,249.75 445.1,255.15 593.5,232.2 741.8,221.4 890.2,203.85 1038.5,199.8 1186.9,183.6 1335.3,189 1483.6,174.15 1632,157.95"/>
+      <text x="0" y="459" text-anchor="middle">1</text>
+      <text x="148.4" y="459" text-anchor="middle">2</text>
+      <text x="296.7" y="459" text-anchor="middle">3</text>
+      <text x="445.1" y="459" text-anchor="middle">4</text>
+      <text x="593.5" y="459" text-anchor="middle">5</text>
+      <text x="741.8" y="459" text-anchor="middle">6</text>
+      <text x="890.2" y="459" text-anchor="middle">7</text>
+      <text x="1038.5" y="459" text-anchor="middle">8</text>
+      <text x="1186.9" y="459" text-anchor="middle">9</text>
+      <text x="1335.3" y="459" text-anchor="middle">10</text>
+      <text x="1483.6" y="459" text-anchor="middle">11</text>
+      <text x="1632" y="459" text-anchor="middle">12</text>
+      <line class="axis" x1="0" y1="405" x2="1632" y2="405"/>
+    </svg>
+    </figure>
+    <p class="chart-caption text-muted">Sample data, in thousands — series separate as ink against spot color: the cyan line is the one accent in the figure, the second series stays ink and dashes.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide divider" data-label="Imagery">
+    <div class="press-field" aria-hidden="true"><i class="pf-y"></i><i class="pf-c"></i><i class="pf-m"></i></div>
+    <div class="scale-color" aria-hidden="true"><i class="sc-c"></i><i class="sc-m"></i><i class="sc-y"></i><i class="sc-cm"></i><i class="sc-my"></i><i class="sc-cy"></i><i class="sc-cmy"></i><i class="sc-k"></i></div>
+    <div class="scale-bw" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <i class="star-target" aria-hidden="true"></i>
+    <div class="rise">
+      <h2 class="slide-title">Imagery</h2>
+      <div class="ghost-num cmyk-num"><span class="paper">03</span><span class="plate plate-c" aria-hidden="true">03</span><span class="plate plate-m" aria-hidden="true">03</span><span class="plate plate-y" aria-hidden="true">03</span></div>
+    </div>
+  </section>
+
+  <section class="slide split" data-label="The four process plates">
+    <div class="split-copy">
+      <h2 class="slide-title">The four process plates</h2>
+      <p class="note text-muted">Every photograph prints as its own separation — cyan, magenta, yellow and black plates a few pixels out of register, with the dot screen tying the print together.</p>
+    </div>
+    <figure class="split-figure cmyk rise">
+      <div class="print" style="aspect-ratio: 779 / 519"><image-slot id="photo-plates" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The Broadsheet reference photograph, printed as its four process plates"></image-slot></div>
+      </figure>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide bleed" data-label="Full bleed">
+    <figure class="bleed-figure cmyk fill">
+      <div class="print"><image-slot id="photo-bleed" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The Broadsheet reference photograph at full bleed, printed as its four process plates"></image-slot></div>
+      </figure>
+    <div class="bleed-scrim"></div>
+    <div class="bleed-copy rise">
+      <h2 class="slide-title">Full bleed</h2>
+      <p class="note text-muted">One photograph, edge to edge — the scrim is the paper token rising from the foot, so headline-grade type keeps its contrast without leaving the palette.</p>
+    </div>
+  </section>
+
+  <section class="slide half-bleed" data-label="Half bleed · copy right">
+    <figure class="half-bleed-figure cmyk fill">
+      <div class="print"><image-slot id="photo-half-left" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The Broadsheet reference photograph, printed as its four process plates, bleeding to the left half of the stage"></image-slot></div>
+      </figure>
+    <h2 class="slide-title rise">Half bleed</h2>
+    <ul class="bullets rise">
+      <li>The photograph bleeds to three edges and holds half the stage</li>
+      <li>The copy keeps the content rhythm — same gridlines as every slide</li>
+      <li>Bullets still hang left of the text, whatever sits behind them</li>
+    </ul>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide half-bleed flip" data-label="Half bleed · copy left">
+    <figure class="half-bleed-figure cmyk fill">
+      <div class="print"><image-slot id="photo-half-right" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The Broadsheet reference photograph, printed as its four process plates, bleeding to the right half of the stage"></image-slot></div>
+      </figure>
+    <h2 class="slide-title rise">Mirrored</h2>
+    <p class="note text-muted rise">The flip class changes the photograph’s side and the copy returns to the text axis — one pattern, both directions.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <!-- Color examples (review round 5, by request): the same separation
+       machinery on a color original — first at the deck's own register,
+       then pulled apart in the Cat-3 manner. Two extra slides beyond the
+       shared twenty-one-slide lineup, carried as imagery examples. -->
+  <section class="slide split" data-label="Color plates">
+    <div class="split-copy">
+      <h2 class="slide-title">The plates, in color</h2>
+      <p class="note text-muted">The same four separations on a color original — each plate now carries the subject’s own ink densities, and the misregistration fringes print as the inks themselves rather than as gray.</p>
+    </div>
+    <figure class="split-figure cmyk rise">
+      <div class="print" style="aspect-ratio: 986 / 660"><image-slot id="photo-plates-color" shape="rect" src="../../assets/photo-color.jpg" role="img" aria-label="A hand-colored garden photograph printed as its four process plates, slightly out of register"></image-slot></div>
+      </figure>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide split" data-label="Plates apart">
+    <div class="split-copy">
+      <h2 class="slide-title">Pulled apart</h2>
+      <p class="note text-muted">The same print with its plates pulled out of register, as on the light table — each ink shows itself before the press comes true. Hover the print to pull it back into register.</p>
+    </div>
+    <figure class="split-figure cmyk cmyk-apart rise">
+      <img src="../../assets/photo-color.jpg" alt="The color garden photograph with its four process plates pulled far out of register, registering on hover" />
+      <img class="sep-c" src="../../assets/photo-color.jpg" alt="" aria-hidden="true" /><img class="sep-m" src="../../assets/photo-color.jpg" alt="" aria-hidden="true" /><img class="sep-y" src="../../assets/photo-color.jpg" alt="" aria-hidden="true" /><img class="sep-k" src="../../assets/photo-color.jpg" alt="" aria-hidden="true" />
+    </figure>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide quote" data-label="Quote">
+    <figure class="rise">
+      <!-- keep the leading “ — the blockquote's negative text-indent hangs it in the margin -->
+      <blockquote>“Hierarchy comes from the serif scale and from negative space alone.”</blockquote>
+      <!-- keep the leading "— " — the figcaption's negative text-indent hangs it -->
+      <figcaption class="text-muted">— the Broadsheet readme</figcaption>
+    </figure>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide divider" data-label="Roadmap">
+    <div class="press-field" aria-hidden="true"><i class="pf-y"></i><i class="pf-c"></i><i class="pf-m"></i></div>
+    <div class="scale-color" aria-hidden="true"><i class="sc-c"></i><i class="sc-m"></i><i class="sc-y"></i><i class="sc-cm"></i><i class="sc-my"></i><i class="sc-cy"></i><i class="sc-cmy"></i><i class="sc-k"></i></div>
+    <div class="scale-bw" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <i class="star-target" aria-hidden="true"></i>
+    <div class="rise">
+      <h2 class="slide-title">Roadmap</h2>
+      <div class="ghost-num cmyk-num"><span class="paper">04</span><span class="plate plate-c" aria-hidden="true">04</span><span class="plate plate-m" aria-hidden="true">04</span><span class="plate plate-y" aria-hidden="true">04</span></div>
+    </div>
+  </section>
+
+  <section class="slide content" data-label="Timeline">
+    <h2 class="slide-title">The year, by milestone</h2>
+    <figure class="rise">
+      <svg class="chart" viewBox="0 0 1632 270" role="img" aria-label="Timeline of five milestones from research in January to scale the following January; the beta milestone in July is current">
+      <!-- One optical left edge per column: the texts anchor at the column
+           axis and each node's circle left edge sits on the same axis
+           (cx = x + 10.5, the quartered circle's radius), so type and node
+           align; the mark's hairline arms overhang 7.5px left of the
+           axis, hanging furniture like the bullets' marks. Review round 8
+           (Barron's reference): the nodes take the color registration
+           mark — the press sheet's quartered ink-check circle in the
+           system's own process inks under the round-6 hairline cross,
+           drawn once in the defs; the cross colors per node through
+           currentColor.
+           Vertically the figure top and the line
+           (y=108) sit on full gridlines, the notes on the half-step at
+           y=243; the dates (y=72) and labels (y=174) sit off the 27px
+           lattice on purpose — the review chose optical spacing over the
+           mechanical grid here: ink-to-ink the cluster opens gently
+           downward from date to node to label to note. The node lattice is
+           inset from the right edge (pitch 350) so the last milestone's
+           text flows right like the others, while the line runs the full
+           width — time continues past the last node. Notes up to about 24
+           characters at this size stay clear of the next column; longer
+           ones need a wider pitch or fewer milestones. -->
+      <defs>
+        <!-- Review round 8 (Barron's reference): the nodes take the color
+             registration mark — the quartered circle a press sheet carries
+             for ink checks, its quadrants the system's own process inks
+             (C top-left, M top-right, Y bottom-left, K = the text ink
+             bottom-right), under the same hairline cross the round-6 target
+             carried. The cross keeps currentColor, so the highlighted
+             node's cross still takes the accent through .tl-node-hi. -->
+        <!-- The quadrant fills are inline styles, not classed CSS: class
+             selectors cannot reach inside a use-element's shadow clones,
+             but inline styles clone with the node and the token vars
+             resolve through inheritance. -->
+        <g id="tl-target">
+          <path style="fill: var(--color-accent)" d="M0,0 L-10.5,0 A10.5,10.5 0 0 1 0,-10.5 Z"/>
+          <path style="fill: var(--color-accent-2)" d="M0,0 L0,-10.5 A10.5,10.5 0 0 1 10.5,0 Z"/>
+          <path style="fill: var(--color-text)" d="M0,0 L10.5,0 A10.5,10.5 0 0 1 0,10.5 Z"/>
+          <path style="fill: var(--color-process-yellow)" d="M0,0 L0,10.5 A10.5,10.5 0 0 1 -10.5,0 Z"/>
+          <line x1="-18" y1="0" x2="18" y2="0" stroke="currentColor" stroke-width="1"/>
+          <line x1="0" y1="-18" x2="0" y2="18" stroke="currentColor" stroke-width="1"/>
+        </g>
+      </defs>
+      <line class="tl-line" x1="0" y1="108" x2="1632" y2="108"/>
+      <text class="tl-date" x="0" y="72">JAN</text>
+      <text class="tl-date" x="350" y="72">APR</text>
+      <text class="tl-date-hi" x="700" y="72">JUL</text>
+      <text class="tl-date" x="1050" y="72">OCT</text>
+      <text class="tl-date" x="1400" y="72">JAN</text>
+      <use class="tl-node" href="#tl-target" x="10.5" y="108"/>
+      <use class="tl-node" href="#tl-target" x="360.5" y="108"/>
+      <use class="tl-node-hi" href="#tl-target" x="710.5" y="108"/>
+      <use class="tl-node" href="#tl-target" x="1060.5" y="108"/>
+      <use class="tl-node" href="#tl-target" x="1410.5" y="108"/>
+      <text class="tl-label" x="0" y="174">Research</text>
+      <text class="tl-label" x="350" y="174">Prototype</text>
+      <text class="tl-label" x="700" y="174">Beta</text>
+      <text class="tl-label" x="1050" y="174">Launch</text>
+      <text class="tl-label" x="1400" y="174">Scale</text>
+      <text x="0" y="243">scope and interviews</text>
+      <text x="350" y="243">first working build</text>
+      <text x="700" y="243">fifty design partners</text>
+      <text x="1050" y="243">general availability</text>
+      <text x="1400" y="243">second platform</text>
+      </svg>
+    </figure>
+    <p class="chart-caption text-muted">Each milestone keeps one left edge — type and node aligned — with the spacing opening gently downward from date to note, and the current step in the accent.</p>
+    <div class="page-foot" aria-hidden="true"></div>
+  </section>
+
+  <section class="slide cover" data-label="Close">
+    <div class="rise">
+      <h2 class="display">Thank you</h2>
+      <p class="cover-sub text-muted">Copy this folder for your next deck — the tokens and markup patterns carry the look.</p>
+    </div>
+    <div class="pin-bottom meta"><span>you@example.com</span></div>
+    <div class="color-bar" aria-hidden="true"></div>
+  </section>
+
+</x-import>
+<!-- The separation filters (.cmyk, styles.css) live in the system's own
+     print-plates.js, carried by the bundle loaded above — no defs block here,
+     and no single slide's deletion can strand the references (four slides'
+     plates reference the filters by id; the injected defs sit outside the
+     stage and resolve document-wide). -->
+</x-dc>
+</body>
+</html>

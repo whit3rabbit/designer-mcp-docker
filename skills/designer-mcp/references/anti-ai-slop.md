@@ -62,7 +62,7 @@ Dark mode is a deliberate brand choice, not a default. When a brief says nothing
 
 ## 🚨 THE #4 TELL: CALM EDITORIAL SERIF ON AUTOPILOT
 
-Newer models often avoid obvious indigo SaaS slop by switching to another safe template:
+Recent models often avoid obvious indigo SaaS slop by switching to another safe template:
 warm ivory/cream background, oversized high-contrast serif headline, one italic serif
 word, muted olive/clay/terracotta accents, very airy spacing, and "calm editorial"
 positioning regardless of the product.
@@ -87,7 +87,7 @@ luxury, or another style grounded in research.
 Specific fingerprint to avoid: a headline where one word or short phrase is swapped into
 a different display/serif/script face, italicized, and/or color-shifted only to create "taste."
 The base headline can be serif or sans; the slop is the decorative one-word treatment.
-This is now a common AI default. Use contrasting word treatment only when a strong
+This has become a common AI default. Use contrasting word treatment only when a strong
 reference uses it and the content role justifies it: quotation, editorial voice, title
 treatment, or a real brand/type-system rule. Otherwise create distinction through layout,
 scale, weight, media, interaction, or a source-backed color role.

@@ -1,8 +1,9 @@
 # Visual Workflow
 
 Use this reference only when the task needs visual exploration, generated mockups,
-bitmap assets, or post-build visual QA. Keep the main Refero workflow research-first:
-styles for taste, screens for product patterns, flows for journeys.
+bitmap assets, or post-build visual QA. Keep the main workflow research-first:
+styles for taste, the craft references and user material for product patterns,
+interaction reasoning for journeys.
 
 ## Contents
 
@@ -16,19 +17,17 @@ styles for taste, screens for product patterns, flows for journeys.
 ## Image Generation Capability
 
 Image generation is optional. Use it only when the current environment exposes an image
-tool, or when the user has approved a CLI/API image workflow. Refero must still work
-in Claude Code, Codex, Cursor, Gemini CLI, Lovable, and other MCP-compatible agents when
-no image tool exists.
+tool, or when the user has approved a CLI/API image workflow. The workflow must still
+complete in any MCP-compatible agent when no image tool exists.
 
-In Codex Desktop, use the built-in `image_gen` / Image Gen tool when it is available.
+If your runtime provides a native image-generation tool, use it when it is available.
 Generate each visual direction or bitmap asset as its own image result. Do not use
 browser screenshots, CSS drawings, inline SVG, or placeholder shapes as a substitute for
 generated bitmap assets when the reference lock calls for real imagery.
 
 If image generation is unavailable, present written reference-locked directions and
-implementation-ready prompts instead. Do not assume another agent can call Codex
-Desktop's built-in image tool just because Codex is installed locally; verify the tool
-is exposed and user-approved first.
+implementation-ready prompts instead. Do not assume an image tool exists just because
+an agent is installed locally; verify the tool is exposed and user-approved first.
 
 ## Three Visual Directions
 
@@ -37,7 +36,7 @@ redesigns, landing pages, or other high-visibility surfaces with several plausib
 directions. Do not run it for small edits, obvious component work, or production fixes
 with a clear source.
 
-1. Research styles first; add screens/flows when structure or journey matters.
+1. Research styles first; add craft references and user material when structure or journey matters.
 2. Create three distinct reference-locked directions with a primary source, traits to
    preserve, borrowed details, media strategy, and rejects, unless the user asks for a
    different count.

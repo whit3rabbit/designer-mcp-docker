@@ -1,0 +1,570 @@
+{
+  "$comment": "The six default design systems, one folder each — static content served verbatim from public/. Fields path/thumbnail/readme/theme are relative to this directory; the app serves it under its base path (/design/design-systems/ as deployed). Each system's files array lists every file in its folder, folder-relative (fetch from path + files[i].path), with binary:true on non-text assets — so a client can copy a whole system from one manifest read. One exception: the committed preview image named by thumbnailImage lives in the folder but stays OUT of files — it seeds the picked project's server-side thumbnail slot and must not be copied into the project (it is also a render artifact: re-render it from thumbnail.html after restyling a system). A client can read this file instead of globbing the directory.",
+  "systems": [
+    {
+      "slug": "modernist",
+      "name": "Modernist",
+      "description": "Swiss-school modernism: a strict grid, Archivo everywhere, square corners, strong rules and one red accent on a near-white ground.",
+      "path": "modernist/",
+      "ground": "#f3f2f2",
+      "text": "#201e1d",
+      "accent": "#ec3013",
+      "headingFont": "Archivo",
+      "thumbnail": "modernist/thumbnail.html",
+      "thumbnailImage": "modernist/thumbnail.webp",
+      "readme": "modernist/readme.md",
+      "theme": "modernist/theme.json",
+      "files": [
+        {
+          "path": "assets/photo.jpg",
+          "binary": true
+        },
+        {
+          "path": "components/buttons.html"
+        },
+        {
+          "path": "components/cards.html"
+        },
+        {
+          "path": "components/dialog.html"
+        },
+        {
+          "path": "components/forms.html"
+        },
+        {
+          "path": "components/navigation.html"
+        },
+        {
+          "path": "components/table.html"
+        },
+        {
+          "path": "foundations/color.html"
+        },
+        {
+          "path": "foundations/icons.html"
+        },
+        {
+          "path": "foundations/image.html"
+        },
+        {
+          "path": "foundations/layout.html"
+        },
+        {
+          "path": "foundations/type.html"
+        },
+        {
+          "path": "readme.md"
+        },
+        {
+          "path": "styles.css"
+        },
+        { "path": "_ds_manifest.json" },
+        { "path": "_adherence.oxlintrc.json" },
+        { "path": "_ds_bundle.js" },
+        {
+          "path": "templates/deck/deck-stage.js"
+        },
+      { "path": "templates/deck/image-slot.js" },
+        {
+          "path": "templates/deck/ds-base.js"
+        },
+        {
+          "path": "templates/deck/Deck.dc.html"
+        },
+        {
+          "path": "templates/deck/support.js"
+        },
+        {
+          "path": "templates/landing/image-slot.js"
+        },
+        {
+          "path": "templates/landing/ds-base.js"
+        },
+        {
+          "path": "templates/landing/index.html"
+        },
+        {
+          "path": "theme.html"
+        },
+        {
+          "path": "theme.json"
+        },
+        {
+          "path": "thumbnail.html"
+        }
+      ]
+    },
+    {
+      "slug": "classical",
+      "name": "Classical",
+      "description": "A bookish, engraved system: Cormorant Garamond over Lora, generous measure, a near-white ground and a restrained gold accent.",
+      "path": "classical/",
+      "ground": "#f3f2f2",
+      "text": "#201f1d",
+      "accent": "#b68235",
+      "headingFont": "Cormorant Garamond",
+      "thumbnail": "classical/thumbnail.html",
+      "thumbnailImage": "classical/thumbnail.webp",
+      "readme": "classical/readme.md",
+      "theme": "classical/theme.json",
+      "files": [
+        {
+          "path": "assets/photo.jpg",
+          "binary": true
+        },
+        {
+          "path": "components/buttons.html"
+        },
+        {
+          "path": "components/cards.html"
+        },
+        {
+          "path": "components/dialog.html"
+        },
+        {
+          "path": "components/forms.html"
+        },
+        {
+          "path": "components/navigation.html"
+        },
+        {
+          "path": "components/table.html"
+        },
+        {
+          "path": "foundations/color.html"
+        },
+        {
+          "path": "foundations/icons.html"
+        },
+        {
+          "path": "foundations/image.html"
+        },
+        {
+          "path": "foundations/layout.html"
+        },
+        {
+          "path": "foundations/type.html"
+        },
+        {
+          "path": "readme.md"
+        },
+        {
+          "path": "styles.css"
+        },
+        { "path": "_ds_manifest.json" },
+        { "path": "_adherence.oxlintrc.json" },
+        { "path": "_ds_bundle.js" },
+        {
+          "path": "templates/deck/deck-stage.js"
+        },
+      { "path": "templates/deck/image-slot.js" },
+        {
+          "path": "templates/deck/ds-base.js"
+        },
+        {
+          "path": "templates/deck/Deck.dc.html"
+        },
+        {
+          "path": "templates/deck/support.js"
+        },
+        {
+          "path": "templates/landing/image-slot.js"
+        },
+        {
+          "path": "templates/landing/ds-base.js"
+        },
+        {
+          "path": "templates/landing/index.html"
+        },
+        {
+          "path": "theme.html"
+        },
+        {
+          "path": "theme.json"
+        },
+        {
+          "path": "thumbnail.html"
+        }
+      ]
+    },
+    {
+      "slug": "nocturne",
+      "name": "Nocturne",
+      "description": "A dark-ground system: Inter on near-black surfaces with a blurple accent in the product's own hue, outlined controls and luminous ramp steps for emphasis.",
+      "path": "nocturne/",
+      "ground": "#161826",
+      "text": "#e9e9ed",
+      "accent": "#9184d9",
+      "headingFont": "Inter",
+      "thumbnail": "nocturne/thumbnail.html",
+      "thumbnailImage": "nocturne/thumbnail.webp",
+      "readme": "nocturne/readme.md",
+      "theme": "nocturne/theme.json",
+      "files": [
+        {
+          "path": "assets/photo.jpg",
+          "binary": true
+        },
+        {
+          "path": "components/buttons.html"
+        },
+        {
+          "path": "components/cards.html"
+        },
+        {
+          "path": "components/dialog.html"
+        },
+        {
+          "path": "components/forms.html"
+        },
+        {
+          "path": "components/navigation.html"
+        },
+        {
+          "path": "components/table.html"
+        },
+        {
+          "path": "foundations/color.html"
+        },
+        {
+          "path": "foundations/icons.html"
+        },
+        {
+          "path": "foundations/image.html"
+        },
+        {
+          "path": "foundations/layout.html"
+        },
+        {
+          "path": "foundations/type.html"
+        },
+        {
+          "path": "readme.md"
+        },
+        {
+          "path": "styles.css"
+        },
+        { "path": "_ds_manifest.json" },
+        { "path": "_adherence.oxlintrc.json" },
+        { "path": "_ds_bundle.js" },
+        {
+          "path": "templates/deck/deck-stage.js"
+        },
+      { "path": "templates/deck/image-slot.js" },
+        {
+          "path": "templates/deck/ds-base.js"
+        },
+        {
+          "path": "templates/deck/Deck.dc.html"
+        },
+        {
+          "path": "templates/deck/support.js"
+        },
+        {
+          "path": "templates/landing/image-slot.js"
+        },
+        {
+          "path": "templates/landing/ds-base.js"
+        },
+        {
+          "path": "templates/landing/index.html"
+        },
+        {
+          "path": "theme.html"
+        },
+        {
+          "path": "theme.json"
+        },
+        {
+          "path": "thumbnail.html"
+        }
+      ]
+    },
+    {
+      "slug": "organic",
+      "name": "Organic",
+      "description": "Soft and rounded: pill shapes, a parchment ground with clay and sage accents, airy spacing and unframed photography.",
+      "path": "organic/",
+      "ground": "#f5ead8",
+      "text": "#201e1d",
+      "accent": "#c67139",
+      "headingFont": "Caprasimo",
+      "thumbnail": "organic/thumbnail.html",
+      "thumbnailImage": "organic/thumbnail.webp",
+      "readme": "organic/readme.md",
+      "theme": "organic/theme.json",
+      "files": [
+        {
+          "path": "assets/photo.jpg",
+          "binary": true
+        },
+        {
+          "path": "components/buttons.html"
+        },
+        {
+          "path": "components/cards.html"
+        },
+        {
+          "path": "components/dialog.html"
+        },
+        {
+          "path": "components/forms.html"
+        },
+        {
+          "path": "components/navigation.html"
+        },
+        {
+          "path": "components/table.html"
+        },
+        {
+          "path": "foundations/color.html"
+        },
+        {
+          "path": "foundations/icons.html"
+        },
+        {
+          "path": "foundations/image.html"
+        },
+        {
+          "path": "foundations/layout.html"
+        },
+        {
+          "path": "foundations/type.html"
+        },
+        {
+          "path": "readme.md"
+        },
+        {
+          "path": "styles.css"
+        },
+        { "path": "_ds_manifest.json" },
+        { "path": "_adherence.oxlintrc.json" },
+        { "path": "_ds_bundle.js" },
+        {
+          "path": "templates/deck/deck-stage.js"
+        },
+      { "path": "templates/deck/image-slot.js" },
+        {
+          "path": "templates/deck/ds-base.js"
+        },
+        {
+          "path": "templates/deck/Deck.dc.html"
+        },
+        {
+          "path": "templates/deck/support.js"
+        },
+        {
+          "path": "templates/landing/image-slot.js"
+        },
+        {
+          "path": "templates/landing/ds-base.js"
+        },
+        {
+          "path": "templates/landing/index.html"
+        },
+        {
+          "path": "theme.html"
+        },
+        {
+          "path": "theme.json"
+        },
+        {
+          "path": "thumbnail.html"
+        }
+      ]
+    },
+    {
+      "slug": "broadsheet",
+      "name": "Broadsheet",
+      "description": "Newsprint set for the web: near-black serif on paper white, the process inks in print treatments — plate-separated imagery, registration marks, spot color — no boxes or rules.",
+      "path": "broadsheet/",
+      "ground": "#f3f2f2",
+      "text": "#201e1d",
+      "accent": "#0088b0",
+      "headingFont": "Source Serif 4",
+      "thumbnail": "broadsheet/thumbnail.html",
+      "thumbnailImage": "broadsheet/thumbnail.webp",
+      "readme": "broadsheet/readme.md",
+      "theme": "broadsheet/theme.json",
+      "files": [
+        {
+          "path": "assets/photo.jpg",
+          "binary": true
+        },
+        {
+          "path": "assets/photo-color.jpg",
+          "binary": true
+        },
+        {
+          "path": "components/buttons.html"
+        },
+        {
+          "path": "components/cards.html"
+        },
+        {
+          "path": "components/dialog.html"
+        },
+        {
+          "path": "components/forms.html"
+        },
+        {
+          "path": "components/navigation.html"
+        },
+        {
+          "path": "components/table.html"
+        },
+        {
+          "path": "foundations/color.html"
+        },
+        {
+          "path": "foundations/icons.html"
+        },
+        {
+          "path": "foundations/image.html"
+        },
+        {
+          "path": "foundations/layout.html"
+        },
+        {
+          "path": "foundations/type.html"
+        },
+        {
+          "path": "readme.md"
+        },
+        {
+          "path": "styles.css"
+        },
+        {
+          "path": "print-plates.js"
+        },
+        { "path": "_ds_manifest.json" },
+        { "path": "_adherence.oxlintrc.json" },
+        { "path": "_ds_bundle.js" },
+        {
+          "path": "templates/deck/deck-stage.js"
+        },
+      { "path": "templates/deck/image-slot.js" },
+        {
+          "path": "templates/deck/ds-base.js"
+        },
+        {
+          "path": "templates/deck/Deck.dc.html"
+        },
+        {
+          "path": "templates/deck/support.js"
+        },
+        {
+          "path": "templates/landing/image-slot.js"
+        },
+        {
+          "path": "templates/landing/ds-base.js"
+        },
+        {
+          "path": "templates/landing/index.html"
+        },
+        {
+          "path": "theme.html"
+        },
+        {
+          "path": "theme.json"
+        },
+        {
+          "path": "thumbnail.html"
+        }
+      ]
+    },
+    {
+      "slug": "industry",
+      "name": "Industry",
+      "description": "A blueprint wireframe: steel blue on a technical light ground, condensed headings, square corners and registration-marked frames.",
+      "path": "industry/",
+      "ground": "#f2f2f3",
+      "text": "#1d1f20",
+      "accent": "#5980a6",
+      "headingFont": "Barlow Condensed",
+      "thumbnail": "industry/thumbnail.html",
+      "thumbnailImage": "industry/thumbnail.webp",
+      "readme": "industry/readme.md",
+      "theme": "industry/theme.json",
+      "files": [
+        {
+          "path": "assets/photo.jpg",
+          "binary": true
+        },
+        {
+          "path": "components/buttons.html"
+        },
+        {
+          "path": "components/cards.html"
+        },
+        {
+          "path": "components/dialog.html"
+        },
+        {
+          "path": "components/forms.html"
+        },
+        {
+          "path": "components/navigation.html"
+        },
+        {
+          "path": "components/table.html"
+        },
+        {
+          "path": "foundations/color.html"
+        },
+        {
+          "path": "foundations/icons.html"
+        },
+        {
+          "path": "foundations/image.html"
+        },
+        {
+          "path": "foundations/layout.html"
+        },
+        {
+          "path": "foundations/type.html"
+        },
+        {
+          "path": "readme.md"
+        },
+        {
+          "path": "styles.css"
+        },
+        { "path": "_ds_manifest.json" },
+        { "path": "_adherence.oxlintrc.json" },
+        { "path": "_ds_bundle.js" },
+        {
+          "path": "templates/deck/deck-stage.js"
+        },
+      { "path": "templates/deck/image-slot.js" },
+        {
+          "path": "templates/deck/ds-base.js"
+        },
+        {
+          "path": "templates/deck/Deck.dc.html"
+        },
+        {
+          "path": "templates/deck/support.js"
+        },
+        {
+          "path": "templates/landing/image-slot.js"
+        },
+        {
+          "path": "templates/landing/ds-base.js"
+        },
+        {
+          "path": "templates/landing/index.html"
+        },
+        {
+          "path": "theme.html"
+        },
+        {
+          "path": "theme.json"
+        },
+        {
+          "path": "thumbnail.html"
+        }
+      ]
+    }
+  ]
+}

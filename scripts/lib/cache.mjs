@@ -10,6 +10,7 @@
  *     catalog.json            { updatedAt, designs[] }   <- merged, generic
  *     styles/<uuid>.json      { updatedAt, style }       <- upstream shape
  *     systems/<slug>.json     { updatedAt, system }      <- opendesign shape
+ *     systems/packages/<slug>.json   original OpenDesign package files
  *     thumbs/<id>.jpg         local thumbnail bytes
  *     index.json              { updatedAt, counts, sources }
  *
@@ -152,6 +153,14 @@ export async function writeDesign(id, source, payload) {
   await writeJsonAtomic(path, { updatedAt: Date.now(), [key]: payload });
 }
 
+export async function readOpenDesignPackage(id) {
+  return readJson(join(SYSTEMS_DIR, "packages", `${id}.json`));
+}
+
+export async function writeOpenDesignPackage(id, files) {
+  await writeJsonAtomic(join(SYSTEMS_DIR, "packages", `${id}.json`), { files });
+}
+
 /** Local thumbnail path for a design id, if one has been cached. */
 export function thumbPath(id) {
   for (const ext of [".jpg", ".jpeg", ".png", ".webp"]) {
@@ -216,6 +225,40 @@ export async function readPresetsIndex() {
 export async function readPresetCatalog(kind) {
   if (!/^[a-z0-9-]+$/i.test(kind)) return null;
   const path = join(CACHE_DIR, "presets", `${kind}.json`);
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The vendored design-system template index.
+ *
+ * Written by scripts/stage-design-systems.mjs (live cache) and by
+ * `npm run bake` (baked cache). Returns an empty index when the cache has
+ * no templates, so the server still starts.
+ */
+export async function readDesignSystemsIndex() {
+  const path = join(CACHE_DIR, "design-systems.json");
+  const empty = { updatedAt: null, total: 0, systems: [] };
+  if (!existsSync(path)) return empty;
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return empty;
+  }
+}
+
+/**
+ * One design-system template's full record: theme knobs, the token list,
+ * the filled manifest, and the file listing. The system's actual files sit
+ * under <cache>/design-systems/<slug>/.
+ */
+export async function readDesignSystem(slug) {
+  if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  const path = join(CACHE_DIR, "design-systems", `${slug}.json`);
   if (!existsSync(path)) return null;
   try {
     return JSON.parse(await readFile(path, "utf8"));

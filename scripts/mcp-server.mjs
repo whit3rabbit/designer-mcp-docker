@@ -22,6 +22,7 @@
  */
 
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -37,13 +38,22 @@ import {
   SOURCE,
   readCatalog,
   readDesign,
+  readOpenDesignPackage,
   mergeDesign,
   readComponentsIndex,
   readComponent,
   readPresetsIndex,
   readPresetCatalog,
+  readDesignSystemsIndex,
+  readDesignSystem,
 } from "./lib/cache.mjs";
+import { blankManifestTemplate } from "./lib/ds-manifest.mjs";
+import { parseDesignMd, manifestFromDesignMd } from "./lib/design-md-parse.mjs";
+import {
+  combineTokens, isRecord, readCssTokens, renderDesignMdDraft, STITCH_TOKEN_GROUPS, validateDesignObservations,
+} from "./lib/design-md-tokens.mjs";
 import { resolveDesign } from "./lib/resolve.mjs";
+import { isPackagePath, legacyPackageFiles } from "./lib/opendesign-package.mjs";
 import { score, searchText } from "./lib/score.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -102,6 +112,36 @@ function shorthand(item) {
 }
 
 // ------------------------------------------------------------------ tools
+const MARKDOWN_INPUT_BYTES = 200_000;
+const DESIGN_IDENTIFIER = {
+  type: "string",
+  description: "Exact gallery reference (designer:<source>:<id>), cached id, site name, hostname, or URL.",
+};
+const DESIGN_MD_INPUT = {
+  identifier: DESIGN_IDENTIFIER,
+  content: { type: "string", description: "Raw DESIGN.md markdown, up to 200,000 UTF-8 bytes." },
+  source: { type: "string", enum: Object.values(SOURCE), description: "Disambiguate a cached identifier." },
+  css: { type: "string", description: "Companion CSS text. Reads unconditional :root custom properties." },
+  tokens: {
+    type: "array",
+    description: "Optional companion token rows from JSON or CSS. Document values take precedence for the same token path.",
+    maxItems: 1000,
+    items: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        value: { type: ["string", "number"] },
+        type: { type: "string", description: "Optional category, e.g. color, fontFamily, spacing, radius, shadow, or dimension." },
+      },
+      required: ["name", "value"],
+    },
+  },
+};
+const DESIGN_MD_ONE_INPUT = [
+  { required: ["identifier"], not: { required: ["content"] } },
+  { required: ["content"], not: { anyOf: [{ required: ["identifier"] }, { required: ["source"] }] } },
+];
+
 const TOOLS = [
   {
     name: "design_search",
@@ -130,18 +170,35 @@ const TOOLS = [
   {
     name: "design_get",
     description:
-      "Resolve an identifier (id, site name, hostname, or URL) to the full design record, " +
-      "including every color token, font, and the design prose. Serves from the local cache.",
+      "Resolve a gallery reference, id, site name, hostname, or URL to the full design record, " +
+      "including color tokens and fonts. For OpenDesign, returns the package manifest and cached file list. " +
+      "Use design_markdown for the design prose and design_package_file to read package files.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        identifier: DESIGN_IDENTIFIER,
+        source: { type: "string", description: "Restrict the lookup to one source." },
+      },
+      required: ["identifier"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_package_file",
+    description:
+      "Read one cached OpenDesign package file, such as DESIGN.md, tokens.css, or components.html. " +
+      "Get the exact reference and available paths from design_get. Files are returned as source.",
     inputSchema: {
       type: "object",
       properties: {
         identifier: {
           type: "string",
-          description: 'Design id, site name, hostname, or URL — e.g. "linear", "linear.app".',
+          pattern: "^designer:opendesign:[a-z0-9-]+$",
+          description: "Exact OpenDesign gallery reference, e.g. designer:opendesign:arc.",
         },
-        source: { type: "string", description: "Restrict the lookup to one source." },
+        path: { type: "string", description: "Exact relative file path from the package inventory." },
       },
-      required: ["identifier"],
+      required: ["identifier", "path"],
       additionalProperties: false,
     },
   },
@@ -177,7 +234,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        identifier: { type: "string", description: "Design id, site name, hostname, or URL." },
+        identifier: DESIGN_IDENTIFIER,
         source: { type: "string" },
       },
       required: ["identifier"],
@@ -257,6 +314,163 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "design_template_list",
+    description:
+      "List the vendored design-system templates: six complete, generic systems " +
+      "(Swiss modernist, classical serif, dark nocturne, organic rounded, newsprint " +
+      "broadsheet, blueprint industry). Each entry carries swatches, fonts, token " +
+      "and file counts, and its starter templates. Runs entirely offline.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Free-text match on slug, name, description, heading font.",
+        },
+        limit: { type: "number", description: "Max results (default 20, max 50)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_template_get",
+    description:
+      "One design-system template in full: the theme parameters it was generated " +
+      "from, every token (name, value, kind), the component class table, the " +
+      "starter templates, the complete file listing, and the filled design-system " +
+      "manifest. Use design_template_file to read an individual file's content.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slug: { type: "string", description: "Template slug, e.g. modernist." },
+      },
+      required: ["slug"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_template_file",
+    description:
+      "One text file from a design-system template: the token sheet (styles.css), " +
+      "a starter landing page, the written guide (readme.md), a foundation or " +
+      "component card, a theme file. The path must be listed in the template's " +
+      "files[] (see design_template_get). Binary assets are refused.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slug: { type: "string", description: "Template slug, e.g. nocturne." },
+        path: {
+          type: "string",
+          description: "Folder-relative path from files[], e.g. styles.css.",
+        },
+      },
+      required: ["slug", "path"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_manifest_template",
+    description:
+      "The design-system manifest JSON: the machine-readable contract for one " +
+      "design system, with sections for overview/principles, colors, typography, " +
+      "spacing, corner radius, shadows, components, and assets. Without arguments " +
+      "returns the blank template; pass slug to get it filled from one of the " +
+      "vendored design-system templates. Fill it in (or adapt a filled one) and " +
+      "keep it beside the work as the token and component contract.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slug: {
+          type: "string",
+          description: "Optional template slug. Omit for the blank template.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_markdown_parse",
+    description:
+      "Import DESIGN.md from the catalog or pasted content. Reads Refero, OpenDesign, Google Stitch, " +
+      "and WebDesignHot. Returns prose, rules, typed token paths, sources, and diagnostics. Runs offline.",
+    inputSchema: {
+      type: "object",
+      properties: DESIGN_MD_INPUT,
+      oneOf: DESIGN_MD_ONE_INPUT,
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_manifest_from",
+    description:
+      "Seed a design-system-manifest/v1 from a catalog or pasted DESIGN.md and optional companion tokens. " +
+      "Returns the fields populated from source evidence, remaining gaps, and diagnostics.",
+    inputSchema: {
+      type: "object",
+      properties: DESIGN_MD_INPUT,
+      oneOf: DESIGN_MD_ONE_INPUT,
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_markdown_render",
+    description:
+      "Generate Google Stitch-style DESIGN.md from named design tokens and optional Markdown guidance. " +
+      "Provide values from the source artifact, retaining unresolved design decisions in prose.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Name of the design system." },
+        description: { type: "string" },
+        tokens: {
+          type: "object",
+          properties: Object.fromEntries(STITCH_TOKEN_GROUPS.map((group) => [group, { type: "object" }])),
+          additionalProperties: false,
+          description: "Token tree keyed by colors, typography, spacing, rounded, and components.",
+        },
+        body: { type: "string", description: "Optional Markdown guidance with Overview, Colors, Typography, and other relevant sections." },
+      },
+      required: ["name", "tokens"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_markdown_validate",
+    description:
+      "Check a DESIGN.md for parse and token reference errors. Optionally compare named token paths with " +
+      "observed values from a rendered webpage or document. Supply requiredTokens to check coverage of applied roles.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...DESIGN_MD_INPUT,
+        requiredTokens: {
+          type: "array",
+          minItems: 1,
+          maxItems: 1000,
+          uniqueItems: true,
+          items: { type: "string", minLength: 1 },
+          description: "Applied token paths that must each have a passing observation.",
+        },
+        observations: {
+          type: "array",
+          maxItems: 1000,
+          items: {
+            type: "object",
+            properties: {
+              location: { type: "string", description: "Selector, slide/shape, page/span, or other observable location." },
+              token: { type: "string", description: "Expected token path, e.g. colors.primary." },
+              value: { type: ["string", "number", "null"], description: "Observed value, or null when it could not be measured." },
+              rootFontSize: { type: "number", exclusiveMinimum: 0, description: "Computed root font size in CSS px, for rem comparisons." },
+            },
+            required: ["location", "token", "value"],
+          },
+        },
+      },
+      oneOf: DESIGN_MD_ONE_INPUT,
+      additionalProperties: false,
+    },
+  },
 ];
 
 // ------------------------------------------------------------------ handlers
@@ -325,9 +539,40 @@ async function handleSearch(args) {
   return { query, count: results.length, results };
 }
 
+function findCatalogDesign(identifier, source) {
+  // Every upstream package has the same hostname. Match the package slug
+  // before the generic hostname resolver can pick an unrelated system.
+  const repo = /^https?:\/\/(?:www\.)?github\.com\/nexu-io\/open-design(?=[/?#]|$)([^?#]*)/i.exec(identifier);
+  if (repo) {
+    const slug = /^\/(?:tree|blob)\/.+?\/design-systems\/([a-z0-9-]+)(?:\/|$)/.exec(repo[1])?.[1];
+    if (!slug) throw new Error("OpenDesign repository URL does not identify a package. Use a package URL or a gallery reference.");
+    identifier = `designer:opendesign:${slug}`;
+  }
+  if (!identifier.startsWith("designer:")) return resolveDesign(identifier, catalog, { source });
+
+  const parts = /^designer:([^:]+):([a-zA-Z0-9_-]+)$/.exec(identifier);
+  if (!parts || !Object.values(SOURCE).includes(parts[1])) {
+    throw new Error("Expected a gallery reference in the form designer:<source>:<id>.");
+  }
+  const [, exactSource, id] = parts;
+  if (source !== undefined && source !== exactSource) throw new Error("source conflicts with the gallery reference.");
+  const match = catalog.find((entry) => entry.id === id && (entry.source || SOURCE.REFERO) === exactSource);
+  if (!match) throw new Error("Gallery theme is not in this cache. Open its DESIGN.md link in the gallery and pass the Markdown as content.");
+  return match;
+}
+
+async function getPackageFiles(id, payload) {
+  const record = await readOpenDesignPackage(id);
+  const hasInventory = Array.isArray(record?.files);
+  return {
+    files: hasInventory ? record.files : legacyPackageFiles(payload),
+    legacyCache: !hasInventory,
+  };
+}
+
 async function handleGet(args) {
   const identifier = asString(args.identifier, "identifier");
-  const match = resolveDesign(identifier, catalog, { source: args.source });
+  const match = findCatalogDesign(identifier, args.source);
   if (!match) {
     throw new Error(
       `No design matched ${JSON.stringify(identifier)}. ` +
@@ -338,13 +583,44 @@ async function handleGet(args) {
   const payload = await readDesign(match.id, match.source);
   if (!payload) throw new Error(`design ${match.id} is in the catalog but its record is missing`);
   const full = mergeDesign(match, payload);
+  let packageInfo;
+  if (match.source === SOURCE.OPENDESIGN) {
+    const { files, legacyCache } = await getPackageFiles(match.id, payload);
+    packageInfo = {
+      reference: `designer:opendesign:${match.id}`,
+      manifest: payload.manifest ?? null,
+      legacyCache,
+      files: files.map(({ path, bytes, encoding }) => ({ path, bytes, encoding })),
+    };
+  }
   return {
     ...shorthand(match),
     northStar: full.northStar ?? match.northStar,
     colors: full.colors ?? match.colors,
     fonts: full.fonts ?? match.fonts,
     fullResult: full.fullResult,
+    ...(packageInfo && { package: packageInfo }),
   };
+}
+
+async function handlePackageFile(args) {
+  const identifier = asString(args.identifier, "identifier");
+  if (!/^designer:opendesign:[a-z0-9-]+$/.test(identifier)) {
+    throw new Error("Use an exact OpenDesign reference, such as designer:opendesign:arc.");
+  }
+  if (!isPackagePath(args.path)) throw new Error("path must be a safe relative package file path.");
+  const match = findCatalogDesign(identifier, SOURCE.OPENDESIGN);
+  const payload = await readDesign(match.id, match.source);
+  if (!payload) throw new Error(`design ${match.id} is in the catalog but its record is missing`);
+  const { files, legacyCache } = await getPackageFiles(match.id, payload);
+  // Request paths are compared with the stored inventory, never opened on disk.
+  const file = files.find((item) => item.path === args.path);
+  if (!file) {
+    throw new Error(legacyCache
+      ? "File is not in this cache. Use design_get to list available files, or refresh the OpenDesign cache."
+      : "File is not in the cached package. Use design_get to list available files.");
+  }
+  return { id: match.id, source: match.source, ...file };
 }
 
 async function handleList(args) {
@@ -380,21 +656,12 @@ async function handleFacets() {
 
 async function handleMarkdown(args) {
   const identifier = asString(args.identifier, "identifier");
-  const match = resolveDesign(identifier, catalog, { source: args.source });
-  if (!match) {
-    throw new Error(
-      `No design matched ${JSON.stringify(identifier)}. ` +
-        `Run design_search or design_list to see what is cached.`,
-    );
-  }
-  const payload = await readDesign(match.id, match.source);
-  if (!payload) throw new Error(`design ${match.id} is in the catalog but its record is missing`);
-  const full = mergeDesign(match, payload);
+  const { match, md } = await resolveMarkdown(identifier, args.source);
   return {
     id: match.id,
     source: match.source || SOURCE.REFERO,
     siteName: match.siteName,
-    designMd: designMarkdown(full),
+    designMd: md,
   };
 }
 
@@ -561,12 +828,215 @@ async function handlePresetGet(args) {
   return catalog;
 }
 
+// ------------------------------------------------------------- templates
+async function handleTemplateList(args) {
+  const query = optionalString(args.query).trim().toLowerCase();
+  const limit = asLimit(args.limit, 20, 50);
+  const index = await readDesignSystemsIndex();
+  let systems = index.systems || [];
+  if (query) {
+    systems = systems.filter((s) =>
+      `${s.slug} ${s.name} ${s.description} ${s.headingFont}`
+        .toLowerCase()
+        .includes(query),
+    );
+  }
+  return {
+    total: systems.length,
+    catalogTotal: index.total || systems.length,
+    templates: systems.slice(0, limit),
+  };
+}
+
+async function handleTemplateGet(args) {
+  const slug = asString(args.slug, "slug");
+  const record = await readDesignSystem(slug);
+  if (!record) {
+    throw new Error(
+      `No design-system template "${slug}". ` +
+        `Run design_template_list to see what is cached.`,
+    );
+  }
+  return record;
+}
+
+async function handleTemplateFile(args) {
+  const slug = asString(args.slug, "slug");
+  const filePath = asString(args.path, "path");
+  const record = await readDesignSystem(slug);
+  if (!record) {
+    throw new Error(
+      `No design-system template "${slug}". ` +
+        `Run design_template_list to see what is cached.`,
+    );
+  }
+  const entry = (record.files || []).find((f) => f.path === filePath);
+  if (!entry) {
+    throw new Error(
+      `"${filePath}" is not part of ${slug}. ` +
+        `Check files[] from design_template_get.`,
+    );
+  }
+  if (entry.binary) {
+    throw new Error(`"${filePath}" is binary and cannot be served as text.`);
+  }
+  // files[] is generated from the vendored index, but stay defensive about
+  // traversal before it becomes a filesystem path.
+  if (filePath.includes("..")) {
+    throw new Error(`"path" must not contain "..".`);
+  }
+  const full = join(CACHE_DIR, "design-systems", slug, filePath);
+  const content = await readFile(full, "utf8");
+  return { slug, path: filePath, bytes: Buffer.byteLength(content), content };
+}
+
+async function handleManifestTemplate(args) {
+  if (args.slug === undefined || args.slug === null || args.slug === "") {
+    return blankManifestTemplate();
+  }
+  const slug = asString(args.slug, "slug");
+  const record = await readDesignSystem(slug);
+  if (!record) {
+    throw new Error(
+      `No design-system template "${slug}". ` +
+        `Run design_template_list to see what is cached.`,
+    );
+  }
+  return record.manifest;
+}
+
+// ---------------------------------------------------------- design markdown
+/** Resolve an identifier to its DESIGN.md text. */
+async function resolveMarkdown(identifier, source) {
+  const match = findCatalogDesign(identifier, source);
+  if (!match) {
+    throw new Error(
+      `No design matched ${JSON.stringify(identifier)}. ` +
+        `Run design_search or design_list to see what is cached.`,
+    );
+  }
+  const payload = await readDesign(match.id, match.source);
+  if (!payload) throw new Error(`design ${match.id} is in the catalog but its record is missing`);
+  const full = mergeDesign(match, payload);
+  return { match, full, md: designMarkdown(full) };
+}
+
+function markdownContent(value) {
+  if (typeof value !== "string" || !value.trim()) throw new Error("content must be a non-empty string");
+  if (Buffer.byteLength(value) > MARKDOWN_INPUT_BYTES) throw new Error("content exceeds 200,000 UTF-8 bytes");
+  return value;
+}
+
+function inputRows(value, name) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 1000 || Buffer.byteLength(JSON.stringify(value)) > MARKDOWN_INPUT_BYTES) {
+    throw new Error(`${name} must be an array of up to 1,000 rows and 200,000 UTF-8 bytes`);
+  }
+  return value;
+}
+
+async function readMarkdownInput(args) {
+  const hasId = args.identifier !== undefined;
+  const hasContent = args.content !== undefined;
+  if (hasId === hasContent) throw new Error("Provide exactly one of identifier or content.");
+  const suppliedTokens = [...inputRows(args.tokens, "tokens")];
+  if (args.css !== undefined) {
+    if (typeof args.css !== "string" || Buffer.byteLength(args.css) > MARKDOWN_INPUT_BYTES) {
+      throw new Error("css must be text of at most 200,000 UTF-8 bytes");
+    }
+    try {
+      suppliedTokens.push(...inputRows(readCssTokens(args.css), "CSS tokens"));
+    } catch (error) {
+      if (error.name !== "CssSyntaxError") throw error;
+      throw new Error(`Invalid companion CSS at line ${error.line}, column ${error.column}: ${error.reason}`);
+    }
+  }
+  if (hasContent) {
+    if (args.source !== undefined) throw new Error("source requires a catalog identifier");
+    const md = markdownContent(args.content);
+    return { bytes: Buffer.byteLength(md), parsed: combineTokens(parseDesignMd(md), suppliedTokens) };
+  }
+
+  const identifier = asString(args.identifier, "identifier");
+  if (args.source !== undefined && !Object.values(SOURCE).includes(args.source)) throw new Error("unknown source");
+  const { match, full, md } = await resolveMarkdown(identifier, args.source);
+  const source = match.source || SOURCE.REFERO;
+  const parsed = parseDesignMd(md, { source });
+  let cachedTokens = full.tokens?.tokens;
+  if (!Array.isArray(cachedTokens) || !cachedTokens.length) {
+    try {
+      cachedTokens = full.tokensCss ? readCssTokens(full.tokensCss) : [];
+    } catch (error) {
+      if (error.name !== "CssSyntaxError") throw error;
+      parsed.diagnostics.push({ severity: "warning", code: "invalid-cached-css", line: error.line });
+      cachedTokens = [];
+    }
+  }
+  return {
+    id: match.id,
+    source,
+    siteName: match.siteName,
+    bytes: Buffer.byteLength(md),
+    parsed: combineTokens(parsed, [...suppliedTokens, ...cachedTokens]),
+  };
+}
+
+async function handleMarkdownParse(args) {
+  const { parsed, ...source } = await readMarkdownInput(args);
+  return { ...source, format: parsed.format, parsed };
+}
+
+async function handleManifestFrom(args) {
+  const { parsed, bytes: _bytes, ...source } = await readMarkdownInput(args);
+  const manifest = manifestFromDesignMd(parsed);
+  return { ...source, schemaVersion: manifest.schemaVersion, manifest };
+}
+
+function handleMarkdownRender(args) {
+  const name = asString(args.name, "name");
+  const description = args.description === undefined ? "" : asString(args.description, "description");
+  if (args.body !== undefined && typeof args.body !== "string") throw new Error("body must be a string");
+  if (!isRecord(args.tokens) || Object.entries(args.tokens).some(
+    ([group, value]) => !STITCH_TOKEN_GROUPS.includes(group) || !isRecord(value),
+  )) throw new Error("tokens must contain supported token groups as objects");
+  if (Buffer.byteLength(JSON.stringify(args.tokens)) + Buffer.byteLength(args.body ?? "") > MARKDOWN_INPUT_BYTES) {
+    throw new Error("draft exceeds 200,000 UTF-8 bytes");
+  }
+  const designMd = markdownContent(renderDesignMdDraft({ name, description, tokens: args.tokens, body: args.body }));
+  const parsed = parseDesignMd(designMd);
+  return { designMd, format: parsed.format, diagnostics: parsed.diagnostics };
+}
+
+async function handleMarkdownValidate(args) {
+  const observations = inputRows(args.observations, "observations");
+  for (const row of observations) {
+    if (!isRecord(row) || typeof row.location !== "string" || !row.location.trim() ||
+        typeof row.token !== "string" || !row.token.trim() ||
+        (row.value !== null && typeof row.value !== "string" && typeof row.value !== "number") ||
+        (row.rootFontSize !== undefined && (!Number.isFinite(row.rootFontSize) || row.rootFontSize <= 0))) {
+      throw new Error("each observation needs a location, token path, and string, number, or null value");
+    }
+  }
+  let requiredTokens;
+  if (args.requiredTokens !== undefined) {
+    requiredTokens = inputRows(args.requiredTokens, "requiredTokens");
+    if (!requiredTokens.length || requiredTokens.some((path) => typeof path !== "string" || !path.trim() || path !== path.trim()) ||
+        new Set(requiredTokens).size !== requiredTokens.length) {
+      throw new Error("requiredTokens must contain distinct, non-empty token paths without surrounding whitespace.");
+    }
+  }
+  const { parsed } = await readMarkdownInput(args);
+  return validateDesignObservations(parsed, observations, requiredTokens);
+}
+
 async function dispatch(name, args) {
   switch (name) {
     case "design_search":
       return handleSearch(args);
     case "design_get":
       return handleGet(args);
+    case "design_package_file":
+      return handlePackageFile(args);
     case "design_list":
       return handleList(args);
     case "design_facets":
@@ -583,6 +1053,22 @@ async function dispatch(name, args) {
       return handlePresetSearch(args);
     case "design_preset_get":
       return handlePresetGet(args);
+    case "design_template_list":
+      return handleTemplateList(args);
+    case "design_template_get":
+      return handleTemplateGet(args);
+    case "design_template_file":
+      return handleTemplateFile(args);
+    case "design_manifest_template":
+      return handleManifestTemplate(args);
+    case "design_markdown_parse":
+      return handleMarkdownParse(args);
+    case "design_manifest_from":
+      return handleManifestFrom(args);
+    case "design_markdown_render":
+      return handleMarkdownRender(args);
+    case "design_markdown_validate":
+      return handleMarkdownValidate(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -615,7 +1101,9 @@ async function main() {
     { capabilities: { tools: {} } },
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: TOOLS.map((tool) => ({ ...tool, annotations: { readOnlyHint: true, openWorldHint: false } })),
+  }));
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
     const startedAt = Date.now();

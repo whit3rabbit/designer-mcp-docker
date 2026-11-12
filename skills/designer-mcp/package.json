@@ -1,0 +1,10 @@
+{
+  "name": "designer-mcp-skill",
+  "private": true,
+  "description": "Node dependencies for the sub-skills in this directory: docx-js for Word creation, pptxgenjs (plus jszip for scripts/apply_theme.js) for deck creation. Conditional npm packages named in the guidance (react-icons, react, react-dom, sharp for the pptx icon recipe; pdf-lib for PDF work in JavaScript) are not listed here and install on demand, per the check-then-install rule.",
+  "dependencies": {
+    "docx": "^9.15.0",
+    "pptxgenjs": "^4.0.1",
+    "jszip": "^3.10.2"
+  }
+}

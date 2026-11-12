@@ -56,7 +56,7 @@ jobs:
 
       - name: Populate and bake the catalog
         run: |
-          npm install --omit=dev --ignore-scripts
+          npm ci --omit=dev --ignore-scripts
           export DESIGN_CACHE_DIR="$HOME/.design-cache"
           export REFERO_CACHE_DIR="$HOME/.design-cache"
           node scripts/refero-public-fetch.js --limit 0 || echo "refero fetch incomplete"
@@ -66,6 +66,15 @@ jobs:
           node scripts/fetch-thumbs.mjs --compress || echo "thumb fetch incomplete"
           node scripts/bake-cache.mjs --cache "$HOME/.design-cache" --out bake
           ls -la bake/
+
+      - name: Verify offline browser previews
+        run: |
+          npm ci --prefix frontend --ignore-scripts
+          npm ci --prefix frontend/deck --ignore-scripts
+          ./frontend/node_modules/.bin/playwright install --with-deps chromium
+          npm run frontend:fetch-tailwind
+          npm run frontend:build
+          npm run frontend:test
 
       - name: Derive tags
         id: meta
@@ -113,6 +122,7 @@ jobs:
           # CMD and the server would never start.
           docker rm -f designer-mcp-verify || true
           docker run -d --name designer-mcp-verify --network none "${IMAGE}:latest"
+          trap 'docker rm -f designer-mcp-verify >/dev/null' EXIT
           sleep 12
           docker exec designer-mcp-verify node -e "
             const base = 'http://127.0.0.1:8787';
@@ -133,5 +143,5 @@ jobs:
             if (bad) { console.error('published image is missing data'); process.exit(1); }
             console.log('published image serves the baked catalog offline');
           "
-          docker rm -f designer-mcp-verify
+          docker exec designer-mcp-verify node scripts/verify-frontend-http.mjs
           echo "published: ${IMAGE}"

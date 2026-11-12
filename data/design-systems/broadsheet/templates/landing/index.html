@@ -1,0 +1,357 @@
+<!-- @template name="Landing" description="A one-page landing in the system's own voice — an invented product (Daybreak: a morning news digest), serif hero, dateline-and-index head, feature columns, plate-separated photograph, sign-up close" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Broadsheet — landing</title>
+<script src="./ds-base.js"></script>
+<style>
+/* Template scaffolding — page layout and web-scale sizing only; every color,
+   font, radius and shadow comes from ../../styles.css. The voice is the
+   deck's, re-derived for a scrolling page: newsprint — hierarchy
+   from the serif scale and NEGATIVE SPACE alone (this system draws no
+   boxes, and no rules BETWEEN sections — the head rules around the
+   dateline rail are the one exception: front-page furniture, not
+   dividers), justified body in columns with real hyphenation,
+   process color used small and deliberately, the photograph printed as
+   its four process plates.
+
+   THE RHYTHM: a 28px leading unit (17px Source Serif body at ~1.65), 14px
+   half-step; line-heights and block margins in unit multiples, heads
+   cap-trimmed, ?baselines/B to review. The deck's seat-pinning relaxes to
+   per-block discipline on a fluid page. The system's own interface
+   components (nav, buttons, inputs) keep their styles.css leading.
+
+   THE LANDING LAWS (shared by all six systems' landing templates):
+   #1 display headers break per sentence (.line spans); #2 the landing
+   advertises an invented product played straight — broadsheet's is
+   Daybreak, a five-minute morning news digest, written like the paper it
+   is; #3 spacing is cluster-scoped (display leading ratio-governed ≈1.08
+   for the serif's long extenders — the display-block lattice exemption —
+   tight single-unit gaps inside a cluster, the air between sections); #4
+   no hero eyebrow — the nav brand names the product.
+
+   Optical left alignment: the deck's measured Source Serif 4 value
+   carries verbatim (-0.035em where caps lead a display line). */
+:root {
+  --leading: 28px;
+  --half: 14px;
+  --edge: clamp(20px, 5vw, 72px);
+  --measure: 58ch;
+}
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; text-wrap: pretty; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 var(--edge); }
+/* the component demo pads the masthead with its own spacing; on the page the
+   masthead's contents take the page gutter and sit on the wrap's text axis
+   (padding-only — full-width paint such as a masthead rule is untouched) */
+.nav { padding-inline: max(var(--edge), calc((100% - 1200px) / 2 + var(--edge))); }
+.nav a { white-space: nowrap; }
+.nav a[aria-current='location'] { color: var(--color-accent-700); } /* in-page anchor,
+   not a page link — 'location' is the truthful value. The 700 step, not the
+   base accent: at 13px this is small text, where the base cyan's 3.7:1
+   large-text value does not reach (the same call as .ix-num.spot) */
+@media (max-width: 480px) { .nav a { display: none; } } /* phone width: the
+   masthead keeps brand + the one action; the section links return with room
+   (layout-only — the component's look is untouched) */
+
+/* — kicker (a section slug in ink — the newspaper's own furniture. The
+   deck cut eyebrow kickers because a slide's title carries the slide; a
+   scrolling page has no such carrier between sections, so the slug earns
+   its place as wayfinding — and the hero still takes none, per the laws) — */
+.kicker {
+  display: block; font-size: 13px; line-height: var(--half);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* small-text ink on the
+     paper ground: 70% measures 5.8:1 (55% is the deck's 24px large-text
+     furniture convention; at 13px the 4.5:1 bar applies and 55% is 3.7:1) */
+  font-feature-settings: "tnum" 1;
+  margin: 0 0 calc(var(--leading) - var(--half));
+}
+
+/* — hero — */
+.hero { padding: calc(4 * var(--leading)) 0 calc(3 * var(--leading)); }
+.display {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: clamp(42px, 6vw, 80px);
+  line-height: clamp(45.5px, 6.5vw, 86.5px); /* law #3: ratio-governed ≈1.08 —
+     the serif's ascenders/descenders need a hair more lead than the sans
+     systems; the display-block lattice exemption */
+  letter-spacing: -0.02em; margin: 0;
+  margin-left: -0.035em; /* optical left alignment — the deck's measured Source Serif 4 value */
+  text-box: trim-both cap alphabetic;
+}
+.display .line { display: block; } /* law #1 */
+.hero .sub { font-size: 17px; line-height: var(--leading); max-width: var(--measure);
+  margin: calc(1.5 * var(--leading) - 1cap) 0 0;
+  text-box: trim-both cap alphabetic; }
+.hero .row { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--leading); }
+
+/* — the front page's head furniture (this system diverges from the shared
+   stat-row chassis here): a dateline rail seated between newspaper rules —
+   the head pair is 2px over 1px, full-strength ink, because head furniture
+   prints black, never the divider gray — and the morning's claims set as an
+   INDEX with dot leaders, the way a front page points into its own pages.
+   Rhythm: the rail is 1.5 units tall (half-step leading + half-step padding
+   each side), index rows run one unit each, rules sit on the seams. — */
+.frontpage { padding: calc(2 * var(--leading)) 0 calc(2.5 * var(--leading)); }
+.rule-head { height: 5px; border: 0; margin: 0;
+  border-top: 2px solid var(--color-text);
+  border-bottom: 1px solid var(--color-text); }
+.rule-cut { height: 0; border: 0; border-top: 1px solid var(--color-text); margin: 0; }
+.dateline { display: flex; justify-content: space-between; flex-wrap: wrap;
+  gap: var(--half) var(--leading); margin: 0; padding: var(--half) 0;
+  font-size: 13px; line-height: var(--half); letter-spacing: 0.08em; text-transform: uppercase;
+  font-feature-settings: "pnum" 1;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* 5.8:1 — see .kicker */ }
+.index { display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--half) calc(2.5 * var(--leading));
+  padding: calc(var(--leading) - var(--half)) 0 var(--leading); }
+.ix { display: flex; align-items: baseline; gap: 8px; margin: 0;
+  font-size: 15.5px; line-height: var(--leading); }
+.ix-leader { flex: 1; min-width: 28px; align-self: flex-end; margin-bottom: 0.34em;
+  border-bottom: 1px dotted color-mix(in srgb, var(--color-text) 45%, transparent); }
+  /* the leader dots sit decoratively below the baseline run; the 45% mix keeps
+     them quieter than the entries they join */
+.ix-num { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 17px; font-feature-settings: "pnum" 1; }
+  /* index figures are page-number furniture, not display numerals — body-adjacent
+     scale, proportional digits per the figure policy */
+.ix-num.spot { color: var(--color-accent-700); } /* the one process-color figure
+     the deck spends per page. At 17px this is small text, so the base cyan's
+     3.7:1 large-text value does not reach — the 700 step measures 5.7:1 on
+     the paper ground */
+
+/* — feature columns (the deck's own column grammar: JUSTIFIED serif copy
+   with real hyphenation, whitespace between columns — no rules, no cards;
+   serif heads at body-adjacent scale) — */
+.features { padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading)); }
+.cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(1.5 * var(--leading)) clamp(28px, 4vw, 64px);
+  margin-top: calc(var(--leading) - var(--half)); }
+.col h2 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 24px; line-height: var(--leading); letter-spacing: -0.01em;
+  margin: 0; text-box: trim-both cap alphabetic; }
+.col p { font-size: 15.5px; line-height: var(--leading); margin: calc(var(--leading) - 1cap) 0 0;
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  text-align: justify; hyphens: auto; hyphenate-limit-chars: 6 3 3; /* the paper's own setting */
+  text-box: trim-both cap alphabetic; }
+
+/* — imagery split (review round 2 of the divergence, Barron's call: the
+   photograph takes the system's showcase treatment — figure.cmyk with a
+   .print wrapper, the four process plates run live by the compound filter
+   the system ships in print-plates.js (inlined in the page's bundle). One
+   swappable image. Round 3, also Barron: hover gathers the plates into
+   register (the press driver in print-plates.js — the old :hover was a
+   hard cut), the pointer leans the registration a breath as it roams,
+   and the figure lets the sheet edges overhang (overflow below) instead
+   of cropping them flat. Round 4, also Barron: no films-lift at the end
+   of the gather — the driver purifies the plate inks on the same ease,
+   so the converged merge IS the photograph and nothing swaps. .halftone stays the
+   system's simpler screen for interface imagery, per
+   foundations/image.html) — */
+.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--leading) clamp(24px, 5vw, 96px); align-items: center;
+  padding: calc(2 * var(--leading)) 0 calc(3 * var(--leading)); }
+.split-title { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 32px; line-height: calc(1.5 * var(--leading)); letter-spacing: -0.015em;
+  margin: 0; text-box: trim-both cap alphabetic; }
+.split-copy .note { font-size: 15.5px; line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  margin: calc(var(--leading) - 1cap) 0 0; max-width: 48ch;
+  text-align: justify; hyphens: auto; hyphenate-limit-chars: 6 3 3;
+  text-box: trim-both cap alphabetic; }
+.split-figure { margin: 0; }
+.split-figure.cmyk { overflow: visible; } /* divergence round 3 (Barron: "it
+   crops the effect") — the rebuilt #sep-all clips each plate to its own
+   sheet (print-plates.js), so nothing solid paints outside them and the
+   misregistered sheet edges can overhang the box instead of being
+   guillotined flat; the dot screen stays on the box, the films sticking
+   out from under it unscreened */
+.split-figure .print { aspect-ratio: 986 / 660; } /* the bundled color
+   photograph's natural ratio pins the box, so a swapped image cover-crops
+   into the same frame (cover framing is the component's own; width and
+   slot sizing come with .cmyk .print in styles.css) */
+
+/* — pull quote (the serif's TRUE ITALIC — the paper's voice for quotes,
+   never a synthesized oblique; hangs at the deck's measured advances) — */
+.quote { padding: calc(2.5 * var(--leading)) 0 calc(3.5 * var(--leading)); }
+.quote blockquote {
+  font-family: var(--font-heading); font-style: italic; font-weight: 400; /* the body weight —
+     the serif's true italic is loaded at 400, never a synthesized oblique */
+  font-size: clamp(24px, 2.6vw, 34px); line-height: calc(1.5 * var(--leading));
+  letter-spacing: -0.01em; max-width: 34ch; margin: 0;
+  text-indent: -0.475em; /* hang the opening “ (the deck's measured advance in the italic) */
+  text-box: trim-both cap alphabetic;
+}
+.quote figcaption { font-size: 15.5px; line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* 5.8:1 — see .kicker */
+  margin: calc(2 * var(--leading) - 1cap) 0 0; /* two grid units below the quote's
+     last baseline — one reads as part of the quote block; the attribution needs air */
+  text-indent: -1.045em; /* hang the leading em-dash + space (measured in the Regular) */
+  text-box: trim-both cap alphabetic; }
+
+@media (max-width: 720px) {
+  /* the phone gutter (--edge bottoms out at 20px) is narrower than the hung
+     marks' measured advances, so a hung “ or em-dash would press into or past
+     the viewport edge — seat the quote flush below this width; the hang
+     returns with the wider gutter */
+  .quote blockquote, .quote figcaption { text-indent: 0; }
+}
+
+/* — close (paper stays paper: no bands, no fields — the close is a serif
+   statement with the signup beneath, parted from the page by air alone) — */
+.close { padding: calc(2.5 * var(--leading)) 0 calc(2 * var(--leading)); }
+.close h3 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 24px; line-height: var(--leading); margin: 0; text-box: trim-both cap alphabetic; }
+.close .sub { font-size: 15.5px; line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 78%, transparent);
+  margin: calc(var(--leading) - 1cap) 0 0; max-width: var(--measure); text-box: trim-both cap alphabetic; }
+.signup { display: flex; gap: var(--space-3); align-items: stretch; max-width: 480px;
+  margin-top: var(--leading); }
+.signup .input { flex: 1; }
+.signup .input, .signup .btn { min-height: 36px; } /* one control height floor; the row
+  stretches, so whichever of the pair is taller sets both and they read as one row */
+footer { padding: calc(2 * var(--leading)) 0; font-size: 13px; line-height: var(--leading);
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* 5.8:1 — see .kicker */ }
+
+/* — responsive collapse — */
+@media (max-width: 1080px) {
+  /* three justified columns fall under ~30ch here and the word spaces open
+     into rivers; two columns hold the measure at ~40ch+ until the phone
+     single column takes over. The odd third column spans the full row at
+     the body measure — a wide bottom item, not an orphan beside a hole */
+  .cols { grid-template-columns: repeat(2, 1fr); }
+  .col:last-child { grid-column: 1 / -1; }
+  .col:last-child p { max-width: var(--measure); }
+}
+
+@media (max-width: 720px) {
+  .hero { padding-top: calc(2.5 * var(--leading)); }
+  .index { grid-template-columns: 1fr; }
+  .cols { grid-template-columns: 1fr; }
+  .split { grid-template-columns: 1fr; }
+  .split-figure { order: -1; }
+}
+
+/* Review aid: the 28px rhythm drawn as hairlines — debug chrome, toggled by
+   ?baselines or the B key, never part of the look. */
+body[data-baselines] { position: relative; }
+body[data-baselines]::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom,
+      color-mix(in srgb, var(--color-accent) 35%, transparent) 0 1px,
+      transparent 1px var(--leading)),
+    repeating-linear-gradient(to bottom,
+      transparent 0 var(--half),
+      color-mix(in srgb, var(--color-accent) 16%, transparent) var(--half) calc(var(--half) + 1px),
+      transparent calc(var(--half) + 1px) var(--leading));
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="nav-brand">Daybreak</span>
+  <a href="#inside" aria-current="location">Inside</a>
+  <a href="#print">In print</a>
+  <a href="#subscribe">Subscribe</a>
+  <button type="button" class="btn btn-primary">Read today’s</button>
+</nav>
+<div class="wrap">
+
+  <section class="hero">
+    <!-- the masthead takes the cover grammar's plate construction (.cmyk-head,
+         styles.css; divergence round 3, Barron: "use both") — each law-#1 line
+         keeps its own block, the paper span carries the line's one real copy,
+         and the three plate repeats are aria-hidden, so the h1 reads once -->
+    <h1 class="display"><span class="line cmyk-head"><span class="paper">All the news.</span><span class="plate plate-c" aria-hidden="true">All the news.</span><span class="plate plate-m" aria-hidden="true">All the news.</span><span class="plate plate-y" aria-hidden="true">All the news.</span></span> <span class="line cmyk-head"><span class="paper">None of the feed.</span><span class="plate plate-c" aria-hidden="true">None of the feed.</span><span class="plate plate-m" aria-hidden="true">None of the feed.</span><span class="plate plate-y" aria-hidden="true">None of the feed.</span></span></h1>
+    <p class="sub">Daybreak is the five-minute morning digest: every story that matters, four hundred words, edited by people who went to bed angry about adjectives. On paper-white, in your inbox by six.</p>
+    <div class="row">
+      <button type="button" class="btn btn-primary">Subscribe</button>
+      <button type="button" class="btn btn-ghost">Read a back issue</button>
+    </div>
+  </section>
+
+  <section class="frontpage" aria-label="Daybreak, by the numbers">
+    <hr class="rule-head" />
+    <p class="dateline">
+      <span>№ 4,218</span>
+      <span>Printed overnight</span>
+      <span>Fair, then clearing</span>
+      <span>Price: one coffee</span>
+    </p>
+    <hr class="rule-cut" />
+    <div class="index">
+      <p class="ix"><span>On the doorstep, daily</span><span class="ix-leader"></span><span class="ix-num spot">6:00</span></p>
+      <p class="ix"><span>Words — the whole morning</span><span class="ix-leader"></span><span class="ix-num">400</span></p>
+      <p class="ix"><span>Push notifications, ever</span><span class="ix-leader"></span><span class="ix-num">0</span></p>
+      <p class="ix"><span>Edition, final at press</span><span class="ix-leader"></span><span class="ix-num">1</span></p>
+    </div>
+    <hr class="rule-cut" />
+  </section>
+
+  <section class="features" id="inside">
+    <span class="kicker">Inside every issue</span>
+    <div class="cols">
+      <div class="col">
+        <h2>Edited, not aggregated</h2>
+        <p>No algorithm chooses your morning. Three editors read everything published overnight, argue until five, and print what survived. If nothing happened, the issue is short — we consider that a feature of the news, not a failure of the product.</p>
+      </div>
+      <div class="col">
+        <h2>The fold, respected</h2>
+        <p>The lead story is the lead story. Everything above the fold matters today; everything below it can wait for lunch. Nothing is promoted because you lingered on it — lingering is between you and your coffee.</p>
+      </div>
+      <div class="col">
+        <h2>Corrections, printed</h2>
+        <p>When we get it wrong, the correction runs at the top of the next issue, set in the same size as the mistake. The record matters more than the streak, and the archive keeps both honestly.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="split" id="print">
+    <div class="split-copy">
+      <span class="kicker">In print</span>
+      <h2 class="split-title">Printed in four inks</h2>
+      <p class="note">Every photograph prints as its four process plates — cyan, magenta, yellow and black, a breath out of register, the way the presses have made pictures for a century. It reads at any size, and it reminds you the morning was made by hand.</p>
+    </div>
+    <figure class="split-figure cmyk">
+      <div class="print"><image-slot id="photo-split" shape="rect" src="../../assets/photo-color.jpg" role="img" aria-label="Product photograph printed as its four process plates, slightly out of register"></image-slot></div>
+    </figure>
+  </section>
+
+  <section class="quote">
+    <figure>
+      <!-- keep the leading “ — the blockquote's negative text-indent hangs it in the margin -->
+      <blockquote>“I cancelled four subscriptions and three anxieties. The 7:12 to Paddington is long enough for the whole paper.”</blockquote>
+      <!-- keep the leading "— " — the figcaption's negative text-indent hangs it -->
+      <figcaption>— M. Okafor, reads it on the train</figcaption>
+    </figure>
+  </section>
+
+  <section class="close" id="subscribe">
+    <h3>Tomorrow’s issue is already being argued about</h3>
+    <p class="sub">Free for your first month of mornings. After that, the price of one coffee — the paper pairs well with it.</p>
+    <div class="signup">
+      <input class="input" type="email" placeholder="you@example.com" aria-label="Email address" />
+      <button type="button" class="btn btn-primary">Subscribe</button>
+    </div>
+  </section>
+
+  <footer>Built from this project’s theme.json — see readme.md.</footer>
+</div>
+<script src="image-slot.js"></script>
+<script>
+// Review aid: baseline-grid overlay — add ?baselines to the URL, or press B to toggle.
+(() => {
+  if (new URLSearchParams(location.search).has('baselines')) document.body.setAttribute('data-baselines', '');
+  addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey) document.body.toggleAttribute('data-baselines');
+  });
+})();
+</script>
+</body>
+</html>

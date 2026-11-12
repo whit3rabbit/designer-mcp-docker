@@ -17,8 +17,8 @@
  *     system: { manifest, design, tokens, ... }
  *   }
  *
- * The OpenDesign packages are already self-contained (their preview HTML and
- * tokens.css reference no external fonts or images), so they work offline.
+ * Keep the original package files for offline MCP reads. Imported markup is
+ * stored as source, never executed by this fetcher or the MCP server.
  *
  * Usage
  *   node scripts/fetch-opendesign.mjs                    # import all
@@ -32,7 +32,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { lstat, readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -43,7 +43,9 @@ import {
   writeCatalog,
   writeDesign,
   writeIndex,
+  writeOpenDesignPackage,
 } from "./lib/cache.mjs";
+import { encodePackageFile, isPackagePath, OPENDESIGN_SCHEMA } from "./lib/opendesign-package.mjs";
 
 const argv = process.argv.slice(2);
 const argVal = (name) => {
@@ -124,7 +126,7 @@ function parseTokensCss(css) {
 
 /** Pull the first quoted family out of a font stack. */
 function primaryFont(stack) {
-  if (!stack) return null;
+  if (typeof stack !== "string" || !stack) return null;
   const m = stack.match(/["']([^"']+)["']/);
   return m ? m[1] : stack.split(",")[0].trim() || null;
 }
@@ -203,27 +205,81 @@ function northStarFrom(md, manifest) {
   return manifest?.description || "";
 }
 
-/** Read one design-systems/<slug> package. */
-async function readSystem(dir, slug) {
-  const read = async (rel) => {
-    const p = join(dir, rel);
-    if (!existsSync(p)) return null;
-    return readFile(p, "utf8");
-  };
+// Reject symlinks in every path segment so a manifest cannot package files
+// outside its own directory, including when importing a local checkout.
+async function localPath(dir, path, directory = false) {
+  if (!isPackagePath(path)) throw new Error("invalid package path");
+  const parts = path.split("/");
+  let full = dir;
+  for (const [i, part] of parts.entries()) {
+    full = join(full, part);
+    let stat;
+    try {
+      stat = await lstat(full);
+    } catch (error) {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    }
+    const expectDirectory = i < parts.length - 1 || directory;
+    if (expectDirectory ? !stat.isDirectory() : !stat.isFile()) {
+      throw new Error(`not a regular package ${directory ? "directory" : "path"}: ${path}`);
+    }
+  }
+  return full;
+}
 
-  const manifestRaw = await read("manifest.json");
-  if (!manifestRaw) return null;
-  let manifest;
-  try {
-    manifest = JSON.parse(manifestRaw);
-  } catch {
-    return null;
+async function readPackageFiles(dir, paths, files) {
+  for (const path of paths) {
+    if (files.has(path)) continue;
+    const full = await localPath(dir, path);
+    if (full) files.set(path, encodePackageFile(path, await readFile(full)));
+  }
+}
+
+async function readPackageDirectory(dir, path, files) {
+  const full = await localPath(dir, path, true);
+  if (!full) return;
+  for (const entry of await readdir(full, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
+    const child = `${path}/${entry.name}`;
+    if (entry.isDirectory()) await readPackageDirectory(dir, child, files);
+    else if (entry.isFile()) await readPackageFiles(dir, [child], files);
+  }
+}
+
+/** Read the v1 manifest and its local files, or a legacy DESIGN.md folder. */
+async function readSystem(dir, slug) {
+  const packageFiles = new Map();
+  await readPackageFiles(dir, ["manifest.json", "DESIGN.md", "tokens.css"], packageFiles);
+  const readText = (path) => {
+    const file = packageFiles.get(path);
+    return file?.encoding === "utf8" ? file.content : null;
+  };
+  const manifest = packageFiles.has("manifest.json") ? JSON.parse(readText("manifest.json")) : null;
+  if (packageFiles.has("manifest.json")) {
+    if (manifest?.schemaVersion !== OPENDESIGN_SCHEMA || manifest.id !== slug ||
+        manifest.files?.design !== "DESIGN.md" || manifest.files?.tokens !== "tokens.css") {
+      throw new Error("manifest schema, package id, or required file declarations do not match");
+    }
+    const paths = [
+      ...Object.values(manifest.files), manifest.usage, manifest.componentsManifest,
+      ...Object.values(manifest.sourceFiles ?? {}),
+      ...(manifest.preview?.pages ?? []).map((page) => page.path),
+      ...(manifest.fonts ?? []).map((font) => font.file),
+    ].filter((path) => path !== undefined);
+    await readPackageFiles(dir, paths, packageFiles);
+    for (const path of [manifest.assetsDir, manifest.previewDir, manifest.preview?.dir]) {
+      if (path !== undefined) await readPackageDirectory(dir, path, packageFiles);
+    }
   }
 
-  const designMd = await read("DESIGN.md");
-  const tokensCss = await read("tokens.css");
-  const usageMd = await read("USAGE.md");
-  const tokensJsonRaw = await read("design-tokens.json");
+  const designMd = readText("DESIGN.md");
+  const tokensCss = readText("tokens.css");
+  if (!designMd?.trim() || (manifest && !tokensCss?.trim())) {
+    throw new Error("missing or invalid DESIGN.md or required tokens.css");
+  }
+  const usageMd = readText(manifest?.usage);
+  const tokensJsonRaw = readText(manifest?.files?.designTokens);
   let tokensJson = null;
   if (tokensJsonRaw) {
     try {
@@ -237,10 +293,11 @@ async function readSystem(dir, slug) {
   let { colors, fonts } = extractTokens(vars);
 
   // design-tokens.json is richer (typed, layered) — prefer it when present.
-  if (tokensJson?.tokens?.length) {
+  if (Array.isArray(tokensJson?.tokens)) {
     const typedColors = [];
     const typedFonts = [];
     for (const t of tokensJson.tokens) {
+      if (!t) continue;
       if (t.type === "color" && HEX_RE.test(String(t.value || ""))) {
         typedColors.push({
           hex: String(t.value).toLowerCase(),
@@ -265,6 +322,7 @@ async function readSystem(dir, slug) {
     usageMd,
     tokensCss,
     tokensJson,
+    packageFiles: [...packageFiles.values()].sort((a, b) => a.path.localeCompare(b.path)),
     vars,
     colors,
     fonts,
@@ -291,7 +349,7 @@ async function main() {
   }
 
   const slugs = (await readdir(systemsDir, { withFileTypes: true }))
-    .filter((e) => e.isDirectory() && !e.name.startsWith("_"))
+    .filter((e) => e.isDirectory() && /^[a-z0-9-]+$/.test(e.name))
     .map((e) => e.name)
     .filter((s) => !onlySlug || s === onlySlug);
 
@@ -303,13 +361,16 @@ async function main() {
 
   const imported = [];
   for (const slug of slugs) {
-    const sys = await readSystem(join(systemsDir, slug), slug);
-    if (!sys) {
-      console.log(`  MISS ${slug} (no manifest.json)`);
+    let sys;
+    try {
+      sys = await readSystem(join(systemsDir, slug), slug);
+    } catch (error) {
+      console.warn(`  SKIP ${slug}: ${error.message}`);
       continue;
     }
-    const m = sys.manifest;
-    const siteName = m.name || slug;
+    const m = sys.manifest ?? {};
+    const siteName = m.name || /^#\s+([^\r\n]+)/m.exec(sys.designMd)?.[1].trim() || slug;
+    const category = m.category || /^>\s*Category:\s*([^\r\n]+)/im.exec(sys.designMd)?.[1].trim() || "";
     const url =
       m.url || `https://github.com/nexu-io/open-design/tree/main/${SUBTREE}/${slug}`;
 
@@ -322,7 +383,7 @@ async function main() {
       colorScheme: sys.theme,
       colors: sys.colors,
       fonts: sys.fonts,
-      industry: m.category || "",
+      industry: category,
       createdAt: m.generatedAt || tokensJsonTime(sys.tokensJson) || "",
       screenshotUrl: "",
       thumbnailUrl: "",
@@ -332,7 +393,7 @@ async function main() {
         meta: {
           siteName,
           url,
-          category: m.category || "",
+          category,
         },
         designSystem: {
           theme: sys.theme,
@@ -350,30 +411,30 @@ async function main() {
     };
 
     await writeDesign(slug, SOURCE.OPENDESIGN, {
-      manifest: m,
+      manifest: sys.manifest,
       design: sys.designMd,
       usage: sys.usageMd,
       tokensCss: sys.tokensCss,
       tokens: sys.tokensJson,
       vars: sys.vars,
     });
+    await writeOpenDesignPackage(slug, sys.packageFiles);
 
     imported.push(entry);
     console.log(`  ok ${String(imported.length).padStart(4)}/${slugs.length}  ${siteName} (${slug})`);
   }
 
-  // Merge into the shared catalog, replacing any previous import.
-  //
-  // Entries with no `source` tag predate the multi-source catalog and are
-  // Refero styles — tag them so the two sources stay distinguishable.
+  if (!imported.length) throw new Error("no valid OpenDesign packages imported; catalog unchanged");
+
+  // A refresh replaces only the packages it successfully imported. A single
+  // slug refresh or malformed package must not remove other cached systems.
   const { designs } = await readCatalog();
   const byId = new Map();
   for (const d of designs) {
     const source = d.source || SOURCE.REFERO;
-    if (source === SOURCE.OPENDESIGN) continue;
-    byId.set(d.id, { ...d, source });
+    byId.set(`${source}:${d.id}`, { ...d, source });
   }
-  for (const d of imported) byId.set(d.id, d);
+  for (const d of imported) byId.set(`${d.source}:${d.id}`, d);
   const merged = [...byId.values()];
   await writeCatalog(merged);
   const index = await writeIndex();
@@ -383,8 +444,7 @@ async function main() {
       `(${JSON.stringify(index.counts)})`,
   );
   console.log(
-    "next: node scripts/fetch-thumbs.mjs   (Refero screenshots only — " +
-      "OpenDesign previews are self-contained HTML)",
+    "next: node scripts/fetch-thumbs.mjs   (Refero screenshots only)",
   );
 }
 

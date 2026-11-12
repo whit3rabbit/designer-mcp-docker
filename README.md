@@ -189,7 +189,9 @@ GET /thumb/:id                   local thumbnail bytes
 GET /healthz                     readiness probe
 
 GET /components                  component library — 109 components, 250 variants
-GET /component/:slug             one component: variants, source, FAQ
+GET /component/:slug             one component with live previews and copyable source
+GET /tailwind                    HyperUI components grouped by use
+GET /tailwind/shadcn              shadcn/ui Radix Vega examples and source
 GET /api/components?q=&category= component search
 GET /api/component/:slug         one component as JSON
 
@@ -197,16 +199,43 @@ GET /presets                     preset catalogs — gradients, patterns, glass
 GET /presets/:kind               one catalog in full
 GET /api/presets                 preset catalog index
 GET /api/presets/:kind           one catalog as JSON
+
+GET /templates                   design-system templates with landing and deck previews
+GET /assets                      browser libraries, styles, fonts, and starter downloads
+GET /assets/manifest.json        versions, license notices, and SHA-256 checksums
+GET /assets/starter.zip           portable starter with a runnable example
 ```
 
 The gallery's DESIGN.md is **byte-identical** to what `refero_design_md`
 returns — both call the upstream package's own `renderDesignMd`.
 
-A top bar switches between the three tabs: **Designs**, **Components**, and
-**Gradients & Patterns**.
+Open **Assets** in the gallery to download individual files or the complete
+starter. Extract the ZIP and serve the directory with a local HTTP server,
+for example `python3 -m http.server 8080`. Open `http://127.0.0.1:8080`
+to run the React, Motion, Tailwind, and shadcn example.
 
-Thumbnails are served from the **local** cache, so the gallery needs no
-network at all.
+The Docker image ships the compiled previews and asset pack. If a mounted
+catalog has a newer component variant, its source remains available and its
+preview appears after a rebuild with that catalog.
+
+The component grids use baked thumbnails. HyperUI previews use a pinned
+snapshot with local fonts, Chart.js, and sample photos. Each example page
+also offers the original upstream HTML as text.
+
+For local development, use the baked catalog with the frontend build.
+
+```bash
+npm ci --prefix frontend --ignore-scripts
+npm ci --prefix frontend/deck --ignore-scripts
+./frontend/node_modules/.bin/playwright install chromium
+npm run frontend:fetch-tailwind
+npm run frontend:build
+DESIGN_CACHE_DIR="$PWD/bake" npm run preview
+```
+
+`npm run frontend:refresh` updates the frontend pins, lockfile, and shadcn
+registry snapshot. Review those changes, reinstall the frontend dependencies,
+and run `npm run frontend:build` to regenerate the pack.
 
 ---
 

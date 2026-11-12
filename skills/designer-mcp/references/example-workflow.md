@@ -17,7 +17,7 @@ references with actual results from the MCP during real work.
   - [Journey Questions](#journey-questions)
 - [Phase 4: Synthesis](#phase-4-synthesis)
   - [Research Summary](#research-summary)
-  - [Design Decision Ledger](#design-decision-ledger)
+  - [Decision Ledger](#decision-ledger)
 - [Phase 5: Implementation Blueprint](#phase-5-implementation-blueprint)
   - [Tokens](#tokens)
   - [Page Structure](#page-structure)
@@ -60,7 +60,7 @@ productivity SaaS with airy spacing
 enterprise analytics product marketing
 ```
 
-Open 3-4 strong styles with `refero_get`; full styles are large, so split larger
+Open 3-4 strong styles with `design_get`. Full styles are large, so split larger
 research into multiple batches.
 
 ### Style Findings
@@ -191,7 +191,9 @@ Journey logic:
 - Enterprise route asks only for essential qualification fields.
 ```
 
-### Design Decision Ledger
+### Decision Ledger
+
+This is the research-playbook Decision Ledger template filled in for this task, with an Area column added for scanability.
 
 | Area | Decision | Source | Source rule / role | Why |
 |------|----------|--------|--------------------|-----|

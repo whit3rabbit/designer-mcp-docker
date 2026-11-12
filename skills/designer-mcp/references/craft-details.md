@@ -22,7 +22,7 @@ Implementation details that separate polished products from rough ones. Most AI 
   - [Always Set Dimensions](#always-set-dimensions)
   - [Loading Strategy](#loading-strategy)
   - [In React/Next.js](#in-reactnextjs)
-- [4. Touch & Mobile](#4-touch-mobile)
+- [4. Touch & Mobile](#4-touch--mobile)
   - [Tap Delay Removal](#tap-delay-removal)
   - [Tap Highlight](#tap-highlight)
   - [Modal Scroll Lock](#modal-scroll-lock)
@@ -38,7 +38,7 @@ Implementation details that separate polished products from rough ones. Most AI 
   - [Heading Hierarchy](#heading-hierarchy)
   - [Scroll Margin for Anchors](#scroll-margin-for-anchors)
   - [Async Updates Need Announcements](#async-updates-need-announcements)
-- [7. Navigation & State](#7-navigation-state)
+- [7. Navigation & State](#7-navigation--state)
   - [URL Reflects State](#url-reflects-state)
   - [Links Support Browser Features](#links-support-browser-features)
   - [Destructive Actions Need Confirmation](#destructive-actions-need-confirmation)
@@ -326,7 +326,7 @@ Patterns that prevent jank.
 Lists with 50+ items should be virtualized:
 
 ```jsx
-// Use virtua, react-window, or similar
+// Default to virtua (shown below); react-window is the lighter alternative
 import { VList } from 'virtua';
 
 <VList style={{ height: 400 }}>

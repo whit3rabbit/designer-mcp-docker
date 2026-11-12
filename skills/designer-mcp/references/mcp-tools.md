@@ -1,24 +1,25 @@
 # Designer MCP Tools Reference
 
-The tools this skill uses. They are exposed with a `refero_` prefix — use the
-exact names your client shows, and check for a `designer`/`refero-styles`
-server prefix if your client namespaces them.
+Use the exact tool names your client shows. The generic tools use the
+`design_` prefix and the upstream tools use `refero_`. Some clients also
+include the server name in the displayed tool name.
 
 ## Contents
 
 - [What you have vs. the official Refero MCP](#what-you-have-vs-the-official-refero-mcp)
 - [Two servers, two tool sets](#two-servers-two-tool-sets)
 - [Styles](#styles)
-  - [`refero_search`](#refero-search)
-  - [`refero_get`](#refero-get)
-  - [`refero_design_md`](#refero-design-md)
-  - [`refero_list`](#refero-list)
-  - [`refero_facets`](#refero-facets)
-  - [`refero_similar` — needs the live API](#refero-similar-needs-the-live-api)
-  - [`refero_refresh` — needs the live API](#refero-refresh-needs-the-live-api)
+  - [`refero_search`](#refero_search)
+  - [`refero_get`](#refero_get)
+  - [`refero_design_md`](#refero_design_md)
+  - [`refero_list`](#refero_list)
+  - [`refero_facets`](#refero_facets)
+  - [`refero_similar` — needs the live API](#refero_similar--needs-the-live-api)
+  - [`refero_refresh` — needs the live API](#refero_refresh--needs-the-live-api)
 - [Generic tools — `design_*`](#generic-tools--design_)
   - [`design_search`](#design_search)
   - [`design_get`](#design_get)
+  - [`design_package_file`](#design_package_file)
   - [`design_list`](#design_list)
   - [`design_facets`](#design_facets)
   - [`design_markdown`](#design_markdown)
@@ -27,13 +28,18 @@ server prefix if your client namespaces them.
   - [`design_component_code`](#design_component_code)
   - [`design_preset_search`](#design_preset_search)
   - [`design_preset_get`](#design_preset_get)
+  - [`design_markdown_parse`](#design_markdown_parse)
+  - [`design_manifest_from`](#design_manifest_from)
+  - [`design_markdown_render`](#design_markdown_render)
+  - [`design_markdown_validate`](#design_markdown_validate)
 - [Gallery API (optional, for visual inspection)](#gallery-api-optional-for-visual-inspection)
 - [Common Mistakes](#common-mistakes)
 - [If Results Are Weak](#if-results-are-weak)
 
 
 This is the **local, free** Refero stack: 1,342 cached style references served
-from a container. There is no paid account and no live API behind it.
+from a container (catalog counts are as of the current cache bake). There is
+no paid account and no live API behind it.
 
 ## What you have vs. the official Refero MCP
 
@@ -59,11 +65,13 @@ alongside this one and both layers become available.
 ## Two servers, two tool sets
 
 The container ships two stdio MCP servers. Use whichever your client exposes.
+The `scripts/` paths in the table are rooted at the image's repository root,
+not this skill directory.
 
 | Server | Tools | Scope |
 |---|---|---|
 | `scripts/mcp-entry.mjs` | `refero_*` (7) | Refero styles only; `refero_similar` and `refero_refresh` need the live API |
-| `scripts/mcp-server.mjs` | `design_*` (10) | **All sources**, fully offline |
+| `scripts/mcp-server.mjs` | `design_*` | **All sources**, fully offline |
 
 The `design_*` server also serves **152 OpenDesign design systems**
 (`source: "opendesign"`) alongside the Refero styles — Linear, Stripe,
@@ -267,13 +275,33 @@ Each result carries `id`, `source`, `siteName`, `url`, `northStar`, `theme`,
 
 ### `design_get`
 
-Resolve an identifier to the full record. Accepts an id, a site name, a
-hostname, or a URL — e.g. `"linear"`, `"linear.app"`, `"linear-app"`.
+Resolve an identifier to the full record. Accepts the exact
+`designer:<source>:<id>` reference copied from the gallery, a cached id,
+a site name, a hostname, or a URL.
 
 | Argument | Type | Notes |
 |---|---|---|
 | `identifier` | string | **required** |
 | `source` | string | optional — restrict the lookup to one source |
+
+OpenDesign results also include `package.reference`, the original manifest
+(or `null` for a legacy DESIGN.md-only package), and `package.files` with
+cached paths, byte sizes, and encodings. `package.legacyCache` is true if
+only core fields from a pre-upgrade cache are available.
+
+### `design_package_file`
+
+Read one OpenDesign package file offline, using a path from `design_get`:
+
+```json
+{ "identifier": "designer:opendesign:arc", "path": "tokens.css" }
+```
+
+The response includes `content` (UTF-8 text or base64), `encoding`, and
+the original byte count. New imports preserve the original file bytes;
+old caches reconstruct `manifest.json` and `design-tokens.json` from JSON.
+To fill in the missing files, refresh the cache with
+`npm run opendesign -- --slug arc` and rebuild if using the baked catalog.
 
 ### `design_list`
 
@@ -288,8 +316,9 @@ so you know what is actually present.
 
 ### `design_markdown`
 
-The DESIGN.md for one design — the canonical agent-readable brief. Accepts
-the same identifiers as `design_get`.
+The DESIGN.md for one design. Accepts the same identifiers as `design_get`.
+An exact reference missing from the cache returns an error. The gallery's
+**Open DESIGN.md** link provides the raw Markdown for the host to read.
 
 For Refero entries it is rendered from the cached record (~3.8 KB). For
 OpenDesign entries it is the **original hand-written document** (~22 KB) with
@@ -355,6 +384,134 @@ One preset catalog in full. Each preset has `id`, `name`, `category`,
 | Argument | Type | Notes |
 |---|---|---|
 | `kind` | string | **required** — e.g. `patterns` |
+
+### `design_template_list`
+
+The six vendored design-system templates: complete, generic systems with a
+token sheet, written rules, demo cards, and starter pages. Offline.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `query` | string | optional: matches slug, name, description, heading font |
+| `limit` | number | default 20, max 50 |
+
+Each template entry: `slug`, `name`, `description`, `ground`/`text`/`accent`
+hex swatches, `headingFont`, `tokensCount`, `filesCount`, and
+`starterTemplates` (a landing page and a deck for every system). Current
+slugs: `modernist`, `classical`, `nocturne`, `organic`, `broadsheet`,
+`industry`.
+
+### `design_template_get`
+
+One template in full: theme parameters (`theme`), every token
+(`tokens[]` with `name`/`value`/`kind`), brand fonts, demo card registry,
+the complete `files[]` listing, and `manifest` (the design-system manifest
+(schema `design-system-manifest/v1`) filled from this system.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `slug` | string | **required**, e.g. `nocturne` |
+
+### `design_template_file`
+
+One text file from a template: the token sheet (`styles.css`), a starter
+landing page, the written guide, a foundation or component card, the theme
+seed. The path must be listed in the template's `files[]`. Binary assets are
+refused.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `slug` | string | **required** |
+| `path` | string | **required** (folder-relative, from `files[]`) |
+
+Returns `{ slug, path, bytes, content }`.
+
+### `design_manifest_template`
+
+The design-system manifest JSON: the machine-readable contract for one
+system, with sections mirroring a design-system editor.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `slug` | string | optional: omit for the blank template |
+
+Sections (schema `design-system-manifest/v1`):
+
+- `overview`: direction, principles, antiPatterns, usingTokens,
+  usingComponents, accessibility
+- `colors`: ground/text/accent, `roles` (bg, surface, text, accent, accent2,
+  divider), `ramps` (neutral/accent/accent-2, steps 100-900), usage notes
+- `typography`: heading/body roles with family tokens and weight, the fixed
+  px `scale` (h1-h6, body), usage notes
+- `spacing`: density multiplier plus the `--space-*` scale
+- `radius` and `shadows`: the sm/md/lg tokens
+- `components`: the class table (`class`, `what`, `demo`)
+- `assets`: imageTreatment, iconSet, photo paths
+- `tokens`: the full flat list `{ name, value, kind }`
+- `files`, `starterTemplates`, `theme`: the source system's listing,
+  starters, and generation knobs
+
+Use the blank template when building a system from a style reference; use a
+filled one when starting from a vendored system. Keep the manifest beside the
+work and design against it.
+
+### `design_markdown_parse`
+
+Import a catalog design or a local DESIGN.md. Recognized formats are Refero,
+OpenDesign, Google Stitch, and WebDesignHot. Other Markdown retains its prose
+and any recognizable colors, fonts, and rules. The result includes `format`
+and `parsed`, with `body`, `sections`, raw `tokenTree`, normalized `tokens`
+(`path`, `kind`, `value`, `source`), and `diagnostics`. Stitch YAML can be
+in frontmatter or interleaved fences. Explicit keys identify WebDesignHot,
+including documents with `source_url`.
+
+Use the same document arguments for parse, manifest seeding, and validation.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `identifier` | string | Exact `designer:<source>:<id>`, cached design id, site name, hostname, or URL |
+| `content` | string | Pasted Markdown, up to 200,000 UTF-8 bytes |
+| `source` | string | Optional `refero` or `opendesign` for an identifier |
+| `tokens` | array | Optional companion rows with `name`, `value`, and optional `type` |
+| `css` | string | Optional companion CSS text. Reads unconditional `:root` custom properties and resolves simple aliases |
+
+Pass exactly one of `identifier` and `content`. Token precedence at the same
+path is document, supplied rows, supplied CSS, then cached companion tokens.
+Differing values are reported. Conditional CSS belongs in host browser
+observations so the check can account for viewport, theme, and state.
+
+### `design_manifest_from`
+
+Seed `design-system-manifest/v1` from the same input. It carries rules,
+swatches, typography, spacing, radii, shadows, and the available named
+tokens. `provenance` records filled and open fields plus diagnostics. Review
+open fields before relying on a partial manifest as an implementation contract.
+
+### `design_markdown_render`
+
+Generate a Google Stitch-style DESIGN.md from `name`, `tokens`, optional
+`description`, and optional Markdown `body`. `tokens` is an object whose
+groups can include `colors`, `typography`, `spacing`, `rounded`, and
+`components`. Returns `designMd` and diagnostics. Use the original dialect
+when editing a document whose format-specific fields need to be preserved.
+
+### `design_markdown_validate`
+
+Check parser and token-reference diagnostics. Optionally pass `observations`
+as rows with a `location`, expected `token` path, and observed `value` (string,
+number, or null). For web observations, include `rootFontSize` in CSS px to
+compare rem values against pixels. The response reports `pass`, `fail`, or
+`unverified` for each row. `conforms` is true when at least one check ran,
+every observation matched, and the document produced zero parse errors. Supply
+a nonempty `requiredTokens` array of distinct paths to require coverage of the
+applied roles. The returned `coverage` includes totals and one entry per path.
+`missing` means a defined token has zero observations. `unverified` includes
+unknown paths, null values, and incomparable values. A mismatch at any sampled
+location takes precedence for that path. With coverage enabled, `conforms`
+also requires every required path to pass.
+
+See the [DESIGN.md workflow](design-md-workflow.md) for capture, application,
+and verification examples.
 
 ---
 
