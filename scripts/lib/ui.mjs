@@ -40,6 +40,7 @@ export function nav(active) {
     ${tab("/tailwind", "Tailwind", "tailwind")}
     ${tab("/presets", "Gradients &amp; Patterns", "presets")}
     ${tab("/templates", "System templates", "templates")}
+    ${tab("/docs", "UI SDK Docs", "docs")}
     ${tab("/assets", "Assets", "assets")}
     <span class="spacer"></span>
     <a class="dl" href="/skill">⬇ Skill</a>
@@ -83,6 +84,11 @@ export function assetsHtml(manifest) {
   </li>`).join("");
   const fileRows = (manifest?.files ?? []).map(({ path, url }) =>
     `<li><a href="${esc(url)}" download>${esc(path)}</a></li>`).join("");
+  const vendorFiles = (manifest?.files ?? [])
+    .filter(({ path }) => path.startsWith("vendor/") || path.startsWith("css/"))
+    .map(({ path, url, bytes }) =>
+      `<li><a href="${esc(url)}" download>${esc(path)}</a> <span>(${(bytes / 1024).toFixed(1)} KB)</span></li>`)
+    .join("");
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -112,9 +118,11 @@ ${manifest ? `
   <a class="dl" href="${esc(manifest.starter)}">Open starter example</a>
   <a class="dl" href="/assets/manifest.json">Asset manifest</a>
 </div>
+<h2>Dashboard &amp; Visualization JS / CSS</h2>
+<ul>${vendorFiles}</ul>
 <h2>Packages</h2>
 <ul>${packageRows}</ul>
-<details><summary>Individual files</summary><ul>${fileRows}</ul></details>
+<details><summary>All starter files</summary><ul>${fileRows}</ul></details>
 ` : "<p>Frontend assets are unavailable. Build the frontend to generate the starter pack.</p>"}
 </main>
 </body>
@@ -303,10 +311,15 @@ export function tailwindExampleHtml(source, group, selected, example) {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(group.name)} · ${sourceName}</title>
 <style>${BASE_CSS}${NAV_CSS}${BROWSE_CSS}
-.example { max-width: 1100px; }
+.example { max-width: 1180px; }
 .example h1 { margin-bottom: 12px; }
-.example iframe { display: block; width: 100%; height: clamp(280px, 57vh, 540px); border: 1px solid var(--line);
-  border-radius: 10px; background: white; }
+.viewport-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; }
+.viewport-bar span { color: var(--muted); font-size: 12px; margin-right: 4px; }
+.viewport-bar button { font: inherit; font-size: 12px; color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.viewport-bar button[aria-pressed="true"] { background: #262d46; border-color: #5362a1; }
+.frame-stage { display: flex; justify-content: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; overflow: auto; }
+.example iframe { display: block; width: 100%; max-width: 100%; height: clamp(280px, 57vh, 540px); border: 1px solid var(--line);
+  border-radius: 6px; background: white; transition: width .2s ease; }
 .example details { margin-top: 14px; }
 .example summary { cursor: pointer; }
 .example .source-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 9px; }
@@ -319,7 +332,15 @@ ${nav("tailwind")}
   <h1>${esc(group.name)}</h1>
   ${group.variants.length > 1 ? `<nav class="source-tabs" aria-label="Examples">${links}</nav>` : ""}
   ${group.slug === "application-skip-links" ? "<p>Focus the preview, then press Tab to show the skip link.</p>" : ""}
-  <iframe sandbox="allow-scripts" src="${esc(example.preview)}" title="${esc(group.name)} preview"></iframe>
+  <div class="viewport-bar" role="group" aria-label="Preview viewport">
+    <span>Viewport:</span>
+    <button type="button" data-width="100%" aria-pressed="true">Desktop</button>
+    <button type="button" data-width="768px" aria-pressed="false">Tablet (768px)</button>
+    <button type="button" data-width="375px" aria-pressed="false">Mobile (375px)</button>
+  </div>
+  <div class="frame-stage">
+    <iframe sandbox="allow-scripts" src="${esc(example.preview)}" title="${esc(group.name)} preview"></iframe>
+  </div>
   <details><summary>${source === "hyperui" ? "HTML source" : "React source"}</summary>
     <div class="source-actions"><button type="button" id="copy-example">Copy source</button>
       <a href="${esc(example.download)}" download>Download source</a><span id="copy-status" role="status"></span></div>
@@ -327,6 +348,14 @@ ${nav("tailwind")}
   </details>
 </main>
 <script>
+const previewFrame = document.querySelector('.example iframe');
+const vpBtns = [...document.querySelectorAll('.viewport-bar button')];
+for (const btn of vpBtns) {
+  btn.addEventListener('click', () => {
+    for (const b of vpBtns) b.setAttribute('aria-pressed', String(b === btn));
+    previewFrame.style.width = btn.dataset.width;
+  });
+}
 const exampleCode = document.querySelector('#example-code');
 const copyStatus = document.querySelector('#copy-status');
 document.querySelector('#copy-example').addEventListener('click', async () => {
@@ -618,6 +647,99 @@ copy.addEventListener('click', async () => {
   });
 }
 
+export function uiSdkDocsHtml(docs = []) {
+  const sections = [...new Set(docs.map((d) => d.section))];
+  const chips = [
+    `<button type="button" data-sec="" aria-pressed="true">All (${docs.length})</button>`,
+    ...sections.map((s) => `<button type="button" data-sec="${esc(s)}" aria-pressed="false">${esc(s)} (${docs.filter((d) => d.section === s).length})</button>`),
+  ].join("");
+  const list = docs.map((d) =>
+    `<button type="button" class="doc-item" data-sec="${esc(d.section)}" data-path="${esc(d.path)}" data-search="${esc(`${d.path} ${d.title} ${d.section}`.toLowerCase())}">
+      <strong>${esc(d.title)}</strong><small>${esc(d.path)}</small>
+    </button>`).join("");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI SDK Offline Docs (@ui-sdk/core, react, web)</title>
+<style>
+${BASE_CSS}
+${NAV_CSS}
+.docs-wrap { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; max-width: 1480px; margin: 0 auto; padding: 18px 20px 60px; }
+@media (max-width: 860px) { .docs-wrap { grid-template-columns: 1fr; } }
+.docs-side { display: flex; flex-direction: column; gap: 10px; }
+.docs-side input { width: 100%; background: var(--panel2); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; font: inherit; }
+.docs-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.docs-chips button { font: inherit; font-size: 12px; color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+.docs-chips button[aria-pressed="true"] { background: #262d46; border-color: #5362a1; }
+.docs-list { display: flex; flex-direction: column; gap: 4px; max-height: 70vh; overflow: auto; }
+.doc-item { text-align: left; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 2px; }
+.doc-item:hover, .doc-item[aria-current="true"] { border-color: var(--accent); background: var(--panel2); }
+.doc-item strong { font-size: 13px; }
+.doc-item small { color: var(--muted); font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.doc-item[hidden] { display: none; }
+.docs-view { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; min-height: 60vh; overflow: auto; }
+.docs-view pre { white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.6; margin: 0; }
+.docs-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.docs-head span { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+${nav("docs")}
+<div class="docs-wrap">
+  <aside class="docs-side">
+    <h1 style="margin:0;font-size:18px">UI SDK Offline Docs</h1>
+    <input id="doc-q" type="search" placeholder="Filter docs (select, dialog, webmcp...)" aria-label="Filter UI SDK docs">
+    <div class="docs-chips">${chips}</div>
+    <div class="docs-list" id="doc-list">${list}</div>
+  </aside>
+  <main class="docs-view">
+    <div class="docs-head"><span id="doc-path">Select a doc</span><a id="doc-raw" href="#" download hidden>Download .md</a></div>
+    <pre id="doc-body">Select a document from the left to read it offline, or use the MCP tools design_docs_search and design_docs_get.</pre>
+  </main>
+</div>
+<script>
+const q = document.getElementById('doc-q');
+const chips = [...document.querySelectorAll('.docs-chips button')];
+const items = [...document.querySelectorAll('.doc-item')];
+const pathEl = document.getElementById('doc-path');
+const bodyEl = document.getElementById('doc-body');
+const rawEl = document.getElementById('doc-raw');
+let sec = '';
+function filter() {
+  const s = q.value.trim().toLowerCase();
+  for (const it of items) {
+    it.hidden = (sec && it.dataset.sec !== sec) || (s && !it.dataset.search.includes(s));
+  }
+}
+q.addEventListener('input', filter);
+chips.forEach(c => c.addEventListener('click', () => {
+  sec = c.dataset.sec;
+  chips.forEach(x => x.setAttribute('aria-pressed', String(x === c)));
+  filter();
+}));
+async function openDoc(btn) {
+  items.forEach(x => x.removeAttribute('aria-current'));
+  btn.setAttribute('aria-current', 'true');
+  const p = btn.dataset.path;
+  const url = '/api/ui-sdk-docs/' + p;
+  pathEl.textContent = p;
+  rawEl.href = url;
+  rawEl.hidden = false;
+  bodyEl.textContent = 'Loading...';
+  const res = await fetch(url);
+  bodyEl.textContent = res.ok ? await res.text() : 'Failed to load ' + p;
+}
+items.forEach(it => it.addEventListener('click', () => openDoc(it)));
+const first = items.find(it => it.dataset.path === 'SKILL.md') || items[0];
+if (first) openDoc(first);
+</script>
+</body>
+</html>`;
+}
+
 // --------------------------------------------------------------- templates
 export function templatesHtml(index) {
   const systems = index?.systems || [];
@@ -825,16 +947,19 @@ ${nav("templates")}
 </div>
 <script>
 const slot = document.getElementById('template-frame');
-document.querySelectorAll('.template-preview').forEach(button => {
-  button.addEventListener('click', () => {
-    const frame = document.createElement('iframe');
-    frame.title = button.dataset.name + ' preview';
-    frame.setAttribute('sandbox', 'allow-scripts');
-    frame.src = button.dataset.preview;
-    slot.replaceChildren(frame);
-    frame.scrollIntoView({ block: 'nearest' });
-  });
+const previewButtons = [...document.querySelectorAll('.template-preview')];
+function loadTemplatePreview(button, scroll) {
+  const frame = document.createElement('iframe');
+  frame.title = button.dataset.name + ' preview';
+  frame.setAttribute('sandbox', 'allow-scripts');
+  frame.src = button.dataset.preview;
+  slot.replaceChildren(frame);
+  if (scroll) frame.scrollIntoView({ block: 'nearest' });
+}
+previewButtons.forEach(button => {
+  button.addEventListener('click', () => loadTemplatePreview(button, true));
 });
+if (previewButtons.length) loadTemplatePreview(previewButtons[0], false);
 </script>
 </body>
 </html>`;

@@ -259,6 +259,29 @@ async function buildStarter(scratch, out, shadcnFiles) {
   for (const name of ["gsap", "ScrollTrigger", "Flip", "SplitText"]) {
     await copy(join(modules, "gsap", "dist", `${name}.min.js`), join(out, "vendor", `${name}.min.js`));
   }
+  // Dashboard & data-visualization libraries (offline UMD/CSS bundles).
+  const vendorCopies = [
+    ["sigma/dist/sigma.min.js", "vendor/sigma.min.js"],
+    ["graphology/dist/graphology.umd.min.js", "vendor/graphology.umd.min.js"],
+    ["echarts/dist/echarts.min.js", "vendor/echarts.min.js"],
+    ["d3/dist/d3.min.js", "vendor/d3.min.js"],
+    ["apexcharts/dist/apexcharts.min.js", "vendor/apexcharts.min.js"],
+    ["apexcharts/dist/apexcharts.css", "css/apexcharts.css"],
+    ["gridstack/dist/gridstack-all.js", "vendor/gridstack-all.js"],
+    ["gridstack/dist/gridstack.min.css", "css/gridstack.min.css"],
+    ["tabulator-tables/dist/js/tabulator.min.js", "vendor/tabulator.min.js"],
+    ["tabulator-tables/dist/css/tabulator.min.css", "css/tabulator.min.css"],
+    ["tabulator-tables/dist/css/tabulator_midnight.min.css", "css/tabulator_midnight.min.css"],
+    ["lucide/dist/umd/lucide.min.js", "vendor/lucide.min.js"],
+    ["@ui-sdk/web/browser/web.css", "css/ui-sdk-web.css"],
+    ["@ui-sdk/web/browser/web.js", "vendor/ui-sdk/web.js"],
+  ];
+  for (const [src, dest] of vendorCopies) {
+    await copy(join(modules, src), join(out, dest));
+  }
+  for await (const file of listFiles(join(modules, "@ui-sdk", "web", "browser", "web"))) {
+    await copy(file, join(out, "vendor", "ui-sdk", "web", relative(join(modules, "@ui-sdk", "web", "browser", "web"), file)));
+  }
   return packages;
 }
 

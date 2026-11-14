@@ -262,6 +262,59 @@ and run `npm run frontend:build` to regenerate the pack.
 
 ---
 
+## Static Site & GitLab Pages
+
+The entire gallery (all 1,540 designs, Refero screenshots, OpenDesign & Claude
+Design previews, 109 AI components with 250 live demos, HyperUI & shadcn/ui
+Tailwind catalogs with client-side variant switching and viewport toggles,
+presets, 6 templates, assets, skill archive, and JSON APIs) can be built into a
+100% self-contained static site with relative URLs and zero external network
+requests:
+
+```bash
+# Build into dist/static/ (or pass --out public for GitLab Pages)
+npm run build:static
+node scripts/build-static.mjs --out public
+
+# Preview the static build locally
+npm run preview:static
+```
+
+Or export/serve it directly from the Docker image offline:
+
+```bash
+# Export static site to ./public
+docker run --rm --network none -v "$PWD/public:/out" designer-mcp:latest \
+  node scripts/build-static.mjs --out /out
+
+# Serve the static build from Docker
+docker run --rm -p 127.0.0.1:8787:8787 \
+  -v "$PWD/dist/static:/static:ro" -e DESIGN_STATIC_DIR=/static \
+  designer-mcp:latest node scripts/static-serve.mjs
+```
+
+A ready-to-use `.gitlab-ci.yml` is included to build `public/` and publish to
+GitLab Pages. All links and assets use relative paths, so the site works both at
+`/` and at project subpaths (`https://<user>.gitlab.io/<repo>/`).
+
+### Pointing MCP at a hosted static / GitLab Pages site
+
+When `DESIGN_REMOTE_URL` (or `--url <url>`) is set, `scripts/mcp-server.mjs`
+reads the catalog, designs, packages, components, presets, and templates from
+that hosted static site's `api/*.json` files instead of requiring a local
+`/cache` directory:
+
+```bash
+DESIGN_REMOTE_URL=https://<user>.gitlab.io/<repo> node scripts/mcp-server.mjs
+# or via CLI flag:
+node scripts/mcp-server.mjs --url https://<user>.gitlab.io/<repo>
+```
+
+When `DESIGN_REMOTE_URL` is unset (the default), `mcp-server.mjs` reads
+strictly from local disk and makes zero outbound network requests.
+
+---
+
 ## Two surfaces, one image
 
 The `designer-mcp` image runs both surfaces over the same cache:

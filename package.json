@@ -1,6 +1,6 @@
 {
   "name": "designer-mcp-docker",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "description": "Containerised design-system MCP server with a live offline thumbnail gallery",
@@ -18,6 +18,8 @@
     "compress": "node scripts/compress-thumbs.mjs",
     "all": "npm run fetch && npm run opendesign && npm run components && npm run presets && npm run thumbs",
     "bake": "node scripts/bake-cache.mjs",
+    "build:static": "node scripts/build-static.mjs",
+    "preview:static": "node scripts/static-serve.mjs",
     "frontend:build": "node frontend/build.mjs",
     "frontend:fetch-tailwind": "node scripts/fetch-tailwind.mjs",
     "frontend:refresh": "node scripts/fetch-frontend.mjs --latest",

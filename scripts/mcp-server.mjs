@@ -36,6 +36,8 @@ import {
 import {
   CACHE_DIR,
   SOURCE,
+  getRemoteUrl,
+  setRemoteUrl,
   readCatalog,
   readDesign,
   readOpenDesignPackage,
@@ -57,6 +59,7 @@ import {
 import { resolveDesign } from "./lib/resolve.mjs";
 import { isPackagePath, legacyPackageFiles } from "./lib/opendesign-package.mjs";
 import { score, searchText } from "./lib/score.mjs";
+import { readUiSdkDoc, searchUiSdkDocs } from "./lib/ui-sdk-docs.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -490,6 +493,33 @@ const TOOLS = [
         },
       },
       oneOf: DESIGN_MD_ONE_INPUT,
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_docs_search",
+    description:
+      "Search offline ui-sdk (@ui-sdk/core, @ui-sdk/react, @ui-sdk/web) documentation and skill references by keyword or section.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search keywords (e.g. 'select', 'dialog', 'webmcp', 'roving focus'). Omit to list docs." },
+        section: { type: "string", enum: ["core", "react", "web", "references", "skill"], description: "Filter to one doc section." },
+        limit: { type: "number", description: "Max results (default 20, max 100)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_docs_get",
+    description:
+      "Read an offline ui-sdk documentation page or skill reference by path (from design_docs_search, e.g. 'docs/react/components/select.md' or 'docs/web/llms.txt').",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Relative doc path inside the ui-sdk bundle." },
+      },
+      required: ["path"],
       additionalProperties: false,
     },
   },
@@ -1126,6 +1156,18 @@ async function dispatch(name, args) {
       return handleMarkdownRender(args);
     case "design_markdown_validate":
       return handleMarkdownValidate(args);
+    case "design_docs_search":
+      return searchUiSdkDocs({
+        query: optionalString(args.query),
+        section: optionalString(args.section),
+        limit: asLimit(args.limit, 20, 100),
+      });
+    case "design_docs_get": {
+      const docPath = asString(args.path, "path");
+      const content = await readUiSdkDoc(docPath);
+      if (content === null) throw new Error(`ui-sdk doc not found: ${docPath}`);
+      return { path: docPath, bytes: Buffer.byteLength(content, "utf8"), content };
+    }
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -1140,16 +1182,25 @@ function safeMessage(err) {
 }
 
 async function main() {
-  const catalogPath = join(CACHE_DIR, "catalog.json");
-  if (!existsSync(catalogPath)) {
-    console.error(
-      `[design-mcp] no catalog at ${catalogPath}\n` +
-        `[design-mcp] populate it first — this image ships the fetchers:\n` +
-        `[design-mcp]   node scripts/refero-public-fetch.js --limit 0\n` +
-        `[design-mcp]   node scripts/fetch-opendesign.mjs\n` +
-        `[design-mcp]   node scripts/fetch-thumbs.mjs`,
-    );
-    process.exit(1);
+  const urlIdx = process.argv.indexOf("--url");
+  if (urlIdx !== -1 && process.argv[urlIdx + 1]) {
+    setRemoteUrl(process.argv[urlIdx + 1]);
+  }
+  const remote = getRemoteUrl();
+  if (!remote) {
+    const catalogPath = join(CACHE_DIR, "catalog.json");
+    if (!existsSync(catalogPath)) {
+      console.error(
+        `[design-mcp] no catalog at ${catalogPath}\n` +
+          `[design-mcp] populate it first — this image ships the fetchers:\n` +
+          `[design-mcp]   node scripts/refero-public-fetch.js --limit 0\n` +
+          `[design-mcp]   node scripts/fetch-opendesign.mjs\n` +
+          `[design-mcp]   node scripts/fetch-thumbs.mjs`,
+      );
+      process.exit(1);
+    }
+  } else {
+    console.error(`[design-mcp] reading catalog from remote static server: ${remote}`);
   }
   await loadCatalog();
 

@@ -4,8 +4,13 @@ One Node image, three surfaces over one on-disk cache:
 
 - **Gallery** (`scripts/preview.mjs`), the HTTP server on `:8787` where a human
   browses and picks assets (design systems, components, gradients/presets).
+- **Static Site Builder** (`scripts/build-static.mjs` & `scripts/static-serve.mjs`),
+  which emits a self-contained static site (`dist/static/` or `public/` for
+  GitLab Pages) with relative URLs and `api/*.json` endpoints.
 - **Generic MCP** (`scripts/mcp-server.mjs`): stdio JSON-RPC, `design_*` tools
-  across every source. The recommended integration path.
+  across every source. The recommended integration path. Supports optional
+  `DESIGN_REMOTE_URL` / `--url` to read from a hosted static/GitLab Pages site;
+  defaults to 100% offline local disk.
 - **Upstream MCP** (`scripts/mcp-entry.mjs`): stdio, `refero_*` tools from the
   vendored `fidgetcoding-refero-mcp` package.
 

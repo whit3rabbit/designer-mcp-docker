@@ -1,0 +1,1566 @@
+# ui-sdk for Web Components
+
+> @ui-sdk/web renders ui-sdk's framework-free TypeScript core in Web Components. How an interface behaves lives in the core; @ui-sdk/web turns each primitive into parts. No styles, no dependencies, no providers, no portals.
+
+This file is the context an agent needs to build with @ui-sdk/web: how Web Components renders a primitive and the conventions every part shares, then every component with a link to its page. Read the pages of the components you use. It's generated from the docs, for this release.
+
+- [Core](./core.md): build a component, compose behaviors, and explore the foundations, from defining a primitive to working with state, the browser and text.
+- [Agents](./agents.md): letting an agent operate a page, and WebMCP.
+
+## Introduction
+
+These docs cover ui-sdk in Web Components. Using another framework? See React, Vue, Svelte or Solid. To build your own components from behaviors, see [Core](./core.md).
+
+`@ui-sdk/web` gives you components such as Select, Dialog, and Tabs as custom elements, built on ui-sdk's behaviors. They handle interactions, focus, and ARIA attributes. You write the HTML and styles.
+
+Import the components you need to register their tags, add them to your page, and style them with your own CSS.
+
+### Quick Start
+
+Copy this prompt into your agent:
+
+```text prompt
+Set up ui-sdk in this Web Components project. Each component registers its tags when you import its entry, like @ui-sdk/web/dialog.
+
+1. Install @ui-sdk/web and @ui-sdk/core with the project's package manager.
+2. Add a note to AGENTS.md, creating it if needed: before using ui-sdk, follow the ui-sdk skill if it's installed, and read node_modules/@ui-sdk/web/docs/llms.txt. To build a new component, also search node_modules/@ui-sdk/web/docs/core.md by heading, and read rendering.md next to it.
+3. If you support skills, run: npx skills add vercel-labs/ui --skill ui-sdk
+```
+
+It installs ui-sdk and points your `AGENTS.md` at the docs that ship with the packages.
+
+### Set It Up Yourself
+
+- [Installation](./installation.md): Install the packages and register their custom elements.
+- [First Component](./first-component.md): Add and style your first component.
+
+### Explore the Components
+
+The [Using Components guides](./parts-and-composition.md) cover patterns the components share, such as composing parts, handling state, and styling.
+
+## Installation
+
+Use these components in an app that supports custom elements. The examples use a bundler, such as Vite, to resolve package imports.
+
+### Install the Packages
+
+```bash
+npm install @ui-sdk/web @ui-sdk/core
+```
+
+`@ui-sdk/web` provides the custom elements. `@ui-sdk/core` provides their behavior and is a peer dependency. Install both so the components and any helpers you use share one copy of the core.
+
+### Register a Component
+
+Import each component from its own entry to register its tags:
+
+```ts
+import "@ui-sdk/web/button"
+import "@ui-sdk/web/toggle"
+```
+
+A dialog has separate tags for its trigger, content, and title. One import registers them all:
+
+```ts
+import "@ui-sdk/web/dialog"
+```
+
+Load these imports from your app's browser entry. The root entry, `@ui-sdk/web`, exports helpers and types but registers no elements. Each [component page](./README.md) shows the tags you can use.
+
+### Without a Build Step
+
+A plain HTML page can load the components from ui-sdk.dev, with nothing to install. Add one script, and each component loads the first time its tags appear on the page:
+
+```html
+<script type="module" src="https://ui-sdk.dev/web@0.js"></script>
+
+<ui-toggle><button>Bold</button></ui-toggle>
+```
+
+`@0` follows the newest 0.x release. To keep a page on one release, use its exact version, like `web@0.4.1.js`. For a quick test, `web.js` with no version follows the newest release of all.
+
+To have an agent build the page, ask it to read web.md first. It's these docs in one file, written for a page that loads `web.js` and `web.css`.
+
+Each component also has its own file, named like its import, if you'd rather list them:
+
+```html
+<script type="module" src="https://ui-sdk.dev/web@0/toggle.js"></script>
+```
+
+To host the files yourself, copy the `browser` folder from the `@ui-sdk/web` package into your site. It holds `web.js` and the `web` folder it loads from, so keep the two side by side. Browsers only run module scripts from a server, so open the page through one, not from a file on disk.
+
+#### Build Your Own
+
+`core.js` has every behavior from `@ui-sdk/core`, along with `definePrimitive` and `createParts`. Import it to build a component we don't ship, on the same page as ours. This one is a small grid of cells you can move through with the arrow keys and select with Shift:
+
+```html
+<script type="module">
+  import {
+    createCellRange,
+    createGridFocus,
+    createParts,
+    definePrimitive,
+  } from "https://ui-sdk.dev/web@0/core.js"
+
+  const sheet = definePrimitive({
+    name: "sheet",
+    options: { rows: "number", cols: "number" },
+    state: () => ({ active: null, range: null }),
+    api: (context) => {
+      const rows = () => context.options().rows
+      const cols = () => context.options().cols
+      const grid = createGridFocus(context, { key: "active", rows, cols })
+      return {
+        grid,
+        range: createCellRange(context, { key: "range", grid, rows, cols }),
+      }
+    },
+    slots: (slot) => ({
+      root: slot({ attrs: () => ({ role: "grid" }) }),
+      row: slot({ attrs: () => ({ role: "row" }) }),
+      cell: slot({
+        props: { row: "number", col: "number" },
+        attrs: (state, { props, api }) => ({
+          role: "gridcell",
+          tabindex: api.grid.tabIndex(state, props),
+          ...api.range.cellAttrs(state, props),
+        }),
+        on: {
+          keydown: (event, { api }) => api.range.keydown(event),
+          pointerdown: (event, { api, props }) =>
+            api.range.pointerdown(event, props),
+        },
+        bind: (el, { api, props }) => api.range.bind(el, props),
+      }),
+    }),
+  })
+
+  createParts(sheet, {
+    root: "my-sheet",
+    row: "my-sheet-row",
+    cell: "my-sheet-cell",
+  })
+</script>
+
+<my-sheet rows="2" cols="2" aria-label="Numbers">
+  <my-sheet-row>
+    <my-sheet-cell row="0" col="0">4</my-sheet-cell>
+    <my-sheet-cell row="0" col="1">8</my-sheet-cell>
+  </my-sheet-row>
+  <my-sheet-row>
+    <my-sheet-cell row="1" col="0">15</my-sheet-cell>
+    <my-sheet-cell row="1" col="1">16</my-sheet-cell>
+  </my-sheet-row>
+</my-sheet>
+```
+
+Selected cells get `aria-selected` and `data-selected` to style. [Compose Behaviors](./core.md#compose-behaviors) walks through building a primitive, and [Rendering Primitives](./rendering.md) covers `createParts`. `core.js` shares its files with the components, so a page that uses both loads that code once.
+
+### Add Your Styles
+
+Components use light DOM and are unstyled, so you style them with your app's CSS or with Tailwind CSS. [Styling and Animation](./styling-and-animation.md) covers both.
+
+You can render your first component without setting up a provider, a portal root, or a UI SDK stylesheet. CSS Modules need a bundler that imports a class-name map.
+
+For right-to-left layouts, set `dir="rtl"` on the page or a container. Use logical CSS properties, such as `padding-inline-start`, in your styles. [Server Rendering](./server-rendering.md) covers markup before the elements upgrade.
+
+### Editor Support
+
+The package includes `custom-elements.json`, which describes its tags, attributes, properties, and events. Tools that support custom element manifests can read it.
+
+For HTML completion in VS Code, add this to your workspace settings:
+
+```json title=".vscode/settings.json"
+{ "html.customData": ["./node_modules/@ui-sdk/web/html-custom-data.json"] }
+```
+
+Component imports also register element types with TypeScript. For example, importing `@ui-sdk/web/toggle` gives `document.querySelector("ui-toggle")` its element type.
+
+Continue with [First Component](./first-component.md) to add a working toggle to your page.
+
+## First Component
+
+Let's add a Bookmark toggle. Press it once to turn it on, then again to turn it off.
+
+If you haven't installed the packages yet, start with [Installation](./installation.md).
+
+This example uses a bundler that resolves package imports and compiles TypeScript, such as Vite. Keep `index.html` and `bookmark-button.ts` in the same folder.
+
+### Register the Component
+
+Create `bookmark-button.ts` and import the toggle entry:
+
+```ts title="bookmark-button.ts"
+import "@ui-sdk/web/toggle"
+```
+
+Importing the toggle entry registers `<ui-toggle>`. The custom element manages the wrapped button's pressed state and sets `aria-pressed` for screen readers. The native button handles Enter and Space.
+
+### Use It on Your Page
+
+Add this markup to `index.html`:
+
+```html title="index.html"
+<ui-toggle id="bookmark">
+  <button type="button">Bookmark</button>
+</ui-toggle>
+
+<script type="module" src="./bookmark-button.ts"></script>
+```
+
+Open your page. You should see a button labeled Bookmark. Next, add styles so you can tell when it is pressed.
+
+### Add Styles
+
+When the toggle is pressed, its button has a `data-pressed` attribute. Style the button inside `<ui-toggle>`.
+
+With Tailwind CSS configured in your app, add utility classes to the button. The `data-pressed:` variant applies while the toggle is pressed:
+
+```html title="index.html"
+<ui-toggle id="bookmark">
+  <button
+    type="button"
+    class="inline-flex h-8 items-center rounded-md border border-neutral-300 px-3 text-sm font-medium hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 data-pressed:bg-neutral-900 data-pressed:text-white"
+  >
+    Bookmark
+  </button>
+</ui-toggle>
+
+<script type="module" src="./bookmark-button.ts"></script>
+```
+
+Keep the component import in `bookmark-button.ts`:
+
+```ts title="bookmark-button.ts"
+import "@ui-sdk/web/toggle"
+```
+
+Try the styled toggle:
+
+```ts title="first-component.ts"
+import "@ui-sdk/web/toggle"
+
+function mount(root: HTMLElement) {
+  root.innerHTML = `
+    <ui-toggle>
+      <button type="button" data-variant="outline">
+        Bookmark
+      </button>
+    </ui-toggle>
+  `
+}
+
+export { mount }
+```
+
+Click Bookmark to turn it on or off. A filled background means it is on. You can also focus the button with Tab and press Enter or Space.
+
+Keep the label the same in both states. `aria-pressed` tells a screen reader whether the toggle is on.
+
+### Keep Going
+
+- [Toggle](./components/toggle.md) covers disabled states, controlled state, and groups of toggles.
+- [Components](./README.md) lists the other components you can add with the same install.
+- [Parts and Composition](./parts-and-composition.md) shows how to put a component with several parts together.
+- [State and Events](./state-and-events.md) shows how to read changes and control state from your app.
+- [Styling and Animation](./styling-and-animation.md) covers state attributes, CSS variables, and transitions.
+
+## Parts and Composition
+
+A component is a set of custom elements. A Popover has a root to hold its state, a trigger to open it, and content to show.
+
+### Put Parts Together
+
+Import the component, then nest its parts as shown in its Composition:
+
+```ts
+import "@ui-sdk/web/popover"
+```
+
+```html
+<ui-popover id="details">
+  <ui-popover-trigger><button>Details</button></ui-popover-trigger>
+  <ui-popover-content>
+    <ui-popover-title>Project Details</ui-popover-title>
+    <p>Last updated today.</p>
+    <ui-popover-close><button>Done</button></ui-popover-close>
+  </ui-popover-content>
+</ui-popover>
+```
+
+Triggers and Close parts wrap your own `<button>`. These wrappers use `display: contents`, so the button participates in layout directly.
+
+Parts find their root by looking up the DOM. You can put your own layout elements between them. An external part can name its root with `for="id"`; [Controllers](./controllers.md) shows an example.
+
+### Choose the Element
+
+Use `as-child` when the part should bind to its first child. For example, render a menu item as a link:
+
+```ts
+import "@ui-sdk/web/menu"
+```
+
+```html
+<ui-menu>
+  <ui-menu-trigger><button>Account</button></ui-menu-trigger>
+  <ui-menu-content>
+    <ui-menu-item as-child><a href="/settings">Settings</a></ui-menu-item>
+  </ui-menu-content>
+</ui-menu>
+```
+
+The link receives the part's role, attributes, and keyboard behavior. Triggers and Close parts already use their first button or link, so they don't need `as-child`.
+
+### Name the Control
+
+Use a label or title part, such as `<ui-field-label>` or `<ui-dialog-title>`. For an icon button, put `aria-label` on the native button inside its wrapper.
+
+Parts write the attributes they manage, including roles, IDs, and ARIA state. Other attributes and your own listeners remain. So does a name or typing hint you write on the element: `aria-label`, `aria-labelledby`, `aria-description`, `title`, `autocomplete`, `autocapitalize`, `autocorrect`, `inputmode` and `spellcheck`. Keep those managed attributes intact when changing the markup.
+
+### Respond to State
+
+Use data attributes for styling and DOM events for changes to content. [State and Events](./state-and-events.md) shows how to listen and cancel a change.
+
+## State and Events
+
+Set the starting state in HTML. Read and change it through the element's properties once it has upgraded.
+
+### Set the Starting Value
+
+```ts
+import "@ui-sdk/web/toggle"
+```
+
+```html
+<ui-toggle default-pressed><button type="button">Bold</button></ui-toggle>
+```
+
+The attribute depends on the component: `default-pressed`, `default-checked`, `default-open`, or `default-value`. Leave a boolean attribute out to turn its option off. An option that's on by default, like `loop`, turns off with `"false"`. `disabled` and `required` work like they do on native controls: written at all, even as `"false"`, they're on.
+
+### Change a Value from Script
+
+On a page with the toggle above, read or set its live `pressed` property:
+
+```ts
+import "@ui-sdk/web/toggle"
+
+await customElements.whenDefined("ui-toggle")
+const toggle = document.querySelector("ui-toggle")!
+toggle.pressed = true
+console.log(toggle.pressed)
+```
+
+Other elements expose `open`, `checked`, or `value`. These are live properties, not React-style controlled props. Changing an attribute such as `pressed` also updates state.
+
+Setting a property or attribute fires no event, like setting a native input's `value`. So a page that renders the state back into the element never hears its own write. Changes from the person using it, from the element's `api`, or from an agent fire events.
+
+### Change an Option from Script
+
+Options have properties too. On the same toggle, changing `disabled` also updates its attribute:
+
+```ts
+import "@ui-sdk/web/toggle"
+
+const toggle = document.querySelector("ui-toggle")!
+toggle.disabled = true
+```
+
+The button is now disabled, and `<ui-toggle>` has a `disabled` attribute. Set the property to `false` to remove it.
+
+Other option types follow the same pattern:
+
+| Option Type             | Property and Attribute                                   |
+| ----------------------- | -------------------------------------------------------- |
+| Boolean, off by default | `disabled = true` adds `disabled`; `false` removes it.   |
+| Boolean, on by default  | `loop = false` writes `loop="false"`.                    |
+| Text or number          | Reads back as the same type, or `undefined` when absent. |
+| List                    | Reads as an array; the attribute is comma-separated.     |
+
+Options an attribute cannot hold, such as a data menu’s `items`, are properties only.
+
+### Respond to a Change
+
+Callbacks become lowercase DOM events, such as `pressedchange` and `openchange`. Each one fires on the element whose state changed and doesn't bubble, like `toggle` on `<details>`. Its `detail` holds the requested value and the change details:
+
+| Detail   | What It Tells You                                                           |
+| -------- | --------------------------------------------------------------------------- |
+| `value`  | The requested value.                                                        |
+| `reason` | What requested the change, such as `press` or `outside-press`.              |
+| `event`  | The DOM event behind the change, when there is one.                         |
+| `source` | `keyboard`, `mouse`, `touch`, `pen`, `virtual`, `programmatic`, or `agent`. |
+
+Call `event.preventDefault()` to cancel the change. This example keeps the popover open when someone clicks outside:
+
+```html
+<ui-popover id="details">
+  <ui-popover-trigger><button>Details</button></ui-popover-trigger>
+  <ui-popover-content>
+    <ui-popover-title>Project Details</ui-popover-title>
+    <p>Last updated today.</p>
+    <ui-popover-close><button>Done</button></ui-popover-close>
+  </ui-popover-content>
+</ui-popover>
+```
+
+```ts
+import "@ui-sdk/web/popover"
+
+const popover = document.querySelector("ui-popover")!
+popover.addEventListener("openchange", (event) => {
+  if (!event.detail.value && event.detail.reason === "outside-press") {
+    event.preventDefault()
+  }
+})
+```
+
+The Done button still closes it.
+
+#### Listen to Many Elements at Once
+
+Since events don't bubble, a dialog only hears its own `openchange`, never the one from an alert dialog inside it. To hear every element inside a container with one listener, listen in the capture phase. `event.target` is the element that changed:
+
+```html
+<div id="formatting">
+  <ui-toggle><button type="button">Bold</button></ui-toggle>
+  <ui-toggle><button type="button">Italic</button></ui-toggle>
+</div>
+<output id="last-change"></output>
+```
+
+```ts
+import "@ui-sdk/web/toggle"
+
+const toolbar = document.querySelector("#formatting")!
+const output = document.querySelector("#last-change")!
+
+toolbar.addEventListener(
+  "pressedchange",
+  (event) => {
+    if (event instanceof CustomEvent && event.target instanceof HTMLElement) {
+      output.textContent = `${event.target.textContent}: ${event.detail.value}`
+    }
+  },
+  { capture: true }
+)
+```
+
+### Empty and Multiple Values
+
+Select, Tabs, and Radio Group report `null` when nothing is selected. A multiple Select or Combobox uses an array. Accordion and Toggle Group always use arrays. In attributes, lists are comma-separated, such as `default-value="bold,italic"`.
+
+Add `debug` to a root to log changes while you work. [Controllers](./controllers.md) covers changing state from elsewhere.
+
+### Move an Element
+
+An element keeps its state when you move it, like a native `<details>` keeps `open`. Take it off the page and put it back later, like a view your router keeps, and it picks up where it was: the same tab selected, the same value.
+
+## Styling and Animation
+
+Parts render without styles. The component demos use plain CSS, and the same state attributes and CSS variables work with Tailwind CSS or any other stylesheet.
+
+### Style a Part
+
+Style the element that receives the behavior. For a toggle, that is the button inside its wrapper. Import `@ui-sdk/web/toggle` on this page:
+
+```html
+<ui-toggle>
+  <button
+    class="rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm data-pressed:bg-neutral-100 data-disabled:opacity-50"
+  >
+    Bold
+  </button>
+</ui-toggle>
+```
+
+State attributes such as `data-pressed` and `data-disabled` are present or absent. Others have values, such as `data-side="top"`. Each component's Styling section lists its attributes and CSS variables.
+
+### CSS Modules
+
+CSS Modules need a bundler that imports a class-name map. With plain CSS, use an ordinary class name and load the stylesheet instead. Import the module and pass its class to the button:
+
+```html
+<ui-toggle id="bold"><button>Bold</button></ui-toggle>
+```
+
+```ts
+import "@ui-sdk/web/toggle"
+import styles from "./toggle.module.css"
+
+const button = document.querySelector("#bold button")!
+button.classList.add(styles.toggle)
+```
+
+```css title="toggle.module.css"
+.toggle {
+  cursor: default;
+  border: 1px solid var(--input, #e5e5e5);
+  border-radius: 1.125rem;
+  background: transparent;
+  padding: 0.375rem 0.625rem;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.toggle[data-pressed] {
+  background: var(--muted, #f5f5f5);
+}
+
+.toggle[data-disabled] {
+  opacity: 0.5;
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--ring, #a3a3a3);
+  outline-offset: 2px;
+}
+```
+
+### Animate Opening and Closing
+
+Import `@ui-sdk/web/popover`, then style `data-starting-style` for entry and `data-ending-style` for exit:
+
+```html
+<ui-popover id="details">
+  <ui-popover-trigger><button>Details</button></ui-popover-trigger>
+  <ui-popover-content
+    class="origin-(--transform-origin) transition-[opacity,scale] duration-150 data-starting-style:scale-96 data-starting-style:opacity-0 data-ending-style:scale-96 data-ending-style:opacity-0 motion-reduce:transition-none"
+  >
+    <ui-popover-title>Project Details</ui-popover-title>
+    <p>Last updated today.</p>
+    <ui-popover-close><button>Done</button></ui-popover-close>
+  </ui-popover-content>
+</ui-popover>
+```
+
+The popup stays shown until its exit transition or animation finishes, then becomes hidden. Put exit styles on `data-ending-style`; `data-closed` describes state but doesn't wait for an exit.
+
+Popups provide `--anchor-width` and `--available-height` for sizing. Use those and `data-slot` rather than generated IDs. [Popups](./popups.md) covers placement and containers.
+
+### The ui-sdk Layer
+
+A few behaviors need a little CSS, like keeping a closed popup hidden or giving each element a default `display`, so ui-sdk adds it to the page in a cascade layer named `ui-sdk`. Declare that layer at the top of the stylesheet your page links, so your own styles win over it wherever the page puts them. With Tailwind, put it above `@import "tailwindcss"`:
+
+```css
+@layer ui-sdk;
+```
+
+### Content Security Policy
+
+A Content Security Policy without `'unsafe-inline'` in `style-src` blocks the CSS ui-sdk adds to the page. Give ui-sdk your policy's nonce with a meta tag in the page's `<head>`, next to where your server writes the policy:
+
+```html
+<meta property="csp-nonce" nonce="your-nonce" />
+```
+
+With Vite, set `html.cspNonce` in your Vite config to a placeholder, and Vite writes this tag for you. Your server replaces the placeholder with a new nonce on each request. Shadow roots need nothing: ui-sdk adopts constructed style sheets there, which no policy blocks.
+
+If your policy has no nonce for styles, add the tag without the `nonce` attribute, and ui-sdk adopts constructed style sheets on the page too. If your code replaces `document.adoptedStyleSheets`, ui-sdk adds its sheets back as elements update or are added.
+
+## Controllers
+
+An upgraded element exposes its controller as `api`. Use it when an action that changes the component lives somewhere else.
+
+### Use the Element's Controller
+
+```html
+<button id="toggle-bold">Toggle Bold</button>
+<ui-toggle id="bold"><button>Bold</button></ui-toggle>
+```
+
+```ts
+import "@ui-sdk/web/toggle"
+
+await customElements.whenDefined("ui-toggle")
+const toggle = document.querySelector("ui-toggle")!
+document
+  .querySelector("#toggle-bold")!
+  .addEventListener("click", () => toggle.api.toggle())
+```
+
+Controller methods run the same change events as user input, including cancellation. Each component lists its methods, such as `open()`, `close()`, `setValue()`, or `focus()`.
+
+You can also create a controller with the component's entry, such as `createPopoverController()` from `@ui-sdk/web/popover`, and assign it to a root's `controller` property. Before the element connects, its methods do nothing and return `undefined`. Once it's in the page, they run right away.
+
+### Share a Popup
+
+An external trigger names its root with `for`. Several triggers can open the same popup:
+
+```ts
+import "@ui-sdk/web/popover"
+```
+
+```html
+<ui-popover-trigger for="editor"
+  ><button>Edit Notes</button></ui-popover-trigger
+>
+<ui-popover-trigger for="editor"
+  ><button>Edit Tasks</button></ui-popover-trigger
+>
+<ui-popover id="editor">
+  <ui-popover-content>
+    <ui-popover-title>Edit Item</ui-popover-title>
+    <ui-popover-close><button>Done</button></ui-popover-close>
+  </ui-popover-content>
+</ui-popover>
+```
+
+To distinguish the item, assign a trigger's `payload` property before inserting it into the page. The root emits `payloadchange` with that payload in `event.detail.value`.
+
+### Wait for a Popup to Close
+
+`open()` returns a promise that settles when the popup closes:
+
+```ts
+import "@ui-sdk/web/popover"
+
+await customElements.whenDefined("ui-popover")
+const editor = document.querySelector("ui-popover")!
+const result = await editor.api.open({ payload: "Notes" })
+console.log(result.reason, result.returnValue)
+```
+
+For confirmations, [Alert Dialog](./components/alert-dialog.md) provides `createConfirm()`, which gives you a function you can await.
+
+## Popups
+
+Popovers, menus, selects, and dialogs use the browser's top layer. They render in place, above the page, so you don't need a portal or Positioner part. Their events bubble through the elements around them like any other child's, so a click handler or a link wrapped around a popup also gets the clicks inside it. Keep popups outside clickable cards and links.
+
+### Place the Content
+
+```ts
+import "@ui-sdk/web/popover"
+```
+
+```html
+<ui-popover id="details">
+  <ui-popover-trigger><button>Details</button></ui-popover-trigger>
+  <ui-popover-content side="bottom" align="start" side-offset="8">
+    <ui-popover-title>Project Details</ui-popover-title>
+    <p>Last updated today.</p>
+    <ui-popover-close><button>Done</button></ui-popover-close>
+  </ui-popover-content>
+</ui-popover>
+```
+
+The popup flips or shifts when there isn't enough room.
+
+| Attribute           | What It Does                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| `side`              | Chooses `top`, `bottom`, `left`, `right`, `start`, or `end`. Start and end follow reading direction. |
+| `align`             | Aligns to the start, center, or end of that side.                                                    |
+| `side-offset`       | Sets the gap from the anchor, in pixels.                                                             |
+| `align-offset`      | Shifts it along its side.                                                                            |
+| `collision-padding` | Leaves space from the window's edges.                                                                |
+
+`anchor` accepts a selector for another element. For a point or rectangle, pass an anchor to the controller's `open()` method.
+
+### Control Dismissal
+
+Set `dismissible="false"` on the root to stop Escape, outside presses, focus leaving, Back, and sheet swipes from closing it. The trigger, Close part, and controller can still close it.
+
+The `dismissattempt` event reports refused dismissals through `event.detail.reason`. [State and Events](./state-and-events.md) shows how to cancel just one reason.
+
+### Modals and Sheets
+
+`modal="true"` makes the rest of the page inert and locks scrolling. Each component documents its default.
+
+Menu, Select, Combobox, Autocomplete, Popover, and Dialog support `presentation="auto"` to become a sheet on small touch screens. Use `presentation="sheet"` to always show a sheet.
+
+### Focus
+
+Dialogs, alert dialogs, drawers, and popovers move focus into their content when they open. Where it lands depends on how they opened:
+
+| Opened With                                  | Focus Goes To                                                |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| Keyboard, screen reader, mouse, pen, or code | The element `initial-focus` picks.                           |
+| Touch                                        | The content itself, so no on-screen keyboard appears.        |
+| Hover                                        | Nowhere. Focus stays where it is.                            |
+| Rendered open                                | Nowhere, except in a dialog, which takes focus as it mounts. |
+
+`initial-focus` defaults to `auto`: the first focusable element, or the content when it has none. A dialog tries an element with `autofocus` first, and an alert dialog tries its first Close part. Set it to `content` to focus the content itself, `none` to leave focus alone, or a CSS selector.
+
+`modal` decides whether Tab can leave. With `modal="true"` or `modal="trap-focus"`, Tab and Shift+Tab wrap inside the content. With `modal="false"`, Tab moves from the trigger into a popover and on to the page after it, and focus leaving closes the popover. A non-modal dialog stays open.
+
+When a popup closes while focus is inside it, focus returns to the trigger. If the trigger is gone or can't take focus, focus goes to the element focused before the popup opened, then where the popup it was opened from would return focus, then to the nearest focusable element after where the trigger was. A popup a controller opened returns to the element focused before it first. Set `final-focus` to `none` to leave focus alone, or to a selector to send it somewhere else. Closing because focus moved away never moves it back, and neither does pressing something focusable outside a non-modal popup.
+
+Menus, selects, and comboboxes handle focus within their own lists, and tooltips never move it. Each component's page covers its own.
+
+### Hidden Content and Containers
+
+Closed content stays in your markup, hidden. The `openchangecomplete` event fires after opening or closing finishes, including animations. `keep-mounted` is available for animation libraries that need the closed element rendered.
+
+`container` takes a selector for the element to render into, looked up in the popup's own tree, so a popup in a shadow root finds it in that shadow root. Inside an iframe, a popup handles focus, Escape, and scroll locking in the iframe's own document. Keep a dialog containing a form outside a surrounding form, or move its content with `container`, to avoid nested forms.
+
+[Styling and Animation](./styling-and-animation.md) covers transitions.
+
+### Toasts and Confirms
+
+Place `<ui-overlay-host>` near your app's root, then call `toast()` from an event handler:
+
+```html
+<ui-overlay-host></ui-overlay-host> <button id="save">Save</button>
+```
+
+```ts
+import "@ui-sdk/web/overlays"
+import { toast } from "@ui-sdk/web"
+
+document
+  .querySelector("#save")!
+  .addEventListener("click", () => toast.success("Saved"))
+```
+
+See [Toast](./components/toast.md) and [Alert Dialog](./components/alert-dialog.md) for complete examples.
+
+## Lists and Menus
+
+Select, Combobox, Autocomplete, and Listbox accept items as a property. Use this when your choices already come from an array. You can also write their item parts in HTML.
+
+### Start with Strings
+
+```html
+<ui-select>
+  <ui-select-trigger
+    ><button aria-label="Fruit">
+      <ui-select-value placeholder="Choose a fruit"></ui-select-value></button
+  ></ui-select-trigger>
+  <ui-select-content>
+    <ui-select-list></ui-select-list>
+  </ui-select-content>
+</ui-select>
+```
+
+```ts
+import "@ui-sdk/web/select"
+
+const select = document.querySelector("ui-select")!
+select.items = ["Apple", "Banana", "Pear"]
+```
+
+Each string is both its value and its label. For different values and labels, use `{ value: "apple", label: "Apple" }`. Items can also have `disabled` and `keywords`.
+
+Group choices with `{ type: "group", label, items }`, or separate them with `{ type: "separator" }`. Annotate the array with `ListData` and your editor checks every entry where you write it:
+
+```ts
+import type { ListData } from "@ui-sdk/core/select"
+
+const plans: ListData = [
+  { value: "free", label: "Free" },
+  { value: "pro", label: "Pro" },
+  { type: "separator" },
+  {
+    type: "group",
+    label: "Contact sales",
+    items: [{ value: "enterprise", label: "Enterprise" }],
+  },
+]
+```
+
+For object values, set the `itemToValue` and `itemToLabel` properties, and write the type as `ListData<Plan>`. [Select](./components/select.md) has complete examples.
+
+Trigger Menu uses a `triggers` property for its trigger definitions; see [Trigger Menu](./components/trigger-menu.md).
+
+### Search and Load Items
+
+The `filter` attribute chooses a matching mode, such as `filter="startsWith"`. Assign a function to the `filter` property for your own matching. [Async Options](./utilities/async-options.md) covers loading from a server.
+
+Data lists can virtualize large collections.
+
+### Define a Menu
+
+```html
+<ui-menu>
+  <ui-menu-trigger><button>File</button></ui-menu-trigger>
+</ui-menu>
+```
+
+```ts
+import "@ui-sdk/web/menu"
+import type { MenuData } from "@ui-sdk/web"
+
+const fileMenu: MenuData = [
+  { value: "open", label: "Open", shortcut: "mod+o" },
+  { type: "separator" },
+  {
+    type: "submenu",
+    label: "Share",
+    items: [{ value: "email", label: "Email" }],
+  },
+]
+
+const menu = document.querySelector("ui-menu")!
+menu.items = fileMenu
+menu.addEventListener("action", (event) => console.log(event.detail.value))
+```
+
+A plain string is an action whose value and label are the string. [Menu](./components/menu.md) covers checkbox items and radio groups. Commands use `CommandData` and trigger menus `TriggerMenuData`, the same entries with fields of their own, and trees `TreeItemData[]`.
+
+### Style Parts from Data
+
+Parts rendered from data start out bare, with no classes. To style them, put a `<template>` inside the element and write each part there once, the way you want it to look. Every part the element renders is a copy of the part with the same tag in its template, classes and content included.
+
+```html
+<ui-select default-value="pro">
+  <ui-select-trigger>
+    <button><ui-select-value></ui-select-value></button>
+  </ui-select-trigger>
+  <template>
+    <ui-select-content class="rounded-2xl bg-white p-1 shadow-lg">
+      <ui-select-group>
+        <ui-select-group-label
+          class="px-2 py-1 text-xs text-neutral-500"
+        ></ui-select-group-label>
+        <ui-select-item
+          class="relative flex items-center rounded-xl py-1.5 ps-2 pe-8 data-highlighted:bg-neutral-100"
+        >
+          <ui-select-item-indicator class="absolute end-2"
+            >✓</ui-select-item-indicator
+          >
+        </ui-select-item>
+      </ui-select-group>
+      <ui-select-separator
+        class="-mx-1 my-1 h-px bg-neutral-200"
+      ></ui-select-separator>
+    </ui-select-content>
+  </template>
+</ui-select>
+```
+
+```ts
+const select = document.querySelector("ui-select")!
+select.items = plans
+```
+
+The element looks up each part by its tag, so the template only needs one of each, nested however reads best. Parts you leave out of it render bare.
+
+- **Containers copy only themselves.** The content, the list, a group or a submenu's content takes the template's classes, and the data fills it.
+- **Items copy everything inside them.** An indicator, an icon or a shortcut you put in the template's item shows in every item.
+- **The label goes in the text part.** When the template's item has one, like `<ui-select-item-text>`, the label goes there, so you can style what a search matched with classes like `[&_mark]:font-semibold`. Without one, the label comes first in the item.
+
+Select, Combobox, Autocomplete, Command, Listbox and Trigger Menu copy their content, list, groups, group labels, items and separators. A combobox with chips copies its chip too, with the remove button you write inside it:
+
+```html
+<template>
+  <ui-combobox-chip
+    class="flex items-center gap-1 rounded-2xl bg-neutral-200 ps-1.5 pe-0.5 text-xs"
+  >
+    <ui-combobox-chip-remove>
+      <button type="button" class="opacity-50 hover:opacity-100">×</button>
+    </ui-combobox-chip-remove>
+  </ui-combobox-chip>
+</template>
+```
+
+A menu copies its content, items, checkbox items, radio items, groups, group labels, separators, submenu triggers and submenu content. Put the check in the template's checkbox item and the chevron in its submenu trigger.
+
+A tree copies its items, indicators, checkboxes, labels and groups. A branch gets the indicator, and every item gets the checkbox when the tree is `checkable`. A link item's label becomes an `<a>` that takes the label's classes.
+
+```html
+<ui-tree aria-label="Groceries">
+  <template>
+    <ui-tree-item class="flex flex-wrap items-center">
+      <ui-tree-item-indicator
+        class="size-4 before:content-['›'] data-expanded:rotate-90"
+      ></ui-tree-item-indicator>
+      <ui-tree-item-label
+        class="flex-1 rounded-xl px-2 data-selected:bg-neutral-100"
+      ></ui-tree-item-label>
+      <ui-tree-group class="basis-full ps-4"></ui-tree-group>
+    </ui-tree-item>
+  </template>
+</ui-tree>
+```
+
+### Keys and Shortcuts
+
+`loop` controls whether arrow keys wrap around a list. Components that support `orientation` use it to choose the navigation axis.
+
+A trigger's `shortcut="mod+k"` opens it from elsewhere on the page. Data menus run item shortcuts while closed; a menu item written in HTML only displays its shortcut. [Shortcuts](./utilities/shortcuts.md) covers registering your own.
+
+## Forms
+
+Give a control a `name` to include its value in a form. Once their modules load, controls such as Checkbox and Select participate in submission, validation, and reset through the browser’s form-associated custom element APIs.
+
+### Submit a Value
+
+```ts
+import "@ui-sdk/web/checkbox"
+```
+
+```html
+<form action="/preferences" method="post">
+  <label
+    ><ui-checkbox name="updates" value="yes" default-checked></ui-checkbox>
+    Email me updates</label
+  >
+  <button type="submit">Save</button>
+  <button type="reset">Reset</button>
+</form>
+```
+
+The checkbox submits `updates=yes` when checked. Reset restores its default value.
+
+On controls that support them, `required`, `disabled`, `read-only`, and `form` follow native conventions. The elements expose `validity`, `checkValidity()`, and `setCustomValidity()`.
+
+### Respond to a Reset
+
+A reset also fires `checkedchange` when it requests a different value. You can use the same listener for clicks and resets:
+
+```html
+<form>
+  <label>
+    <ui-checkbox name="updates" value="yes" default-checked></ui-checkbox>
+    Email me updates
+  </label>
+  <button type="reset">Reset</button>
+  <output id="reason">No change yet</output>
+</form>
+```
+
+```ts
+import "@ui-sdk/web/checkbox"
+
+const checkbox = document.querySelector("ui-checkbox")!
+const reason = document.querySelector("#reason")!
+
+checkbox.addEventListener("checkedchange", (event) => {
+  reason.textContent = event.detail.reason
+})
+```
+
+Run the script after the markup exists. Uncheck the box, then press Reset: `default-checked` restores `true`, and the output reads `reset`. If the checkbox is already at its default, no change event is needed.
+
+The element owns its live state. If your application mirrors `checked` elsewhere, update that state from `checkedchange` too.
+
+### Label and Validate a Field
+
+`ui-field` finds the control inside it and connects the label, description, and error:
+
+```ts
+import "@ui-sdk/web/field"
+import "@ui-sdk/web/input"
+```
+
+```html
+<ui-field name="email">
+  <ui-field-label>Email</ui-field-label>
+  <ui-input>
+    <input type="email" required />
+  </ui-input>
+  <ui-field-description>We'll only use it for receipts.</ui-field-description>
+  <ui-field-error></ui-field-error>
+</ui-field>
+```
+
+The control is one of ours, such as `ui-input`, `ui-textarea`, `ui-checkbox` or `ui-select`. [Field](./components/field.md) shows the supported controls.
+
+### Handle a Submission
+
+On a normal submit, the browser checks constraints such as `required` and `type="email"` before running your listener.
+
+Your server may still reject a valid-looking value. Set the field’s `invalid` property to `true` and show the server’s message. When the user edits the field, clear the message and set `invalid` back to `undefined` so the field uses native validation again. This example expects a `/api/preferences` endpoint:
+
+```html
+<form>
+  <ui-field name="email">
+    <ui-field-label>Email</ui-field-label>
+    <ui-input>
+      <input type="email" required />
+    </ui-input>
+    <ui-field-error></ui-field-error>
+  </ui-field>
+  <button type="submit">Save</button>
+</form>
+```
+
+```ts
+import "@ui-sdk/web/field"
+import "@ui-sdk/web/input"
+
+const form = document.querySelector("form")!
+const field = form.querySelector("ui-field")!
+const error = form.querySelector("ui-field-error")!
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault()
+  const response = await fetch("/api/preferences", {
+    method: "POST",
+    body: new FormData(form),
+  })
+  field.invalid = response.ok ? undefined : true
+  error.textContent = response.ok ? "" : "That email is already taken."
+})
+
+form.addEventListener("input", () => {
+  field.invalid = undefined
+  error.textContent = ""
+})
+```
+
+An empty `<ui-field-error>` shows the browser's own message, so clearing the text brings it back. Without a listener, the native form submits normally.
+
+For a form that must work before component scripts load, see [Server Rendering](./server-rendering.md#before-upgrade).
+
+## Server Rendering
+
+Write custom elements in your server-rendered HTML. Import their modules in the browser to upgrade them and connect their behavior.
+
+### Send the Markup
+
+```html
+<ui-toggle default-pressed>
+  <button type="button" aria-pressed="true">Bold</button>
+</ui-toggle>
+<script type="module" src="/src/components.ts"></script>
+```
+
+```ts title="components.ts"
+import "@ui-sdk/web/toggle"
+```
+
+Your bundler resolves the package import. The browser upgrades `<ui-toggle>` when that module runs. Plain server-rendered HTML does not calculate the primitive’s ARIA state. Here, `aria-pressed="true"` describes the initial button before upgrade and matches `default-pressed`. After upgrade, ui-sdk keeps it in sync as the button toggles.
+
+### Before Upgrade
+
+The Bold button is visible before the script loads, but it cannot toggle yet. Native behavior still works: a submit button can submit a form, and a native input can accept text. Keyboard navigation and state changes managed by ui-sdk need the component’s script.
+
+Design the initial HTML accordingly. For a control that must submit before upgrade, include a native input or select using the fallback markup shown on its component page.
+
+### Wait for an Element
+
+Run code that uses component properties after the markup exists and the element is defined:
+
+```ts
+import "@ui-sdk/web/toggle"
+
+await customElements.whenDefined("ui-toggle")
+const toggle = document.querySelector("ui-toggle")!
+console.log(toggle.pressed)
+```
+
+Run this after the markup exists. `whenDefined` waits for the tag's registration; it doesn't wait for an element to be inserted into the document.
+
+### Saved Preferences and Storage
+
+Preferences like a color scheme or an emoji skin tone are saved in the browser, so your server can't render them. [Preferences](./core.md#preferences) covers the preferences themselves; this is how they fit server-rendered HTML.
+
+#### Show Them Before the Scripts Load
+
+Write `preferencesScript([...])` from `@ui-sdk/core` into your HTML as `<ui-preferences>`'s first child. It runs as the browser parses the page, before any module, and puts every saved value on its `data-*` attribute, so CSS that selects those attributes is right from the first paint. Give the element its preferences once its module loads:
+
+```ts title="server.ts"
+import { preferencesScript } from "@ui-sdk/core"
+import { colorScheme, skinTone } from "./preferences"
+
+const page = `<body>
+  <ui-preferences>
+    <script>${preferencesScript([colorScheme, skinTone])}</script>
+    …
+  </ui-preferences>
+  <script type="module" src="/src/page.ts"></script>
+</body>`
+```
+
+```ts title="page.ts"
+import "@ui-sdk/web/preferences"
+import { colorScheme, skinTone } from "./preferences"
+
+document.querySelector("ui-preferences")!.preferences = [colorScheme, skinTone]
+```
+
+The script writes preferences made with `global: true` on `<html>`, and the others on `<ui-preferences>`. Once the element has its preferences, it keeps the attributes in step with every change. Add a `nonce` attribute to the script if your Content Security Policy needs one.
+
+#### Read a Cookie on the Server
+
+A preference kept in a cookie can render on your server too, content included. Pass the request's `Cookie` header to `createCookieStorage` while rendering that request, and read the value to write it into the HTML:
+
+```ts
+const skinTone = createPreference({
+  values: ["default", "light", "medium", "dark"],
+  defaultValue: "default",
+  attribute: "data-skin-tone",
+  storage: createCookieStorage("skin-tone", {
+    cookie: request.headers.get("cookie"),
+  }),
+})
+
+const page = `<ui-preferences data-skin-tone="${skinTone.get().value}">…</ui-preferences>`
+```
+
+In the browser the same storage reads `document.cookie`.
+
+#### Render the Storage Script Yourself
+
+For one element that keeps its own value, like a toolbar's density, a storage's `script` returns the same kind of inline script for a single element. Write it right after the element, since it sets the element right before it:
+
+```ts title="server.ts"
+import { createLocalStorage } from "@ui-sdk/core"
+
+const density = createLocalStorage("density")
+const script = density.script({
+  attribute: "data-density",
+  values: ["comfortable", "compact"],
+})
+
+const toolbar = `<div class="toolbar" data-density="comfortable">…</div>
+<script>${script}</script>`
+```
+
+- **Shared by ID.** Every script with the same storage kind and ID reads the storage once, however many elements it follows, and the scripts are identical, so compression shrinks the repeats.
+- **Only safe values.** Any script on your site can write the saved value, so `script` only sets attributes that start with `data-`, and only to one of `values`.
+- **Not for cookies.** A cookie storage's `script` returns undefined, since your server reads the cookie and can write the value itself.
+
+To run before the page's content at all, write `preferencesScript([...])` into `<head>`. Only global preferences make sense there, since the others go on the script's parent element.
+
+### Importing on the Server
+
+Component modules skip registration when `customElements` is unavailable. Importing one on the server doesn't upgrade markup. Load it again in the browser.
+
+Popups render in place, so your server template doesn't need a portal root. [Popups](./popups.md) covers placement, and [Forms](./forms.md) covers submission.
+
+## Rendering Primitives
+
+This page renders the rating from [Compose Behaviors](./core.md#compose-behaviors). Start with that guide's [complete `rating.ts`](./core.md#complete-primitive): it already handles selection, arrow keys, and focus. Here we'll connect its `root` and `star` slots to custom elements.
+
+### Define the Elements
+
+`createParts` registers one custom element for each slot you map. Save this beside `rating.ts`:
+
+```ts title="rating-web.ts"
+import { createParts, wrappedButton } from "@ui-sdk/web"
+import { rating } from "./rating"
+
+createParts(rating, {
+  root: "my-rating",
+  star: { tag: "my-rating-star", target: wrappedButton, display: "contents" },
+})
+```
+
+The root creates the primitive instance. Each star finds that instance through the root above it. `wrappedButton` puts the star's behavior and attributes on a native button inside the custom element.
+
+`createParts` also returns the element classes, named like the parts in other frameworks: `Root` and `Star`. Keep them with `const parts = createParts(rating, { ... })` to check an element, like `element instanceof parts.Star`. On the server nothing is registered, so they're `undefined`.
+
+### Render the Rating
+
+Load `rating-web.ts` from your app's module entry, then use the registered tags:
+
+```html
+<my-rating default-value="4" aria-label="Rating">
+  <my-rating-star value="1"
+    ><button aria-label="1 star">★</button></my-rating-star
+  >
+  <my-rating-star value="2"
+    ><button aria-label="2 stars">★</button></my-rating-star
+  >
+  <my-rating-star value="3"
+    ><button aria-label="3 stars">★</button></my-rating-star
+  >
+  <my-rating-star value="4"
+    ><button aria-label="4 stars">★</button></my-rating-star
+  >
+  <my-rating-star value="5"
+    ><button aria-label="5 stars">★</button></my-rating-star
+  >
+</my-rating>
+```
+
+The primitive's schema parses `default-value` as a number and each star's `value` as a string. Put the star's accessible label and styles on its button. The button receives `data-filled` when it contributes to the rating.
+
+[Styling and Animation](./styling-and-animation.md) covers styling those attributes. The native buttons remain in the HTML before the elements upgrade; their rating behavior starts when the module loads.
+
+### Listen to Changes
+
+The primitive's `onValueChange` callback becomes a `valuechange` event on the root:
+
+```ts
+import "./rating-web"
+
+const element = document.querySelector("my-rating")!
+element.addEventListener("valuechange", (event) => {
+  const { value } = (event as CustomEvent<{ value: number }>).detail
+  console.log(`Rating: ${value}`)
+})
+```
+
+Call `event.preventDefault()` to cancel a change. These events don't bubble, so listen on the root itself. [State and Events](./state-and-events.md) explains the details and controlled values.
+
+### Add Logic to a Part
+
+[Custom Parts](./custom-parts.md) builds on these same elements: choose a part's binding target, and expose API methods or live properties.
+
+## Custom Parts
+
+Start with the rating elements from [Rendering Primitives](./rendering.md). Add configuration to `createParts` when you need a different target or a public API.
+
+### Choose the Target
+
+By default, a part binds to its custom element. `target` chooses a child instead. `wrappedButton` finds a button or link; `wrappedChild("input")` finds an input.
+
+Bind to the native element that should own focus and keyboard behavior. Put its label and classes on that element too.
+
+### Expose API Methods
+
+The rating primitive has a `rate` method. Add it to the root's `api` list to let application code call it:
+
+```ts title="rating-web.ts"
+import { createParts, wrappedButton } from "@ui-sdk/web"
+import { rating } from "./rating"
+
+createParts(rating, {
+  root: { tag: "my-rating", api: ["rate"] },
+  star: { tag: "my-rating-star", target: wrappedButton, display: "contents" },
+})
+```
+
+Use this definition instead of the earlier one. Once the root is connected, `element.api.rate(3)` asks the primitive to change its value. Its callback and cancellation still apply. The element exposes only the methods you list.
+
+### Expose a Live Property
+
+A `state` mapping exposes a live getter and setter. Both call the primitive's API, so the primitive needs methods for reading and writing that value. The rating above only has `rate`; the built-in toggle has both `isPressed` and `setPressed`:
+
+```ts
+import { toggle } from "@ui-sdk/core/toggle"
+import { createParts, wrappedButton } from "@ui-sdk/web"
+
+createParts(toggle, {
+  root: {
+    tag: "my-toggle",
+    target: wrappedButton,
+    display: "contents",
+    state: {
+      pressed: {
+        get: (api) => api.isPressed(),
+        set: (api, value: boolean) => api.setPressed(value),
+      },
+    },
+    api: ["isPressed", "setPressed", "toggle"],
+  },
+})
+```
+
+```html
+<my-toggle><button>Bold</button></my-toggle>
+```
+
+The setter calls the primitive's API, so change callbacks and cancellation still apply. The `api` list exposes those methods on the element's controller.
+
+### Attributes and Properties
+
+The primitive's schema supplies the default conversion:
+
+| Kind                          | How It Reaches the Primitive                                   |
+| ----------------------------- | -------------------------------------------------------------- |
+| `string`, `number`, `boolean` | Parsed from an attribute.                                      |
+| `list`                        | A comma-separated attribute.                                   |
+| `value`                       | A JavaScript property, for objects and other rich values.      |
+| `callback`                    | A DOM event.                                                   |
+| `action`                      | A DOM event with `detail.waitUntil(promise)` for pending work. |
+
+A boolean attribute is on when present, unless its value is `"false"`. Defaults determine the value when the attribute is absent. `disabled` and `required` follow native controls, which treat them as on whenever present.
+
+Each attribute gets a property that reflects it. Name the booleans that are on by default in `defaults`, so their properties read `true` without the attribute and `false` writes `"false"`:
+
+```ts
+import { tabs } from "@ui-sdk/core/tabs"
+import { createParts, wrappedButton } from "@ui-sdk/web"
+
+createParts(tabs, {
+  root: { tag: "my-tabs", defaults: { loop: true } },
+  list: "my-tabs-list",
+  tab: { tag: "my-tabs-tab", target: wrappedButton },
+  panel: "my-tabs-panel",
+})
+```
+
+Use `kinds` to override a schema kind for an element and `properties` to add properties absent from the schema. `context(el)` on a child part can supply slot props from surrounding markup; explicit attributes and properties take precedence.
+
+### Compose a Popup
+
+A custom root can contain `ui-popover` or `ui-dialog`. Keep its `open` property in sync with your primitive and listen for `openchange`. That event doesn't bubble, so a listener on your root hears only the change you forward. [Compose Ours](./core.md#compose-ours) shows the pattern.
+
+## Components
+
+Each page has the component's composition, examples, styling hooks and every prop.
+
+- [Accordion](./components/accordion.md): Show and hide sections of content from their headings. Defined by `import "@ui-sdk/web/accordion"`.
+- [Alert Dialog](./components/alert-dialog.md): Ask someone to confirm an action before you continue. Defined by `import "@ui-sdk/web/alert-dialog"`.
+- [Autocomplete](./components/autocomplete.md): Suggest text while someone types, without limiting what they can enter. Defined by `import "@ui-sdk/web/autocomplete"`.
+- [Avatar](./components/avatar.md): Show an image with a fallback while it loads or if it fails. Defined by `import "@ui-sdk/web/avatar"`.
+- [Button](./components/button.md): Run an action, show that it's working, and keep it reachable when disabled. Defined by `import "@ui-sdk/web/button"`.
+- [Calendar](./components/calendar.md): Choose one date, several dates, or a range from a month grid. Defined by `import "@ui-sdk/web/calendar"`.
+- [Carousel](./components/carousel.md): Page through slides with native scrolling, keyboard controls, and optional rotation. Defined by `import "@ui-sdk/web/carousel"`.
+- [Checkbox](./components/checkbox.md): Choose one or more options, individually or as a group. Defined by `import "@ui-sdk/web/checkbox"`.
+- [Collapsible](./components/collapsible.md): Show and hide a panel, preserve its contents, and animate its height. Defined by `import "@ui-sdk/web/collapsible"`.
+- [Color Picker](./components/color-picker.md): Choose a color by dragging across an area and along sliders, typing any CSS color, or picking a preset. Defined by `import "@ui-sdk/web/color-picker"`.
+- [Combobox](./components/combobox.md): Search a list of options and choose one or several values. Defined by `import "@ui-sdk/web/combobox"`.
+- [Command](./components/command.md): Search commands, run actions, and open pages of more choices. Defined by `import "@ui-sdk/web/command"`.
+- [Date Input](./components/date-input.md): Type a date one part at a time, in the order your user's language writes it. Defined by `import "@ui-sdk/web/date-input"`.
+- [Date Picker](./components/date-picker.md): Type a date or choose one from a calendar, with support for ranges and forms. Defined by `import "@ui-sdk/web/date-picker"`.
+- [Dialog](./components/dialog.md): Open a focused task over the page. Defined by `import "@ui-sdk/web/dialog"`.
+- [Drawer](./components/drawer.md): A sheet you can open, drag, and resize from an edge of the screen. Defined by `import "@ui-sdk/web/drawer"`.
+- [Field](./components/field.md): Connect a form control to its label, description, and validation errors. Defined by `import "@ui-sdk/web/field"`.
+- [File Input](./components/file-input.md): Choose, drop, or paste files, validate them, and submit them with a form. Defined by `import "@ui-sdk/web/file-input"`.
+- [Hover Card](./components/hover-card.md): Preview a link on hover or keyboard focus while keeping its normal navigation. Defined by `import "@ui-sdk/web/hover-card"`.
+- [Image Cropper](./components/image-cropper.md): Choose the part of an image to keep by moving and resizing a selection, or by panning and zooming the image under it. Defined by `import "@ui-sdk/web/image-cropper"`.
+- [Input](./components/input.md): Enter text, add a clear button, and connect the value to your form or state. Defined by `import "@ui-sdk/web/input"`.
+- [Label](./components/label.md): Name any control with a label, and let a press on the label reach it. Defined by `import "@ui-sdk/web/label"`.
+- [Listbox](./components/listbox.md): Choose one or several options from an always-visible list. Defined by `import "@ui-sdk/web/listbox"`.
+- [Menu](./components/menu.md): Choose actions and settings from a button or a context menu. Defined by `import "@ui-sdk/web/menu"`.
+- [Menubar](./components/menubar.md): Move between an application’s menus with one tab stop. Defined by `import "@ui-sdk/web/menubar"`.
+- [Meter](./components/meter.md): Show a measurement within a known range, such as storage used or an account quota. Defined by `import "@ui-sdk/web/meter"`.
+- [Navigation Menu](./components/navigation-menu.md): Groups site links into panels that open from a row of triggers. Defined by `import "@ui-sdk/web/navigation-menu"`.
+- [Number Input](./components/number-input.md): Enter numbers, step through values, and format them for a locale. Defined by `import "@ui-sdk/web/number-input"`.
+- [OTP Input](./components/otp-input.md): Enter a one-time code with support for pasting, autofill, and native form validation. Defined by `import "@ui-sdk/web/otp-input"`.
+- [Pagination](./components/pagination.md): Navigate pages with buttons, links, or your router. Defined by `import "@ui-sdk/web/pagination"`.
+- [Password Input](./components/password-input.md): Enter a password, show or hide it, and use it in a native form. Defined by `import "@ui-sdk/web/password-input"`.
+- [Popover](./components/popover.md): Edit or explore something beside its trigger. Defined by `import "@ui-sdk/web/popover"`.
+- [Preferences](./components/preferences.md): Apply user preferences to data attributes so your styles can follow them. Defined by `import "@ui-sdk/web/preferences"`.
+- [Progress](./components/progress.md): Show a task’s progress, or an indeterminate state while its progress is unknown. Defined by `import "@ui-sdk/web/progress"`.
+- [Radio](./components/radio.md): Choose one option, move the selection with arrow keys, and submit it with a form. Defined by `import "@ui-sdk/web/radio"`.
+- [Rating](./components/rating.md): Pick a score from a row of stars, whole or half, with a preview as the pointer moves over them. Defined by `import "@ui-sdk/web/rating"`.
+- [Resizable](./components/resizable.md): Resize, collapse, and save panel layouts with pointer and keyboard controls. Defined by `import "@ui-sdk/web/resizable"`.
+- [Scroll Area](./components/scroll-area.md): Add styled scrollbars, edge indicators, and follow-to-end behavior to native scrolling. Defined by `import "@ui-sdk/web/scroll-area"`.
+- [Segmented Control](./components/segmented-control.md): Pick one of a few options from a row of buttons, with an indicator that slides to the choice. Defined by `import "@ui-sdk/web/segmented-control"`.
+- [Select](./components/select.md): Choose one value or several from a popup list. Defined by `import "@ui-sdk/web/select"`.
+- [Separator](./components/separator.md): Divide groups of content with a horizontal or vertical line. Defined by `import "@ui-sdk/web/separator"`.
+- [Slider](./components/slider.md): Adjust a number or a range with draggable thumbs and keyboard controls. Defined by `import "@ui-sdk/web/slider"`.
+- [Switch](./components/switch.md): Turn a setting on or off. Defined by `import "@ui-sdk/web/switch"`.
+- [Tabs](./components/tabs.md): Switch between related panels with one tab selected at a time. Defined by `import "@ui-sdk/web/tabs"`.
+- [Textarea](./components/textarea.md): Enter multiple lines of text, grow the field as you type, and connect it to a form. Defined by `import "@ui-sdk/web/textarea"`.
+- [Time Input](./components/time-input.md): Type a time one part at a time, on the clock your user's language uses.
+- [Timeline](./components/timeline.md): Show dated events in order, like an activity feed, a changelog or an order's progress, with arrow keys between them. Defined by `import "@ui-sdk/web/timeline"`.
+- [Toast](./components/toast.md): Show notifications with actions, timed dismissal, and screen reader announcements. Defined by `import "@ui-sdk/web/toast"`.
+- [Toggle](./components/toggle.md): Keep a button pressed, or group toggles with a shared value and arrow-key navigation. Defined by `import "@ui-sdk/web/toggle"`.
+- [Token Input](./components/token-input.md): Mix editable text with tokens for files, people, tags, and other references. Defined by `import "@ui-sdk/web/token-input"`.
+- [Toolbar](./components/toolbar.md): Give buttons, toggles, menus and fields one tab stop with arrow-key navigation. Defined by `import "@ui-sdk/web/toolbar"`.
+- [Tooltip](./components/tooltip.md): Name a control or add a short hint on hover and keyboard focus. Defined by `import "@ui-sdk/web/tooltip"`.
+- [Tree](./components/tree.md): Browse a hierarchy of files, pages, or choices with expandable branches. Defined by `import "@ui-sdk/web/tree"`.
+- [Trigger Menu](./components/trigger-menu.md): "Opens suggestions at the caret when you type a trigger such as @, /, or #." Defined by `import "@ui-sdk/web/trigger-menu"`.
+- [Waterfall](./components/waterfall.md): Show a trace or a page's requests as bars on a shared time axis, with spans that expand to show what they started. Defined by `import "@ui-sdk/web/waterfall"`.
+
+## Utilities
+
+### Async Options
+
+`createAsyncOptions` loads items as someone types. It waits for typing to pause, cancels requests that are replaced, and keeps the previous results visible while loading.
+
+Change the movie search and wait for the results. Use the arrow keys to choose a movie, then press Enter.
+
+#### Load Results
+
+Write the combobox, then connect its query events to a loader. This example expects `/api/movies` to return an array of movie titles:
+
+```html
+<ui-combobox filter="false">
+  <ui-combobox-input
+    ><input aria-label="Movie" placeholder="Search movies…"
+  /></ui-combobox-input>
+  <ui-combobox-content>
+    <ui-combobox-list></ui-combobox-list>
+  </ui-combobox-content>
+</ui-combobox>
+```
+
+```ts
+import "@ui-sdk/web/combobox"
+import { createAsyncOptions } from "@ui-sdk/core/async-options"
+import type { UiComboboxElement } from "@ui-sdk/web"
+
+function connectMovies(combobox: UiComboboxElement) {
+  const movies = createAsyncOptions<string>(async (query, { signal }) => {
+    const response = await fetch(`/api/movies?q=${encodeURIComponent(query)}`, {
+      signal,
+    })
+    if (!response.ok) throw new Error("Couldn't load movies")
+    return response.json()
+  })
+  function update() {
+    const { items, status } = movies.getState()
+    combobox.items = items
+    combobox.status = status
+  }
+  const unsubscribe = movies.subscribe(update)
+  update()
+  const events = new AbortController()
+  combobox.addEventListener(
+    "querychange",
+    (event) => movies.setQuery(event.detail.value),
+    {
+      signal: events.signal,
+    }
+  )
+  combobox.addEventListener("loadmore", () => movies.loadMore(), {
+    signal: events.signal,
+  })
+
+  return () => {
+    events.abort()
+    unsubscribe()
+    movies.cancel()
+  }
+}
+
+const disconnect = connectMovies(document.querySelector("ui-combobox")!)
+```
+
+Keep `disconnect` and call it when removing this view. It removes listeners, unsubscribes from state, and cancels pending work.
+
+Pass `signal` to `fetch` so a newer search can cancel the request. `filter="false"` leaves matching and result order to the server. Set `items` and `status` as properties, as shown above.
+
+Use the component's status and empty parts to show loading, error, and empty messages, as in the demo. The same pattern works with [Select](./components/select.md#async-search), [Autocomplete](./components/autocomplete.md#async-suggestions), and [Command](./components/command.md#async-results).
+
+#### Choose When to Load
+
+The helper's second argument sets its starting behavior:
+
+| Option      | What It Does                                            | Default |
+| ----------- | ------------------------------------------------------- | ------- |
+| `debounce`  | Milliseconds typing must pause before a request starts. | `200`   |
+| `query`     | The starting search text.                               | `""`    |
+| `immediate` | Loads that text before anyone types.                    | `false` |
+
+Add `{ immediate: true, debounce: 300 }` after the loader to load initial choices. If you set `query`, use the same text for the component's `default-query`.
+
+#### Load More
+
+For paged results, return `{ items, hasMore }`. The page number starts at `0`:
+
+```ts
+import type { AsyncOptionsContext } from "@ui-sdk/core/async-options"
+
+async function loadMoviePages(
+  query: string,
+  { signal, page }: AsyncOptionsContext
+) {
+  const response = await fetch(
+    `/api/movies?q=${encodeURIComponent(query)}&page=${page}`,
+    { signal }
+  )
+  if (!response.ok) throw new Error("Couldn't load movies")
+  const data: { titles: string[]; next: number | null } = await response.json()
+  return { items: data.titles, hasMore: data.next !== null }
+}
+
+export { loadMoviePages }
+```
+
+Pass `loadMoviePages` to `createAsyncOptions` in place of the inline loader above.
+
+The `loadmore` listener above asks for another page when scrolling or keyboard navigation reaches the last item. The helper appends the new items.
+
+Open the movie list and scroll down, or use Arrow Down to reach the last result. The next page is added to the list.
+
+#### Retry a Search
+
+`movies.getState()` holds `items`, `status`, `error`, and `hasMore`. Status is `"loading"` during a request, `"error"` after a failure, and `"idle"` otherwise.
+
+Call `movies.reload()` from a retry button to load the current query again, starting at page `0`. Previous results stay available while it loads.
+
+### Shortcuts
+
+`registerShortcut` connects keys to an action. For an element that already accepts `shortcut`, such as a dialog trigger, use that attribute directly.
+
+Press N to create a note. Press Command+S on Mac or Control+S elsewhere to save. The buttons run the same actions.
+
+#### Register a Shortcut
+
+Keys are joined with `+`. `mod` means Command on Apple platforms and Control elsewhere:
+
+```html
+<button id="new-note">New note <kbd aria-hidden="true"></kbd></button>
+<p id="count" aria-live="polite">0 notes</p>
+```
+
+```ts
+import { ariaKeyshortcuts, formatShortcut, registerShortcut } from "@ui-sdk/web"
+
+const button = document.querySelector<HTMLButtonElement>("#new-note")!
+const count = document.querySelector("#count")!
+let total = 0
+function addNote() {
+  total++
+  count.textContent = `${total} notes`
+}
+
+const unregister = registerShortcut("mod+enter", addNote, {
+  description: "New note",
+})
+button.addEventListener("click", addNote)
+button.setAttribute("aria-keyshortcuts", ariaKeyshortcuts("mod+enter"))
+button.querySelector("kbd")!.textContent = formatShortcut("mod+enter")
+
+function disconnect() {
+  unregister()
+  button.removeEventListener("click", addNote)
+}
+```
+
+Call `disconnect()` when removing this view. `registerShortcut` returns the function that unregisters it.
+
+#### Show the Keys
+
+`formatShortcut` produces display text for the current platform. `ariaKeyshortcuts` produces the matching `aria-keyshortcuts` value. The example hides the visual hint from screen readers because the button already exposes the shortcut.
+
+Format browser-specific hints after the page loads. Compare the original keys, not the formatted display text.
+
+#### While Someone Is Typing
+
+Shortcuts with Command, Control, or Option can run in text fields. Plain letters and other keys stay available for typing. Set `allowInInput: true` when a shortcut should work there too, such as Escape to clear a search.
+
+#### Limit a Shortcut to an Area
+
+A named `scope` runs only while it is enabled. This connection turns it on when the textarea has focus and clears it on cleanup:
+
+```html
+<textarea id="note" aria-label="Note"></textarea>
+```
+
+```ts
+import { registerShortcut, shortcuts } from "@ui-sdk/web"
+
+function connectNote(note: HTMLTextAreaElement) {
+  const unregister = registerShortcut(
+    "escape",
+    () => {
+      note.value = ""
+    },
+    {
+      scope: "note",
+      allowInInput: true,
+    }
+  )
+  const events = new AbortController()
+  note.addEventListener("focus", () => shortcuts.setScope("note", true), {
+    signal: events.signal,
+  })
+  note.addEventListener("blur", () => shortcuts.setScope("note", false), {
+    signal: events.signal,
+  })
+  shortcuts.setScope("note", document.activeElement === note)
+
+  return () => {
+    events.abort()
+    shortcuts.setScope("note", false)
+    unregister()
+  }
+}
+
+const disconnect = connectNote(
+  document.querySelector<HTMLTextAreaElement>("#note")!
+)
+```
+
+Call `disconnect()` when removing the note. Scope names are shared, so choose one for each area you want to enable together. A `when` function can add a condition checked on each key press.
+
+Focus the note and type some text. Press Command+Enter on Mac or Control+Enter elsewhere to save, or Escape to clear it. Move focus outside the note to turn off its shortcuts.
+
+#### Inside a Popup
+
+Page shortcuts pause while a modal is open. Pass `layer`, an element inside a popup or a function that returns one, to make a shortcut belong to that popup. It runs only while the popup is open, even though its closed content stays in the DOM.
+
+When shortcuts share the same keys, the topmost open layer wins, then the most recently registered shortcut.
+
+#### List Available Shortcuts
+
+Call `shortcuts.list()` when a help screen opens. It returns the shortcuts that can run now, including their `keys`, formatted `hint`, and `description`. Add descriptions when registering shortcuts so the help screen can explain each action.

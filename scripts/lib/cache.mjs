@@ -43,6 +43,34 @@ export const CACHE_DIR =
   process.env.REFERO_CACHE_DIR ||
   join(homedir(), ".design-cache");
 
+let REMOTE_URL = (process.env.DESIGN_REMOTE_URL || "").replace(/\/+$/, "");
+const remoteCache = new Map();
+
+/** Base URL when reading from a hosted static site (e.g. GitLab Pages), or "". */
+export function getRemoteUrl() {
+  return REMOTE_URL;
+}
+
+/** Point cache reads at a hosted static site (or "" for local disk). */
+export function setRemoteUrl(url) {
+  REMOTE_URL = String(url || "").replace(/\/+$/, "");
+  remoteCache.clear();
+}
+
+async function fetchRemoteJson(rel) {
+  if (!REMOTE_URL) return null;
+  if (remoteCache.has(rel)) return remoteCache.get(rel);
+  const res = await fetch(`${REMOTE_URL}/${rel}`, { signal: AbortSignal.timeout(15000) });
+  if (res.status === 404) {
+    remoteCache.set(rel, null);
+    return null;
+  }
+  if (!res.ok) throw new Error(`Remote fetch ${rel} failed: HTTP ${res.status}`);
+  const data = await res.json();
+  remoteCache.set(rel, data);
+  return data;
+}
+
 export const CATALOG_PATH = join(CACHE_DIR, "catalog.json");
 export const INDEX_PATH = join(CACHE_DIR, "index.json");
 export const THUMBS_DIR = join(CACHE_DIR, "thumbs");
@@ -99,7 +127,9 @@ export async function readJson(path) {
  * have to guess.
  */
 export async function readCatalog() {
-  const raw = await readJson(CATALOG_PATH);
+  const raw = REMOTE_URL
+    ? await fetchRemoteJson("api/catalog.json")
+    : await readJson(CATALOG_PATH);
   if (!raw) return { updatedAt: 0, designs: [] };
   const list = raw.designs || raw.styles || [];
   const designs = list.map((d) =>
@@ -125,6 +155,9 @@ export async function writeCatalog(designs) {
 
 /** Full detail for one design, across sources. */
 export async function readDesign(id, source) {
+  if (REMOTE_URL) {
+    return fetchRemoteJson(`api/designs/${encodeURIComponent(id)}.json`);
+  }
   if (source === SOURCE.OPENDESIGN) {
     const raw = await readJson(join(SYSTEMS_DIR, `${id}.json`));
     return raw?.system ?? null;
@@ -173,6 +206,7 @@ export async function writeDesign(id, source, payload) {
 }
 
 export async function readOpenDesignPackage(id) {
+  if (REMOTE_URL) return fetchRemoteJson(`api/packages/${encodeURIComponent(id)}.json`);
   return readJson(join(SYSTEMS_DIR, "packages", `${id}.json`));
 }
 
@@ -193,6 +227,7 @@ export async function writeOpenDesignPackage(id, files) {
  */
 export async function readClaudePackage(id) {
   if (!/^[a-z0-9-]+$/i.test(id)) return null;
+  if (REMOTE_URL) return fetchRemoteJson(`api/claude/${encodeURIComponent(id)}.json`);
   return readJson(join(CLAUDE_DIR, `${id}.json`));
 }
 
@@ -214,7 +249,9 @@ export const DESCRIPTORS_PATH = join(CACHE_DIR, "descriptors.json");
 
 /** The descriptors for every catalogued design system, or an empty map. */
 export async function readDescriptors() {
-  const raw = await readJson(DESCRIPTORS_PATH);
+  const raw = REMOTE_URL
+    ? await fetchRemoteJson("api/descriptors.json")
+    : await readJson(DESCRIPTORS_PATH);
   return raw?.systems ?? {};
 }
 
@@ -274,6 +311,9 @@ export async function cachedThumbIds() {
  * explains what to run.
  */
 export async function readComponentsIndex() {
+  if (REMOTE_URL) {
+    return (await fetchRemoteJson("api/components.json")) ?? { updatedAt: null, total: 0, variants: 0, components: [] };
+  }
   const path = join(CACHE_DIR, "components.json");
   if (!existsSync(path)) return { updatedAt: null, total: 0, variants: 0, components: [] };
   try {
@@ -286,6 +326,7 @@ export async function readComponentsIndex() {
 /** One component's full record, including every variant's source code. */
 export async function readComponent(slug) {
   if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  if (REMOTE_URL) return fetchRemoteJson(`api/component/${encodeURIComponent(slug)}.json`);
   const path = join(CACHE_DIR, "components", `${slug}.json`);
   if (!existsSync(path)) return null;
   try {
@@ -297,6 +338,9 @@ export async function readComponent(slug) {
 
 /** The preset catalog index (which catalogs exist). */
 export async function readPresetsIndex() {
+  if (REMOTE_URL) {
+    return (await fetchRemoteJson("api/presets.json")) ?? { updatedAt: null, total: 0, catalogs: [] };
+  }
   const path = join(CACHE_DIR, "presets.json");
   if (!existsSync(path)) return { updatedAt: null, total: 0, catalogs: [] };
   try {
@@ -309,6 +353,7 @@ export async function readPresetsIndex() {
 /** One preset catalog, with every preset record. */
 export async function readPresetCatalog(kind) {
   if (!/^[a-z0-9-]+$/i.test(kind)) return null;
+  if (REMOTE_URL) return fetchRemoteJson(`api/presets/${encodeURIComponent(kind)}.json`);
   const path = join(CACHE_DIR, "presets", `${kind}.json`);
   if (!existsSync(path)) return null;
   try {
@@ -326,8 +371,9 @@ export async function readPresetCatalog(kind) {
  * no templates, so the server still starts.
  */
 export async function readDesignSystemsIndex() {
-  const path = join(CACHE_DIR, "design-systems.json");
   const empty = { updatedAt: null, total: 0, systems: [] };
+  if (REMOTE_URL) return (await fetchRemoteJson("api/templates.json")) ?? empty;
+  const path = join(CACHE_DIR, "design-systems.json");
   if (!existsSync(path)) return empty;
   try {
     return JSON.parse(await readFile(path, "utf8"));
@@ -343,6 +389,7 @@ export async function readDesignSystemsIndex() {
  */
 export async function readDesignSystem(slug) {
   if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  if (REMOTE_URL) return fetchRemoteJson(`api/template/${encodeURIComponent(slug)}.json`);
   const path = join(CACHE_DIR, "design-systems", `${slug}.json`);
   if (!existsSync(path)) return null;
   try {

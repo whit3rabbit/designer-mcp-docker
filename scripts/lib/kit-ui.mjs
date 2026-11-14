@@ -121,8 +121,10 @@ export function kitNav(active) {
   <a class="brand" href="/">▣ Designer</a>
   ${tab("/", "Designs", "designs")}
   ${tab("/components", "Components", "components")}
+  ${tab("/tailwind", "Tailwind", "tailwind")}
   ${tab("/presets", "Gradients &amp; Patterns", "presets")}
   ${tab("/templates", "System templates", "templates")}
+  ${tab("/docs", "UI SDK Docs", "docs")}
   ${tab("/assets", "Assets", "assets")}
   <span class="spacer"></span>
   <a class="dl" href="/skill">⬇ Skill</a>

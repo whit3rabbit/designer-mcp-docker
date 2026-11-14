@@ -1,0 +1,9 @@
+pages:
+  image: ghcr.io/whit3rabbit/designer-mcp:latest
+  script:
+    - node /app/scripts/build-static.mjs --out public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

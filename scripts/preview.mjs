@@ -71,9 +71,11 @@ import {
   presetDetailHtml,
   templatesHtml,
   templateDetailHtml,
+  uiSdkDocsHtml,
   nav,
   NAV_CSS,
 } from "./lib/ui.mjs";
+import { listUiSdkDocs, readUiSdkDoc } from "./lib/ui-sdk-docs.mjs";
 import {
   galleryIndexHtml,
   designDetailHtml,
@@ -401,13 +403,19 @@ ${donts ? `<h2>Don't</h2><ul>${donts}</ul>` : ""}
 <pre>${esc(designMarkdown(s))}</pre>`;
 
   if (!views.length) {
-    // No gallery artifacts: the token-led page, in the gallery's own styles.
+    // No gallery artifacts: show the cached screenshot preview + token-led page.
     return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(s.siteName)} — Design Systems</title>
 <style>
 ${KIT_CSS}${KIT_NAV_CSS}
-  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 70px}
+  .wrap{max-width:1040px;margin:0 auto;padding:22px 20px 70px}
+  .shot-card{margin:18px 0 6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .shot-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .shot-bar button{font:inherit;color:var(--strong);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 9px;cursor:pointer}
+  .shot-wrap{max-height:540px;overflow:auto;background:var(--panel2)}
+  .shot-wrap.full{max-height:none}
+  .shot-wrap img{display:block;width:100%;height:auto}
   .toks{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
   .tok{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px}
   .chip{width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,.14);flex:none}
@@ -431,9 +439,19 @@ ${kitNav("designs")}
 <p class="lede">${esc(s.northStar || "")}</p>
 ${s.url ? `<p class="lede">Source <code>${esc(s.url)}</code></p>` : ""}
 ${tags.length ? `<ul class="tags">${tags.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+<div class="shot-card">
+  <div class="shot-bar"><span>Cached screenshot preview</span><button type="button" id="toggle-shot">Expand full height</button></div>
+  <div class="shot-wrap" id="shot-wrap"><img src="/thumb/${encodeURIComponent(s.id)}" alt="${esc(s.siteName)} preview"></div>
+</div>
 ${main}
 </div>
 <script>
+const shotWrap = document.getElementById('shot-wrap');
+const toggleShot = document.getElementById('toggle-shot');
+toggleShot.addEventListener('click', () => {
+  const full = shotWrap.classList.toggle('full');
+  toggleShot.textContent = full ? 'Collapse height' : 'Expand full height';
+});
 const reference = document.getElementById('theme-reference');
 const status = document.getElementById('theme-status');
 document.getElementById('copy-theme').addEventListener('click', async () => {
@@ -553,6 +571,22 @@ const server = createServer(async (req, res) => {
     }
 
     if (p === "/api/facets") return json(res, 200, facets());
+
+    // ---------------------------------------------------- offline ui-sdk docs
+    if (p === "/docs" || p === "/docs/") {
+      const { docs } = await listUiSdkDocs();
+      return sendHtml(res, uiSdkDocsHtml(docs));
+    }
+    if (p === "/api/ui-sdk-docs") {
+      return json(res, 200, await listUiSdkDocs());
+    }
+    const mDoc = p.match(/^\/api\/ui-sdk-docs\/(.+)$/);
+    if (mDoc) {
+      const content = await readUiSdkDoc(decodeURIComponent(mDoc[1]));
+      if (content === null) return json(res, 404, { error: "doc not found" });
+      res.writeHead(200, { "content-type": "text/markdown; charset=utf-8" });
+      return res.end(content);
+    }
 
     // ---------------------------------------------------- component library
     if (p === "/components" || p === "/components/") {

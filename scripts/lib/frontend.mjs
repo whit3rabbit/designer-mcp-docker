@@ -39,7 +39,7 @@ export function documentPolicy(kind = "gallery") {
       "default-src 'none'", "base-uri 'none'", "object-src 'none'", "form-action 'none'",
       "script-src 'self' 'unsafe-inline'", "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:", "img-src 'self' data: blob:",
-      "frame-src 'self' data: blob:", "connect-src 'none'", "frame-ancestors 'self'",
+      "frame-src 'self' data: blob:", "connect-src 'none'",
     ].join("; ");
   }
   return [

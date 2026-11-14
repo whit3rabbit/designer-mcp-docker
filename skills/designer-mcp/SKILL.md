@@ -71,8 +71,10 @@ inventing precedent.
 - **Do not use generic frontend/product design skills as a parallel design
   authority** when this skill is available. This is the design methodology;
   generic design skills tend to pull work back toward generic AI design. The
-  bundled `frontend-design/` sub-skill is the sanctioned exception: it is this
-  skill's implementation-craft layer, not a parallel authority.
+  bundled `frontend-design/` sub-skill is the sanctioned implementation-craft
+  layer, and the bundled `ui-sdk/` sub-skill (`@ui-sdk/core`, `@ui-sdk/react`,
+  `@ui-sdk/web`) is the sanctioned headless behavior/accessibility primitive
+  layer (also searchable via `design_docs_search` / `design_docs_get`).
 - **Research output must be specific.** Name the references, describe concrete
   choices, and explain what will be adapted.
 - **No design from vibe memory.** Every major visual, layout, content, or
