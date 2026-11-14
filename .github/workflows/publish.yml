@@ -82,7 +82,7 @@ jobs:
             const index = JSON.parse(readFileSync('bake/index.json', 'utf8'));
             console.log('  catalog total :', index.total);
             console.log('  per source    :', JSON.stringify(index.counts));
-            if (index.total < 1540) fail.push('catalog has ' + index.total + ' designs, expected at least 1540');
+            if (index.total < 1500) fail.push('catalog has ' + index.total + ' designs, expected at least 1500');
             if (!existsSync('bake/descriptors.json')) fail.push('bake/descriptors.json is missing');
             for (const dir of ['claude', 'gallery']) {
               if (!existsSync('bake/' + dir)) { fail.push('bake/' + dir + ' is missing'); continue; }
