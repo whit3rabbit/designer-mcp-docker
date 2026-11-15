@@ -244,7 +244,9 @@ async function stageFonts(out, names) {
       family === "caprasimo" ? ["400"] : ["400", "500", "600", "700"];
     const sheets = [];
     for (const style of styles) {
-      const css = (await readFile(join(path, `${style}.css`), "utf8"))
+      const sheetPath = join(path, `${style}.css`);
+      if (!existsSync(sheetPath)) continue;
+      const css = (await readFile(sheetPath, "utf8"))
         .replace(/(font-family:\s*'[^']+) Variable'/g, "$1'")
         .replace(/, url\(\.\/files\/[^)]+\.woff\) format\('woff'\)/g, "");
       for (const [, file] of css.matchAll(/url\(\.\/files\/([a-z0-9-]+\.woff2)\)/g)) {
