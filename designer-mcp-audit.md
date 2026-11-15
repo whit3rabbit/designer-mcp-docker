@@ -1,152 +1,164 @@
-# Skill audit: designer-mcp
+# Skills audit: designer-mcp bundle
 
-- **Path:** `skills/designer-mcp/` · **Date:** 2026-11-10 · **Auditor:** rabbit-skills-audit
-- **Standard:** Anthropic's official Agent Skills guidance
+- **Path:** `skills/` (1 parent skill + 7 bundled sub-skills) · **Date:** 2026-11-15 · **Auditor:** rabbit-skills-audit
+- **Standard:** Anthropic Agent Skills best practices
   (https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
-- **Verdict (post-fix):** **PASS** — 0 errors, 0 confirmed warnings. `audit_static.py --strict` exits 0. Info-level items are documented below; two carry process caveats (see Watch items).
-- **Original verdict:** FAIL (1 error, 7 warnings, 8 info). The Step 6 improvement loop fixed every error and confirmed warning; the fix log below records what changed and how each fix was verified.
+- **Verdict (post-fix):** **PASS WITH WARNINGS**: 0 errors, 1 confirmed warning, 2 info. The one warning is a documented vendor constraint in the ui-sdk docs bundle. `audit_static.py --strict` exits 0 on all 8 skills.
+- **Original verdict:** FAIL (1 error, 9 confirmed warnings, 5 info). Strict linter count before `needs_review` resolution: 1 error / 201 warnings / 15 info. The Step 6 fix pass resolved every error and confirmed warning. The fix log below records what changed and how each fix was verified.
 
-**Scope.** The bundle is one merged skill: the primary `SKILL.md` plus 11
-repo-authored `references/*.md`, `evals/evals.json`, `requirements.txt`,
-`package.json`, `agents/openai.yaml`, documented by `skills/README.md`; and six
-nested sub-skills (`docx/`, `pptx/`, `xlsx/`, `pdf/`, `pdf-reading/`,
-`frontend-design/`) adapted from anthropics/skills with verbatim Apache-2.0
-`LICENSE.txt` files. Each sub-skill also lints standalone at PASS WITH WARNINGS
-(0 errors each). Fixes inside adapted sub-skill files touch prose and error
-handling only, per `skills/README.md:92-93` (technical OOXML content preserved).
+**Regression note.** The previous audit (2026-11-10, in git history at this path) ended PASS post-fix. Since then the bundle gained the `ui-sdk/` sub-skill and the parent SKILL.md grew past the 500-line limit, so the error and most new warnings traced to that addition. Both are now resolved or accepted as documented vendor constraints.
 
-**Method.** `audit_static.py --format markdown --checklist` before and after;
-full manual reads of every authored file and all quoted evidence; a delegated
-prose pass over the 11 references with spot-verification; a purpose-built
-slug checker (`heading_check.py`, code-fence aware, GitHub dedup rules) for
-every anchor link in all 14 markdown files touched; `py_compile` plus a
-missing-file smoke test for every edited script; a `--strict` re-run after the
-fix pass.
+## Cross-skill summary (post-fix)
 
-## Summary by area (post-fix)
+| Skill | Verdict | Errors | Confirmed warnings | Fix applied |
+|---|---|---|---|---|
+| `designer-mcp` (parent) | PASS WITH WARNINGS | 0 | 0 own files (vendor aggregate attributed to `ui-sdk/`) | ST-01 restructure, ui-sdk table rows |
+| `docx` | PASS | 0 | 0 | SC-05 deps line extended |
+| `pptx` | PASS | 0 | 0 | n/a |
+| `xlsx` | PASS | 0 | 0 | SC-05 deps line extended |
+| `pdf` | PASS | 0 | 0 | n/a |
+| `pdf-reading` | PASS | 0 | 0 | MD-12 description rewritten |
+| `frontend-design` | PASS | 0 | 0 | n/a |
+| `ui-sdk` | PASS WITH WARNINGS | 0 | 1 (accepted vendor ST-04 aggregate) | CQ-03 naming, ST-03 link, broken link |
 
-| Area | Status | Change from first audit |
-|------|--------|------------------------|
-| MD (Metadata) | pass | MD-10 fixed; MD-07 kept by choice |
-| ST (Structure) | pass | All ST-04 findings fixed; ST-01a info remains as headroom watch |
-| CQ (Content quality) | pass | All findings fixed or softened |
-| WF (Workflows) | pass | No findings, unchanged |
-| SC (Scripts & code) | pass | SC-01 and SC-02 fixed and smoke-tested |
-| EV (Evaluations) | info | EV-01/EV-03 pass; EV-02 remains a process item |
+Linter runs: one pass per skill directory (`audit_static.py --format markdown`), plus a parent pass with `--checklist`. Raw outputs kept in `/tmp/skills-audit/` (pre-fix) and `/tmp/skills-audit/post/` (post-fix, all `--strict` exit 0).
 
-## Fix log (verified)
+## Fix log (2026-11-15, verified)
 
-### MD-10 · error · description over the 1,024-character cap — FIXED
-- Applied the 1,021-character replacement from the original report to `SKILL.md:3`. Dropped keywords (`conversion`, `spacing`, `responsive design`) remain covered by `copywriting.md` and `craft-details.md`; the dropped "Research is mandatory" sentence is enforced by the Non-Negotiables and Quality Gate sections, so no behavior change. Verified by extraction: 1,021 characters.
+Every fix was verified by a fresh `audit_static.py --strict` run per skill (all exit 0) plus `npm test` (all checks passed).
 
-### CQ-03 · screens/flows contradiction in `visual-workflow.md` — FIXED
-- Line 4 now reads "styles for taste, the craft references and user material for product patterns, interaction reasoning for journeys." Step 1 of Three Visual Directions (line 40) got the same treatment ("add craft references and user material"). Both now match SKILL.md:26-29 and mcp-tools.md.
+### ST-01 · error · Parent SKILL.md over the line limit: FIXED
+- Moved the "Use Components", "Use Presets", and "Use Templates" detail blocks into a new `references/catalog-tools.md` (with a Contents section), and left a 13-line routing section in their place. Moved the registration and gallery commands into `references/mcp-tools.md` and collapsed "MCP Setup" to a 7-line pointer. Moved the Quality Gate checklist into `references/research-playbook.md` (new section, Contents entry added), and left a pointer. Body is now 452 lines (was 535). Linter: ST-01 error gone, ST-01a info headroom remains.
 
-### CQ-03 · `motion.md` example broke its own `transition: all` ban — FIXED
-- Line 231 now lists properties explicitly: `transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);`
+### ST-04 · warning · design-md-workflow.md lacks a table of contents: FIXED
+- Added a `## Contents` section listing the four main headings. Linter: the only repo-authored ST-04 finding is gone. All 13 repo-authored references now carry TOCs.
 
-### CQ-03 · ledger carried two names — FIXED
-- `example-workflow.md:194` renamed to `### Decision Ledger` with a TOC anchor update and a one-line note tying it to the research-playbook template. The canonical term is now "Decision Ledger" everywhere (SKILL.md, evals.json, both references).
+### SC-05 · warning · docx Dependencies line omits Python packages: FIXED
+- `docx/SKILL.md:97` now names `lxml`, `defusedxml`, and `validators` (pip) for the edit and validate scripts.
 
-### CQ-02 · harness-specific tooling claims — FIXED
-- `visual-workflow.md:23` Codex Desktop / `image_gen` sentence replaced with capability language ("If your runtime provides a native image-generation tool, use it when it is available"); the "Do not assume another agent can call Codex Desktop's built-in image tool" passage neutralized likewise.
+### SC-05 · warning · xlsx Dependencies line omits defusedxml: FIXED
+- `xlsx/SKILL.md:113` now names `defusedxml` alongside `openpyxl`, `pandas`, `markitdown`.
 
-### ST-04 · 17 broken Contents anchors — FIXED
-- The slug checker found two more than the audit did (typography.md L11 `×` and L25 `+` slugs). All 17 fixed across mcp-tools.md (7, `_` character vs hyphen slugs), typography.md (8, duplicate-heading dedup suffixes plus two symbol slugs), craft-details.md (2), icons.md (1). Post-fix validation: 0 broken across all 14 markdown files, 325 total links checked.
+### MD-12 · warning · pdf-reading second-person description: FIXED
+- `pdf-reading/SKILL.md:3` is rewritten in third person ("Reads and inspects PDF files from disk..."). Trigger coverage and the pdf-skill non-goal are preserved.
 
-### ST-04 · 7 adapted files over 100 lines lacked Contents — FIXED
-- Added `## Contents` blocks (generated from real headings with slug rules) to `pdf/SKILL.md`, `pdf/FORMS.md`, `pdf/REFERENCE.md`, `pdf-reading/SKILL.md`, `pdf-reading/REFERENCE.md`, `pptx/SKILL.md`, `xlsx/SKILL.md`. Every TOC entry validated against actual heading slugs.
+### ST-03 · warning · patterns.md two levels deep in ui-sdk: FIXED
+- `ui-sdk/SKILL.md:26` path 2 now links `[patterns.md](references/patterns.md)` directly. Standalone ui-sdk lint: no ST-03 findings.
 
-### SC-01 · 5 pdf scripts crashed raw on missing files — FIXED
-- `check_bounding_boxes.py`, `create_validation_image.py`, `extract_form_structure.py`, `fill_fillable_fields.py`, `fill_pdf_form_with_annotations.py` now wrap their file/JSON loads in `try/except` with one-line `ERROR:` messages and exit 1. Verified: `py_compile` clean on all 8 edited scripts; smoke test prints `ERROR: fields file not found: /tmp/does-not-exist.json` and exits 1.
+### CQ-03 · warning · `design-mcp` naming inside ui-sdk SKILL.md: FIXED
+- `ui-sdk/SKILL.md:17` now says `designer-mcp`. Line 23 and the parent's server name agree.
 
-### SC-02 · unjustified constants — FIXED
-- `pptx/scripts/thumbnail.py` (9 constants), `pptx/scripts/add_slide.py` (slide-id range), `xlsx/scripts/recalc.py` (merge-scan bound) now carry one-line justifications (e.g. "slide IDs are 32-bit signed").
+### SC-08 · warning · Broken vendored link found during re-lint: FIXED
+- `ui-sdk/docs/core/README.md:14` linked `../skills/ui-sdk/SKILL.md`, which resolves to nothing in the bundle. Now `../SKILL.md`.
 
-### SC-05 · dependency pointer overclaimed — FIXED
-- `SKILL.md` now says system tools are "named in the sub-skills that use them" instead of promising a Dependencies section that pdf, pdf-reading, and frontend-design lack.
+### ST-02 · info · ui-sdk missing from routing tables: FIXED
+- Added a `ui-sdk` row to the parent SKILL.md deliverable table and the dependency table, updated `skills/README.md` ("seven bundled sub-skills", new layout row, licensing note for the ui-sdk license) and `AGENTS.md` (seven sub-skills with provenance split).
 
-### CQ-05 · two virtualization libraries, no default — FIXED
-- `craft-details.md:329` now names virtua as the default (matching the example) with react-window as the lighter alternative.
+### Accepted vendor constraints (documented, not fixed)
+- **ST-04 aggregate**: 138 vendored files under `ui-sdk/docs/` exceed 100 lines without a per-file Contents section (largest: `docs/react/core.md`, 8027 lines). The `llms.txt` indexes plus `design_docs_search` mitigate at catalog level. Generating TOCs would rewrite 138 vendor files wholesale for marginal gain. Accepted as a vendor constraint.
+- **Vendor CQ-03**: `ui-sdk/docs/core/agents.md` says "endpoints" (6x) and "routes" (30x). Vendored prose, so accepted as shipped.
+- **EV-02 · info**: `evals/evals.json` holds 12 scenarios but both recorded runs are one harness on one unnamed model. Needs real cross-model eval runs. Left as the open process item.
 
-### CQ-02 · soft time anchors — SOFTENED
-- "Newer models" to "Recent models", "This is now a common AI default" to "This has become a common AI default" in anti-ai-slop.md. mcp-tools.md catalog counts carry an as-of-bake note.
+## Findings from the pre-fix audit
 
-### Residual nit · unrooted `scripts/` paths in mcp-tools.md — FIXED
-- Added one sentence below the server table: the `scripts/` paths are rooted at the image's repository root, not the skill directory.
+### ST-01 · error · Parent SKILL.md body exceeds 500 lines
+- **Evidence:** `skills/designer-mcp/SKILL.md:1`: "535 body lines (limit 500)" (linter estimate ~6,235 tokens)
+- **Why:** The whole body loads on activation. Best practice keeps SKILL.md under 500 lines and pushes detail into on-demand references.
+- **Fix:** Three cuts bring it to roughly 405 lines without losing content:
+  1. Collapse "MCP Setup" (lines 97 to 122) to a short pointer. `references/mcp-tools.md` already documents both servers and setup.
+  2. Move the "Use Components", "Use Presets", and "Use Templates" detail blocks (lines 255 to 324) into `references/mcp-tools.md` (or a new `references/catalog-tools.md`) and keep the routing one-liners.
+  3. Move the Quality Gate checklist (lines 502 to 526) into `references/research-playbook.md`, leaving one sentence plus a link.
 
-## New findings during the fix pass
+### ST-04 · warning · Repo-authored reference lacks a table of contents
+- **Evidence:** `skills/designer-mcp/references/design-md-workflow.md:1`: "214 lines, no contents section"
+- **Why:** A file over 100 lines should open with a Contents section so a partial read (`head -100`) shows the full scope.
+- **Fix:** Add a `## Contents` list of the file's headings right after the title. This is the only over-100-line file the repo itself authored that lacks one.
 
-### HYGIENE · warning · scratch directory inside the distributable skill — FIXED
-- **Evidence:** `skills/designer-mcp/tmp/design_systems/` (six template packs with readme.md files) appeared mid-session and was not in the first inventory. AGENTS.md Rule 3: anything under `skills/` is COPY'd into the image and must be distributable; scratch belongs in dockerignored `tmp/`.
-- **Why it matters:** `COPY skills/ ./skills/` would bake the scratch into the image. The zip packager already excludes any `tmp/` dir (`scripts/package-skill.mjs:29`), so the image and the zip would diverge.
-- **Fix applied:** `.dockerignore` now excludes `skills/designer-mcp/tmp/`, matching the packager. `.gitignore` left alone: the scratch belongs to a concurrent session that should decide whether to relocate it out of `tmp/` or delete it.
+### SC-05 · warning · docx Dependencies line omits its Python packages
+- **Evidence:** `skills/designer-mcp/docx/SKILL.md:97`: "`docx` (npm) · `pandoc` · LibreOffice (`soffice`) · `pdftoppm` (Poppler)."
+- **Why:** The edit/validate path imports `defusedxml` (see `docx/scripts/comment.py`, `docx/scripts/office/validators/base.py`), and `lxml` plus `validators` are also required per the parent's dependency table. The sub-skill's own Dependencies line names none of them, so a standalone install of this sub-skill misses them.
+- **Fix:** Extend the line to: "`docx` (npm) · `pandoc` · LibreOffice (`soffice`) · `pdftoppm` (Poppler) · `lxml`, `defusedxml`, `validators` (pip, for the edit and validate scripts) or `pip install -r ../requirements.txt`."
 
-### ST-01a · concurrent edits shrank the headroom — WATCH
-- SKILL.md grew from 464 to 477 body lines during this audit (a concurrent session added the two-runtime dependency matrix). Still under 500; the next addition should extract a section into `references/`.
+### SC-05 · warning · xlsx Dependencies line omits defusedxml
+- **Evidence:** `skills/designer-mcp/xlsx/SKILL.md:112`: "`openpyxl`, `pandas`, `markitdown` (pip)"
+- **Why:** `xlsx/scripts/office/validate.py:22` and `validators/base.py:8` import `defusedxml`, which appears only in the parent `requirements.txt`, not in this line.
+- **Fix:** Change the line to "`openpyxl`, `pandas`, `markitdown`, `defusedxml` (pip)".
 
-## Resolved heuristic flags (dropped, with reason)
+### MD-12 · warning · pdf-reading description is second person
+- **Evidence:** `skills/designer-mcp/pdf-reading/SKILL.md:3`: "Use this skill when you need to read, inspect, or extract content from PDF files"
+- **Why:** Descriptions read best in third person because they describe the skill, not address the agent. Low urgency: the "Use this skill when" pattern matches upstream Anthropic style and triggers fine in practice.
+- **Fix:** `description: "Reads and inspects PDF files from disk: content inventory, text extraction, page rasterization, embedded image, attachment, table, and form-field extraction, and reading-strategy selection. Use when PDF content is not in context and must be read from disk. Do not use for PDF creation, form filling, merging, splitting, watermarking, or encryption (use the pdf skill)."`
 
-| Flag | Location | Reason dropped |
-|---|---|---|
-| SC-03 | ~40 flags on `__init__.py` and `office/helpers/` / `office/validators/` modules | Package internals never referenced from prose; runnable entry scripts carry explicit run intent in their SKILL.md files. |
-| SC-03 | `tmp/design_systems/**` JS and readme files | Scratch material, now excluded from both image and zip; not skill content. |
-| SC-05 | `docx/scripts/office/validate.py` (`import helpers`, `import validators`) | Local sibling packages, not third-party. Real deps are covered by requirements.txt, package.json, the SKILL.md matrix, and the README matrix. |
-| SC-08 | `SKILL.md:181,183` (`scripts/apply_theme.js`, `scripts/office/soffice.py`, `scripts/recalc.py`) | Sub-skill-relative paths in the dependency matrix, covered by the preamble sentence "Script paths inside each sub-skill are relative to that sub-skill's own directory" (SKILL.md:173-174). |
-| SC-08 | `mcp-tools.md` server-table paths | Container-side paths under "The container ships two stdio MCP servers", now with an explicit rooting sentence. |
-| CQ-05 | `anti-ai-slop.md:45` | The line states the default outright ("RULE: Default is NO cards") followed by a justification test. Default plus escape hatch, done right. |
-| ST-03 orphans | `pdf/FORMS.md`, `pdf/REFERENCE.md`, `pdf-reading/REFERENCE.md`, tmp readmes | Each FORMS/REFERENCE file is referenced by its own sibling SKILL.md; the linter only scans links from the top-level SKILL.md. |
+### ST-03 · warning · ui-sdk patterns.md is reachable only two levels deep
+- **Evidence:** `skills/designer-mcp/ui-sdk/references/create-component.md:30`: "[patterns.md](patterns.md) has the roles for common shapes"
+- **Why:** `SKILL.md` links `create-component.md`, which alone links `patterns.md`. References should be one level deep from SKILL.md.
+- **Fix:** Link it from the path 2 bullet in `ui-sdk/SKILL.md:26`: "read [references/create-component.md](references/create-component.md) and its [references/patterns.md](references/patterns.md)".
 
-## Pre-share checklist (22 items, post-fix)
+### ST-04 · warning (vendor aggregate) · 138 ui-sdk doc files over 100 lines lack a Contents section
+- **Evidence:** `skills/designer-mcp/ui-sdk/docs/react/core.md:1`: "8027 lines, no contents section" (largest of 138 flagged files, all under `ui-sdk/docs/`)
+- **Why:** These are vendored package docs referenced through `docs/<framework>/llms.txt` and `design_docs_search`. The llms.txt index mitigates at the catalog level, but any partial read of one huge file (core.md is over 300 KB) sees no scope.
+- **Fix:** Accept as a vendor constraint, or generate per-file Contents sections at bake time (`npm run bake`) so the shipped copy differs only by the TOC block.
 
-### Core quality
+### CQ-03 · warning · Three names for one MCP server inside ui-sdk SKILL.md
+- **Evidence:** `skills/designer-mcp/ui-sdk/SKILL.md:17`: "MCP tools (when connected to `design-mcp`)"
+- **Why:** Line 23 of the same file says `designer-mcp`, the tool prefix is `design_*`, and the parent registers the server as `designer`. Rotating names invite wrong tool calls.
+- **Fix:** Change line 17 to `designer-mcp`.
 
-- [x] Description is specific with key terms (MD-14, MD-15): 1,021 characters, verified by extraction.
-- [x] Description covers what and when (MD-09/12/13): third person, explicit trigger clauses.
-- [x] `SKILL.md` body under 500 lines (ST-01): 477 body lines. Watch: concurrent edits are closing on the ceiling.
-- [x] Additional details live in separate files (ST-02, ST-06): 11 domain-split references, 6 sub-skills.
-- [x] No time-sensitive information (CQ-02): harness-specific claims neutralized; soft anchors softened; counts marked as-of-bake.
-- [x] Consistent terminology (CQ-03): one name per concept (Decision Ledger), no self-contradicting examples, screens/flows scope consistent in every file.
-- [x] Examples are concrete (CQ-04): templates plus filled samples in every format-prescribing file.
-- [x] File references one level deep (ST-03): authored refs one level; sub-skill nesting documented and accepted.
-- [x] Progressive disclosure (ST-02/04/05): all 17 references over 100 lines carry validated Contents sections; 0 broken anchors across 325 links.
-- [x] Workflows have clear steps (WF-01): routing table, numbered loops, phase gates throughout.
+### EV-02 · info · No cross-model evaluation evidence
+- **Evidence:** `skills/designer-mcp/evals/evals.json`: 2 recorded runs, both `model: "CLI default"` on `runner: "Codex CLI 0.154.0"`. The file's own notes say "Record every run in results[] with the model name to build cross-model evidence (EV-02)."
+- **Why:** EV-01 and EV-03 are satisfied (12 scenarios, paraphrase triggers), but all evidence comes from one harness on one unnamed model.
+- **Fix:** Run 2 or 3 scenarios on a second model tier or harness and append the runs to `results[]`.
 
-### Code and scripts
+### ST-02 · info · ui-sdk missing from the parent's sub-skill tables
+- **Evidence:** `skills/designer-mcp/SKILL.md:180`: the "Document and Deliverable Skills" table and the dependency table (lines 201 to 207) list six sub-skills. `ui-sdk/` is mentioned only in Non-Negotiables (line 75): "the bundled `ui-sdk/` sub-skill"
+- **Why:** The table is the parent's routing surface. A bundled sub-skill absent from it relies on one prose mention for discovery. Same drift in `skills/README.md` ("six bundled sub-skills") and `AGENTS.md`.
+- **Fix:** Add a `ui-sdk` row to both tables and update the counts in `skills/README.md` and `AGENTS.md`.
 
-- [x] Scripts solve rather than defer (SC-01): all 5 flagged scripts compile and handle missing/invalid input with clear errors (smoke-tested).
-- [x] Error handling is explicit (SC-01): same.
-- [x] No voodoo constants (SC-02): every flagged constant now carries a justification.
-- [x] Required packages are listed (SC-05): manifests, SKILL.md matrix, README matrix; pointer wording corrected.
-- [x] Scripts have clear documentation (SC-03): run intent stated per sub-skill; remaining flags are package internals and scratch.
-- [x] No Windows paths; every linked file resolves (SC-04, SC-08): grep clean; all relative links resolve.
-- [x] Validation steps for critical operations (SC-06): render-and-inspect QA loops, office validators, severity-gated QA pass.
-- [x] Feedback loops included (WF-03): validate-after-build rule, Quality Gate, visual QA gate.
+### MD-07 · info · Non-gerund names across all eight skills
+- **Evidence:** `skills/designer-mcp/SKILL.md:2`: `name: designer-mcp`
+- **Why:** Gerund names are preferred but noun phrases are acceptable. Product names (`designer-mcp`, `docx`, `pptx`, `xlsx`, `pdf`) and the noun phrase `frontend-design` are all fine. No action.
 
-### Testing
+## Pre-share checklist (22 items)
 
-- [x] At least three evaluations (EV-01): 9 scenarios in evals/evals.json.
-- [ ] Tested across model tiers (EV-02): results[] still empty. Process item, info-level; see Watch items.
-- [x] Real usage scenarios (EV-03): 2 paraphrase triggers, 2 negative-scope scenarios.
-- [n/a] Team feedback (EV-04): solo skill, no channel yet.
+Core quality:
 
-## Watch items (open, non-blocking)
+- [x] Description is specific and includes key terms (MD-14, MD-15)
+- [x] Description includes what it does and when to use it (MD-09, MD-12, MD-13). One kept exception: pdf-reading MD-12.
+- [x] SKILL.md body is under 500 lines (ST-01): fixed, 452 lines. ST-01a info headroom remains.
+- [x] Additional details are in separate files (ST-02, ST-06)
+- [x] No time-sensitive information (CQ-02): all 23 flags resolved as dated doc examples, not claims
+- [x] Consistent terminology (CQ-03): parent flag dropped as false positive. One kept finding in `ui-sdk/SKILL.md:17`.
+- [x] Examples are concrete (CQ-04)
+- [x] File references one level deep (ST-03): parent clean. One kept finding in ui-sdk.
+- [x] Progressive disclosure (ST-02, ST-04, ST-05): repo files fixed. The vendored ui-sdk docs aggregate is accepted (see fix log).
 
-- **EV-02 (info):** no model has run the eval suite yet. Run the 9 scenarios on at least two tiers and append to `results[]`. This is the only checklist box not green.
-- **ST-01a (info):** SKILL.md is at 477 of 500 lines with another session actively editing it. Extract the dependency matrix or deliverable routing into `references/` before the next addition.
-- **Scratch relocation:** `skills/designer-mcp/tmp/design_systems/` is now image-safe and zip-safe, but per the repo convention it should move to `skills/tmp/` or be deleted once the owning session finishes.
+Code and scripts:
+
+- [x] Scripts solve rather than defer (SC-01)
+- [x] Error handling explicit (SC-01)
+- [x] No voodoo constants (SC-02)
+- [x] Required packages listed (SC-05): clean at parent level (`requirements.txt`, `package.json`, parent table). Two kept findings inside docx and xlsx.
+- [x] Scripts have clear documentation (SC-03): all 40 flags dropped: flagged files are internal modules of documented entry points (for example `pdf/FORMS.md:4` documents `check_fillable_fields`)
+- [x] Forward slashes only, links resolve (SC-04, SC-08): all 10 flags dropped: `pptx/scripts/apply_theme.js`, `docx/scripts/office/soffice.py`, `xlsx/scripts/recalc.py`, and every `../SKILL.md` exist, and `SKILL.md:195` states "Script paths inside each sub-skill are relative to that sub-skill's own directory."
+- [x] Validation steps for critical operations (SC-06): `docx/SKILL.md:37` "## Verify the output", xlsx mandatory recalc, `references/visual-workflow.md` QA pass
+- [x] Feedback loops for quality-critical tasks (WF-03): frontend-design flag dropped: its "Process: plan, review against the brief, build, critique" section contains the loop
+
+Testing:
+
+- [x] At least three evaluations (EV-01): 12 scenarios
+- [ ] Tested across model tiers (EV-02): open process item, needs real cross-model eval runs
+- [x] Real usage scenarios and paraphrase triggers (EV-03)
+- [n/a] Team feedback incorporated (EV-04): solo project
 
 ## Strengths
 
-- **Honest metadata (MD-13/14/16):** what, when, and precedence over generic design skills, all within the character cap.
-- **True progressive disclosure (ST-02/03, CQ-01):** SKILL.md routes, references carry the detail. Every Contents anchor resolves. No filler in any file.
-- **Gated workflows (WF-01/03/04):** four task modes, numbered loops, a quality gate. The QA pass classifies by severity and blocks handoff.
-- **Evals beyond the minimum (EV-01/03):** 9 scenarios including paraphrase triggers and negative scope tests.
-- **Dependency discipline (SC-05):** two-runtime manifests, per-sub-skill matrix, check-then-install language throughout.
+- **Descriptions set what + when + non-goals with real trigger phrases** (MD-13, MD-15). The xlsx description even defines the negative space: "Do NOT trigger when the primary deliverable is a Word document, HTML report..."
+- **Dependency honesty is systematic** (SC-05): parent manifests plus per-skill check-then-install guidance in every sub-skill, with conditional npm packages deliberately documented as on-demand.
+- **Verification loops are concrete** (WF-03, SC-06): recalc mandatory for formulas, render-and-inspect QA in the document skills, and a visual QA pass in `references/visual-workflow.md`.
+- **Progressive disclosure is mostly right** (ST-02): a 54-line ui-sdk SKILL.md routes a 161-file docs tree through `llms.txt` indexes and an MCP search tool, with an explicit "Don't read the whole `docs/` folder" warning.
 
 ## Not audited
 
-- Runtime behavior and live trigger accuracy (static audit only; evals not executed).
-- Live behavior of the `design_*` / `refero_*` MCP servers against the cache.
-- Byte-level fidelity of the six adapted sub-skills against current anthropics/skills upstream; LICENSE.txt files are verbatim.
-- The concurrent session's in-flight changes outside this audit's fix scope (dependency matrix content, tmp/design_systems feature work).
+- Runtime behavior, live trigger accuracy, and whether `design_docs_search` correctly serves the ui-sdk docs (static audit only, no sub-skill code was executed)
+- Accuracy of the vendored ui-sdk docs against the actual `@ui-sdk/*` packages
+- Content quality of the vendored `anthropics/skills` sub-skill bodies beyond the checks above (they are upstream files copied under Apache-2.0, rewritten only for harness neutrality)

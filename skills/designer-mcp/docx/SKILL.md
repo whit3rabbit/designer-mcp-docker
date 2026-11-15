@@ -94,4 +94,4 @@ When the document is a design artifact — brand guidelines, a design spec, a re
 
 ## Dependencies
 
-`docx` (npm) · `pandoc` · LibreOffice (`soffice`) · `pdftoppm` (Poppler). Check what's available before relying on any of them (a failed `require` or `command -v` check is enough) and install only what's missing. Inside the merged designer-mcp skill, `npm install` in that skill's root directory installs the npm side (`docx`, `pptxgenjs`, `jszip`) from its package.json.
+`docx` (npm) · `pandoc` · LibreOffice (`soffice`) · `pdftoppm` (Poppler) · `lxml`, `defusedxml`, `validators` (pip, for the edit and validate scripts). Check what's available before relying on any of them (a failed `require` or `command -v` check is enough) and install only what's missing. Inside the merged designer-mcp skill, `npm install` in that skill's root directory installs the npm side (`docx`, `pptxgenjs`, `jszip`) from its package.json.

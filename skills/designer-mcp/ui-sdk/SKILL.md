@@ -11,7 +11,7 @@ ui-sdk is a library of UI behaviors: keyboard navigation, focus, selection, dism
 
 The docs for the bundled version ship offline in this skill and in `node_modules/@ui-sdk/<framework>/docs/`:
 
-- **MCP tools (when connected to `design-mcp`):** Call `design_docs_search` and `design_docs_get` to search and read `ui-sdk` docs without needing internet access or local `node_modules`.
+- **MCP tools (when connected to `designer-mcp`):** Call `design_docs_search` and `design_docs_get` to search and read `ui-sdk` docs without needing internet access or local `node_modules`.
 - **Local files:** `docs/<framework>/llms.txt` (`core`, `react`, or `web`) is the index. Read it first, then read only the pages your task needs, like `docs/react/components/select.md` or `docs/web/components/dialog.md`. Don't read the whole `docs/` folder; it's large.
 - An interface built from our components doesn't need `docs/core/core.md`. Only path 2 below does, and even then you search it by heading: it's over 300 KB. `docs/<framework>/rendering.md` sits next to it in the same `docs/` folder.
 - Don't read compiled JavaScript in `dist/*.js`, even to debug. The docs and the `.d.ts` types are the API; when they don't answer, write a small test that tries it.
@@ -23,7 +23,7 @@ When pairing `ui-sdk` with `designer-mcp`, use `designer-mcp` (`design_search`, 
 ## Pick your path
 
 1. **Build an interface from our components**, like a settings page, a form or a command palette: read [references/build-interface.md](references/build-interface.md).
-2. **Build a component or behavior ui-sdk doesn't ship**, or extend one of ours: read [references/create-component.md](references/create-component.md).
+2. **Build a component or behavior ui-sdk doesn't ship**, or extend one of ours: read [references/create-component.md](references/create-component.md) and its [patterns.md](references/patterns.md) companion.
 
 Most interfaces only need path 1. When one part of it needs a component we don't have, follow path 2 for that part.
 

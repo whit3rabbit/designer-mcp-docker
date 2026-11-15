@@ -11,4 +11,4 @@ The ui-sdk docs for the framework-free core, as Markdown, for the release this p
 
 ## Skills
 
-- [ui-sdk](../skills/ui-sdk/SKILL.md): builds interfaces with ui-sdk, components it doesn't ship from the behaviors in this package, agent support and tests.
+- [ui-sdk](../SKILL.md): builds interfaces with ui-sdk, components it doesn't ship from the behaviors in this package, agent support and tests.

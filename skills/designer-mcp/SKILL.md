@@ -98,28 +98,9 @@ inventing precedent.
 
 This skill is useful on its own as a research-first design methodology and
 craft reference. The generic `design_*` server provides the offline catalog
-and Markdown tools. The `refero_*` server is a fallback for Refero catalog reads.
-
-The local server runs in Docker:
-
-```bash
-# Register the MCP server (Hermes / any stdio MCP client)
-hermes mcp add designer \
-  --command docker \
-  --args run --rm -i --network none \
-         designer-mcp:latest node scripts/mcp-server.mjs
-```
-
-Then restart the gateway (or `/reload-mcp`) so the tools register.
-
-For a browser gallery of the same data — thumbnails, swatches, type scales:
-
-```bash
-cd designer-mcp-docker && docker compose up -d   # http://127.0.0.1:8787
-```
-
-For full tool details, read
-[references/mcp-tools.md](references/mcp-tools.md).
+and Markdown tools. The `refero_*` server is a fallback for Refero catalog
+reads. Registration commands, the gallery command, and full tool details
+live in [references/mcp-tools.md](references/mcp-tools.md).
 
 ## Discovery
 
@@ -173,9 +154,10 @@ Choose the lightest workflow that can produce a high-quality result.
 
 ## Document and Deliverable Skills
 
-This skill bundles complete document toolchains as sub-skills. When the task
-requires producing, reading, editing, or converting an actual file
-deliverable, read the matching sub-skill and follow it:
+This skill bundles document toolchains and craft layers as sub-skills. When
+the task requires producing, reading, editing, or converting an actual file
+deliverable, or building on the bundled UI SDK, read the matching sub-skill
+and follow it:
 
 | Deliverable | Sub-skill |
 |---|---|
@@ -185,6 +167,7 @@ deliverable, read the matching sub-skill and follow it:
 | PDF creation, forms, merging, OCR | [pdf/SKILL.md](pdf/SKILL.md) |
 | Reading PDFs from disk | [pdf-reading/SKILL.md](pdf-reading/SKILL.md) |
 | Implementation craft for UI work | [frontend-design/SKILL.md](frontend-design/SKILL.md) |
+| Headless UI behavior, accessibility, agent-ready interfaces (@ui-sdk/*) | [ui-sdk/SKILL.md](ui-sdk/SKILL.md) |
 
 The division of authority is fixed. This skill's research workflow and
 reference lock own every design decision: palette, type, layout, imagery, copy.
@@ -205,6 +188,7 @@ install everything for every job.
 | xlsx | none | `openpyxl`, `pandas`; `scripts/recalc.py` drives LibreOffice |
 | pdf | none required (`pdf-lib` is the named JS alternative) | `pypdf`, `pdfplumber`, `pdf2image`, `Pillow` |
 | pdf-reading | none | `pypdf`, `pdfplumber` (optional: `pypdfium2`, `pytesseract`) |
+| ui-sdk | none | none (offline docs via `design_docs_search` / `design_docs_get`) |
 
 Dependencies: Python packages in [requirements.txt](requirements.txt), npm
 packages in [package.json](package.json) (`docx`, `pptxgenjs`, `jszip`), plus
@@ -252,75 +236,20 @@ After finding strong styles:
 - use `design_facets` to see what fonts, colors, themes, and industries the
   catalog actually contains before committing to a direction
 
-### Use Components For Implementation
+### Use Components, Presets, and Templates
 
-Styles tell you what a visual direction should feel like. Components are the
-other half: **actual working code**, not a description of it.
+Components are working TSX, presets are real CSS for backgrounds and glass,
+and templates are six complete starting systems. Route by need:
 
-The library holds 109 AI components across 250 variants — prompt inputs,
-conversations, tool calls, agents, voice, media generation, usage meters,
-writing surfaces. Each variant's source is complete, typed TSX: props
-declared, `motion/react` and `lucide-react` imported, no elisions.
+- A chat, agent, voice, or media UI to build: `design_component_search`,
+  then `design_component_code` for the variant source.
+- Hero backgrounds, ambient gradients, glass surfaces: `design_preset_search`
+  and `design_preset_get`.
+- Starting a project from a coherent system: `design_template_list`, then
+  `design_manifest_template` for its manifest contract.
 
-Use components for:
-
-- building a chat or agent interface rather than describing one
-- a prompt box, streaming response, tool-call row, or agent activity feed
-- voice input, media generation states, usage and limit meters
-
-Workflow:
-
-- `design_component_search` with a `query` or `category` to find candidates
-- `design_component_get` for the full record — variants, FAQ, dependencies
-- `design_component_code` to pull the source for a specific variant
-
-These are third-party MIT-licensed components, not your design system. Treat
-them as reference implementations: adapt them to the visual direction you
-locked from styles, rather than dropping them in unchanged.
-
-### Use Presets For Backgrounds And Effects
-
-`design_preset_search` and `design_preset_get` cover 139 background
-gradients and patterns plus 20 liquid-glass effects. Each carries real CSS
-and a React template. Use them for hero and section backgrounds, ambient
-gradients, and glass surfaces.
-
-### Use Templates For Starting A System
-
-Six vendored design-system templates ship in the image: modernist, classical,
-nocturne, organic, broadsheet, industry. Each is a complete, generic system
-with a token sheet (`styles.css`), written rules (`readme.md`), foundation and
-component demo cards, and two starter templates (a landing page and a 21-slide
-deck). Use them when the task is to start a project or product from a coherent
-system rather than from scratch.
-
-Workflow:
-
-- `design_template_list` to see all six (swatches, fonts, token counts)
-- `design_manifest_template` with a `slug` to get the design-system manifest:
-  a manifest JSON with sections for overview/principles, colors, typography,
-  spacing, corner radius, shadows, components, and assets, already filled
-  from that system. Call it without `slug` for the blank template when
-  building a system from a style reference instead.
-- `design_template_get` for the full record: theme parameters, every token,
-  the component class table, the file listing
-- `design_template_file` to copy an individual file (the token sheet, a
-  starter page, the guide). Binary assets are refused.
-
-Rules:
-
-- Treat the manifest as a contract, not documentation. Keep it beside the
-  work and design against it. No color outside roles and ramps. No raw px
-  where a token exists. No font family outside the two roles.
-- Keep the system's anti-patterns (`overview.antiPatterns`). Each template
-  has deliberate extremes (zero radius, dark-only, pill shapes); do not
-  soften them toward generic.
-- Blend with research: start from the template closest to the locked
-  direction, then retune its theme knobs. Or fill a blank manifest from the
-  primary style reference.
-- Seed a manifest from a catalog design or your own DESIGN.md with
-  `design_manifest_from`. Its provenance records available tokens, conflicts,
-  and gaps.
+When to use each layer, the workflows, and the manifest rules live in
+[references/catalog-tools.md](references/catalog-tools.md).
 
 ### For Product Patterns and Journeys
 
@@ -501,28 +430,12 @@ Core craft rules:
 
 ## Quality Gate
 
-Before final delivery, confirm:
-
-- Did I use styles for visual taste?
-- Did I avoid copying one style directly?
-- Did I synthesize multiple references into a unique direction?
-- Did I avoid averaging references into a safe centroid?
-- Did I preserve the primary reference's signature traits?
-- Did I preserve source token/component roles instead of repurposing them?
-- Did I preserve required imagery/media roles with real assets, appropriate
-  primitives, or intentional placeholders?
-- Can I name which references influenced the design and why?
-- Can every major design choice be traced to a reference, user constraint, or
-  craft rule?
-- Did I produce a concept and decision ledger before implementation?
-- Does the implementation avoid generic AI design defaults?
-- Did I avoid decorative serif/italic/color word swaps unless reference and
-  content role justify them?
-- Does the result fit the user's product, audience, and constraints?
-
-If the answer is no, research or refine more before delivering.
-
-For substantial visual work, run the visual QA pass in
+Before final delivery, run the quality-gate checklist in
+[references/research-playbook.md](references/research-playbook.md): every
+major choice must trace to a reference, user constraint, or craft rule, and
+no reference's signature traits, token roles, or media roles may be lost. If
+the gate fails, research or refine more before delivering. For substantial
+visual work, also run the visual QA pass in
 [references/visual-workflow.md](references/visual-workflow.md) before handoff.
 
 ## Example

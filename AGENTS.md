@@ -82,10 +82,13 @@ these routes, all served from the local cache:
 - Keep the skill's tool names (`design_*`, `refero_*`) in sync with the
   actual servers and its scope honest: no screens/flows layer exists. Route
   those asks to the craft references. Never invent precedent.
-- The skill bundles six sub-skills: `docx/`, `pptx/`, `xlsx/`, `pdf/`,
-  `pdf-reading/`, `frontend-design/`. Each ships dependency manifests
-  (`requirements.txt`, `package.json`). A per-directory Apache-2.0
-  `LICENSE.txt` is copied verbatim from upstream (`anthropics/skills`).
+- The skill bundles seven sub-skills: `docx/`, `pptx/`, `xlsx/`, `pdf/`,
+  `pdf-reading/`, `frontend-design/`, `ui-sdk/`. Each ships dependency
+  manifests (`requirements.txt`, `package.json`). The five adapted from
+  upstream (`anthropics/skills`) carry a per-directory Apache-2.0
+  `LICENSE.txt` copied verbatim, and `pdf-reading/` reuses that license
+  text. `ui-sdk/` is the ui-sdk package's own docs bundle under its
+  Apache-2.0 `LICENSE.txt`.
 - The image serves those files but installs none of their dependencies. The
   consuming agent runs the scripts and installs what its task needs
   (check-then-install).

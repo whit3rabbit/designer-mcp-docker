@@ -1,5 +1,12 @@
 # Capture, build, and verify a design system
 
+## Contents
+
+- [Capture the source on the host](#capture-the-source-on-the-host)
+- [Select the visual rules](#select-the-visual-rules)
+- [Write the reproducible package](#write-the-reproducible-package)
+- [Verify against the rendered target](#verify-against-the-rendered-target)
+
 ## Capture the source on the host
 
 Inspect the selected artifact and its rendered view. Record reading order, heading

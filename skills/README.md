@@ -1,8 +1,9 @@
 # Skills
 
 `skills/designer-mcp/` is one merged, distributable agent skill. It carries the
-research-first design methodology, the MCP tool docs, and six bundled
-sub-skills (document toolchains plus the frontend-design craft layer). The
+research-first design methodology, the MCP tool docs, and seven bundled
+sub-skills (document toolchains, the frontend-design craft layer, and the
+ui-sdk behavior docs). The
 whole directory is COPY'd into the Docker image (`COPY skills/ ./skills/`) and
 zipped at build time into the single `designer-mcp-skill.zip` served at `/skill`,
 so treat every file as distributable: no secrets, no scratch material.
@@ -15,6 +16,7 @@ so treat every file as distributable: no secrets, no scratch material.
 | `references/`, `agents/`, `evals/` | Craft references, agent interface metadata, eval harness | See repo |
 | `docx/`, `pptx/`, `xlsx/`, `pdf/`, `pdf-reading/` | Document skills, rewritten to be agent/harness-agnostic and routed under designer-mcp for design decisions | Apache-2.0 (`LICENSE.txt` in each, verbatim from [anthropics/skills](https://github.com/anthropics/skills)) |
 | `frontend-design/` | Implementation-craft layer for distinctive UI work, executed inside designer-mcp's research-first workflow | Apache-2.0 (`LICENSE.txt`, verbatim from upstream) |
+| `ui-sdk/` | Offline docs bundle for the `@ui-sdk/*` headless UI packages (core, react, web), the sanctioned behavior/accessibility layer, searchable via `design_docs_search` / `design_docs_get` | Apache-2.0 (`LICENSE.txt` from the ui-sdk package) |
 | `requirements.txt`, `package.json` | Dependency manifests for the sub-skills' scripts | See repo |
 
 The document skills' SKILL.md files keep their own frontmatter, so a harness
@@ -55,13 +57,15 @@ and preserves the offline invariant (no runtime network use).
 
 ## Licensing
 
-The six bundled sub-skills are adapted from [Anthropic's public skills
-repository](https://github.com/anthropics/skills) (docx, pptx, xlsx, pdf,
-frontend-design) and reworked for this deployment. Each sub-skill directory
-carries the upstream Apache-2.0 `LICENSE.txt` verbatim. (An earlier revision
+The five document and craft sub-skills are adapted from [Anthropic's public
+skills repository](https://github.com/anthropics/skills) (docx, pptx, xlsx,
+pdf, frontend-design) and reworked for this deployment. Each carries the
+upstream Apache-2.0 `LICENSE.txt` verbatim. (An earlier revision
 of this README called them "Anthropic source-available"; the upstream license
 is Apache-2.0, and the frontmatter labels now match.) The `pdf-reading`
 sub-skill is a rework of the pdf skill and ships the same license text. The
+`ui-sdk` sub-skill is the ui-sdk package's own docs bundle under its
+Apache-2.0 `LICENSE.txt`. The
 designer-mcp methodology itself is adapted from Refero's MIT-licensed
 `refero_skill`; see the Provenance section of its SKILL.md.
 

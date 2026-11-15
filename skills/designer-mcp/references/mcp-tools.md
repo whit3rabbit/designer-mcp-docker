@@ -88,6 +88,23 @@ effects) — see [`design_component_search`](#design_component_search) and
 Both tool sets can be registered at once. When a `design_*` tool is present,
 use it; fall back to `refero_*` otherwise.
 
+Register a server with any stdio MCP client, e.g.:
+
+```bash
+# Register the generic server (Hermes / any stdio MCP client)
+hermes mcp add designer \
+  --command docker \
+  --args run --rm -i --network none \
+         designer-mcp:latest node scripts/mcp-server.mjs
+```
+
+Restart the gateway (or `/reload-mcp`) so the tools register. For a browser
+gallery of the same data — thumbnails, swatches, type scales:
+
+```bash
+cd designer-mcp-docker && docker compose up -d   # http://127.0.0.1:8787
+```
+
 ---
 
 ## Styles

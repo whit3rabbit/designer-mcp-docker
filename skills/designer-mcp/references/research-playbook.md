@@ -14,6 +14,7 @@ when the task needs more than a quick style lookup.
   - [Journey Logic](#journey-logic)
 - [Present Findings](#present-findings)
 - [Decision Ledger](#decision-ledger)
+- [Quality Gate](#quality-gate)
 
 ## Style Queries
 
@@ -166,3 +167,28 @@ Before implementation, convert research into a short decision ledger:
 
 If a major choice has no source, do not ship it as a design decision. Either
 research more, tie it to the user's constraints, or remove it.
+
+## Quality Gate
+
+Before final delivery, confirm:
+
+- Did I use styles for visual taste?
+- Did I avoid copying one style directly?
+- Did I synthesize multiple references into a unique direction?
+- Did I avoid averaging references into a safe centroid?
+- Did I preserve the primary reference's signature traits?
+- Did I preserve source token/component roles instead of repurposing them?
+- Did I preserve required imagery/media roles with real assets, appropriate
+  primitives, or intentional placeholders?
+- Can I name which references influenced the design and why?
+- Can every major design choice be traced to a reference, user constraint, or
+  craft rule?
+- Did I produce a concept and decision ledger before implementation?
+- Does the implementation avoid generic AI design defaults?
+- Did I avoid decorative serif/italic/color word swaps unless reference and
+  content role justify them?
+- Does the result fit the user's product, audience, and constraints?
+
+If any answer is no, research or refine more before delivering. For
+substantial visual work, follow it with the visual QA pass in
+[visual-workflow.md](visual-workflow.md) before handoff.
