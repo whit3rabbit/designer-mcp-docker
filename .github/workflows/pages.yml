@@ -1,0 +1,46 @@
+# Publish the static site to GitHub Pages.
+#
+# This is a browsable preview of the Docker gallery and nothing more. The MCP
+# servers are stdio processes that run from the Docker image on a local
+# machine, so they are not hosted here. An agent can still read the site's
+# catalog JSON remotely: point DESIGN_REMOTE_URL at the Pages URL.
+#
+# One-time setup: repo Settings, Pages, Source: GitHub Actions.
+name: pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the static site from the baked image
+        run: |
+          docker run --rm --network none -v "$PWD/public:/out" \
+            ghcr.io/whit3rabbit/designer-mcp:latest \
+            node /app/scripts/build-static.mjs --out /out
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

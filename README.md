@@ -2,11 +2,15 @@
 
 **1,540 real product design systems, queryable by an agent and browsable by a human.**
 
+[![publish](https://github.com/whit3rabbit/designer-mcp-docker/actions/workflows/publish.yml/badge.svg)](https://github.com/whit3rabbit/designer-mcp-docker/actions/workflows/publish.yml)
+[![latest tag](https://img.shields.io/github/v/tag/whit3rabbit/designer-mcp-docker)](https://github.com/whit3rabbit/designer-mcp-docker/tags)
+[![license MIT](https://img.shields.io/badge/license-MIT-blue)](#license)
+
 Three surfaces over one cache:
 
-- **MCP server** (stdio) — 7 upstream `refero_*` tools for agents
-- **Generic MCP server** (stdio) — 20 source-neutral `design_*` tools across both sources
-- **Live gallery** (HTTP) — thumbnail grid, detail pages, live color swatches
+- **MCP server** (stdio): 7 upstream `refero_*` tools for agents
+- **Generic MCP server** (stdio): 20 source-neutral `design_*` tools across both sources
+- **Live gallery** (HTTP): design systems, AI components, the ReUI gallery, dashboard starters, and presets
 
 The upstream package [`fidgetcoding-refero-mcp`](https://github.com/fidgetcoding/refero-design-mcp)
 is vendored **unmodified** and runs against a prebuilt cache, so upstream
@@ -24,14 +28,20 @@ makes zero outbound requests. Verified against a container with
 |---|---|---|
 | `refero` | 1,342 | Styles scraped from `styles.refero.design`'s public pages |
 | `opendesign` | 198 | Design systems from [nexu-io/open-design](https://github.com/nexu-io/open-design) (Apache-2.0) and [feimacode/open-design-agent-kit](https://github.com/feimacode/open-design-agent-kit) (MIT) |
-| `gradientdeck` | 109 components / 250 variants | AI components published as shadcn registry JSON — complete, typed TSX (MIT) |
+| `gradientdeck` | 109 components / 250 variants | AI components published as shadcn registry JSON: complete, typed TSX (MIT) |
 | `gradientdeck` | 139 patterns + 20 glass effects | Background gradients, patterns and liquid-glass presets with real CSS (MIT) |
+| `reui` | 1,264 components in 87 categories | KeenThemes [ReUI](https://github.com/keenthemes/reui): Radix UI and Base UI TSX for every example, with live offline previews (MIT) |
+| `dashboards` | 2 starter templates | shadcn-admin (Vite + TanStack Router) and a Next.js 16 App Router starter, fonts bundled and CDN links stripped (MIT) |
 
-Both land in **one catalog** with a `source` tag on every entry, so a single
-query searches both.
+The Refero and OpenDesign entries land in **one catalog** with a `source` tag
+on every entry, so a single query searches both.
+
+ReUI components and dashboard starters are separate layers. They carry their
+own cache indexes, gallery tabs, and JSON APIs. The `design_*` MCP tools do
+not cover them.
 
 OpenDesign is imported with a sparse clone of just the `design-systems/`
-subtree — **38 MB**, not the 3.6 GB full repo (that figure is git history;
+subtree: **38 MB**, not the 3.6 GB full repo (that figure is git history,
 the working tree is 323 MB).
 
 ### The Agent Kit layer
@@ -40,14 +50,14 @@ the working tree is 323 MB).
 [feimacode/open-design-agent-kit](https://github.com/feimacode/open-design-agent-kit)
 (MIT), which re-packages OpenDesign's content for agents. It contributes:
 
-- **46 design systems that do not exist upstream** — 30 iOS systems adapted
+- **46 design systems that do not exist upstream**: 30 iOS systems adapted
   from `Meliwat/awesome-ios-design-md` and 16 aesthetic concepts re-authored
   from `bergside/awesome-design-skills`.
-- **A Claude Design package for all 198** — the same files Claude's own
+- **A Claude Design package for all 198**: the same files Claude's own
   Design System format uses, so a system can be handed to Claude directly.
-- **A rendered preview and cover for all 198** — the gallery shows each
+- **A rendered preview and cover for all 198**: the gallery shows each
   system two ways, as an Open Design preview and as a Claude Design view.
-- **Curated mood/industry descriptors** — what the tokens cannot say, and
+- **Curated mood/industry descriptors**: what the tokens cannot say, and
   what the gallery filters on.
 - **Corrections for 57 upstream systems** whose prose disagreed with their
   tokens. The result is byte-identical to what the kit's own gallery renders.
@@ -67,6 +77,8 @@ npm install          # upstream package
 npm run fetch        # populate ./cache from public pages (~2.5 min, 1,342 styles)
 npm run opendesign   # import the OpenDesign design systems (~30s, 38 MB)
 npm run agentkit     # add the Agent Kit layer: 46 new systems, Claude packages, previews
+npm run reui         # cache the ReUI component library (1,264 components, 87 categories)
+npm run dashboards   # cache dashboard starters with offline zips and bundled fonts
 npm run thumbs       # cache every screenshot locally, compressed (~55 MB)
 npm test             # self-test everything
 
@@ -83,14 +95,14 @@ hermes mcp add designer \
          node scripts/mcp-server.mjs
 ```
 
-The command prompts to enable tools — answer `y`. If stdin is not a TTY it
+The command prompts to enable tools: answer `y`. If stdin is not a TTY it
 cancels, so pipe it: `printf 'y\n' | hermes mcp add designer ...`.
 
 Restart the gateway (or `/reload-mcp`) so the tools register.
 
 ### The two MCP servers
 
-`design_*` (generic, recommended) — source-neutral, works across both sources:
+`design_*` (generic, recommended), source-neutral, works across both sources:
 
 | Tool | What it does |
 |---|---|
@@ -100,7 +112,7 @@ Restart the gateway (or `/reload-mcp`) so the tools register.
 | `design_facets` | Distributions: theme, source, industry, font |
 | `design_markdown` | The DESIGN.md for one design |
 
-`refero_*` (upstream) — Refero-specific, includes `refero_similar` and
+`refero_*` (upstream), Refero-specific, includes `refero_similar` and
 `refero_refresh`, which need network. Swap the command to
 `node scripts/mcp-entry.mjs` to use it.
 
@@ -108,7 +120,7 @@ Restart the gateway (or `/reload-mcp`) so the tools register.
 
 ## Why it works this way
 
-The upstream package reads `styles.refero.design/api/styles` — an undocumented
+The upstream package reads `styles.refero.design/api/styles`, an undocumented
 endpoint that is **`Disallow`ed by robots.txt** and answers **HTTP 403** to
 every client. The upstream author deliberately stopped routing around it,
 because Refero's Terms of Use forbid automated extraction outside documented
@@ -119,7 +131,7 @@ which robots.txt permits for generic agents, and pulls the structured payload
 out of the Next.js RSC flight stream. The result is written in the upstream
 package's own cache format, so the package runs unmodified and offline.
 
-Each public page also ships a **"Download DESIGN.md"** button — the export is
+Each public page also ships a **"Download DESIGN.md"** button, so the export is
 a first-class product feature, not an extraction loophole.
 
 ### Cache layout
@@ -137,9 +149,11 @@ cache/components.json    { updatedAt, total, components[] }   <- component index
 cache/components/<slug>.json  variants + source code          <- one component
 cache/presets.json       { updatedAt, total, catalogs[] }     <- preset index
 cache/presets/<kind>.json      presets with CSS + templates   <- one catalog
+cache/reui/...                 categories, TSX, screenshots   <- ReUI layer
+cache/dashboards/<slug>/       source + offline zip + fonts   <- dashboard starters
 ```
 
-`styles` and `designs` in `catalog.json` point at the same array — the
+`styles` and `designs` in `catalog.json` point at the same array: the
 upstream package reads `styles`, the generic server reads `designs`. Every
 entry carries a `source` tag (`refero` or `opendesign`).
 
@@ -148,7 +162,7 @@ Thumbnails are stored as **WebP at 1000px** (see
 `.jpg`, `.jpeg`, `.png` and `.webp`, preferring `.webp` when several exist,
 so an uncompressed cache keeps working unchanged.
 
-The cache dir is `DESIGN_CACHE_DIR` (default `~/.design-cache`);
+The cache dir is `DESIGN_CACHE_DIR` (default `~/.design-cache`).
 `REFERO_CACHE_DIR` is still honoured so existing installs keep working.
 
 ---
@@ -179,11 +193,11 @@ sitemap: **0 style ids appear in collections that are missing from the sitemap.*
 | `refero_design_md` | render a style as DESIGN.md | yes |
 | `refero_list` | browse the catalog | yes |
 | `refero_facets` | fonts/colors/themes actually present | yes |
-| `refero_similar` | Refero's similar-style ranking | no — needs `/api/` |
-| `refero_refresh` | force a re-fetch | no — needs `/api/` |
+| `refero_similar` | Refero's similar-style ranking | no, needs `/api/` |
+| `refero_refresh` | force a re-fetch | no, needs `/api/` |
 
 The generic `design_*` server (`scripts/mcp-server.mjs`) is the recommended
-one — it covers every source and works fully offline:
+one: it covers every source and works fully offline:
 
 | Tool | What it does |
 |---|---|
@@ -193,7 +207,7 @@ one — it covers every source and works fully offline:
 | `design_facets` | what's actually in the catalog |
 | `design_markdown` | the DESIGN.md brief for one design |
 | `design_component_search` | search the AI component library |
-| `design_component_get` | one component — variants, FAQ, dependencies |
+| `design_component_get` | one component: variants, FAQ, dependencies |
 | `design_component_code` | the source code for one variant |
 | `design_preset_search` | search gradients, patterns and glass effects |
 | `design_preset_get` | one preset catalog with real CSS |
@@ -204,24 +218,33 @@ one — it covers every source and works fully offline:
 
 ```
 GET /                            design systems gallery
-GET /design/:id                  detail page — screenshot, color tokens, type scale
+GET /design/:id                  detail page: screenshot, color tokens, type scale
 GET /api/designs?limit=          every design in the catalog
 GET /api/facets                  theme/industry/font distributions
 GET /api/search?q=               ranked search
 GET /thumb/:id                   local thumbnail bytes
 GET /healthz                     readiness probe
 
-GET /components                  component library — 109 components, 250 variants
+GET /components                  component library: 109 components, 250 variants
 GET /component/:slug             one component with live previews and copyable source
 GET /tailwind                    HyperUI components grouped by use
 GET /tailwind/shadcn              shadcn/ui Radix Vega examples and source
 GET /api/components?q=&category= component search
 GET /api/component/:slug         one component as JSON
 
-GET /presets                     preset catalogs — gradients, patterns, glass
+GET /presets                     preset catalogs: gradients, patterns, glass
 GET /presets/:kind               one catalog in full
 GET /api/presets                 preset catalog index
 GET /api/presets/:kind           one catalog as JSON
+
+GET /reui                        ReUI gallery: 1,264 components in 87 categories
+GET /reui/:category              one category with live offline previews
+GET /reui/preview/:cat/:item     one live component preview
+GET /api/reui                    ReUI index as JSON
+
+GET /dashboards                  dashboard starters with offline downloads
+GET /dashboard/:slug             one dashboard: file tree, cover, and zips
+GET /api/dashboards              dashboard index as JSON
 
 GET /templates                   design-system templates with landing and deck previews
 GET /assets                      browser libraries, styles, fonts, and starter downloads
@@ -230,7 +253,7 @@ GET /assets/starter.zip           portable starter with a runnable example
 ```
 
 The gallery's DESIGN.md is **byte-identical** to what `refero_design_md`
-returns — both call the upstream package's own `renderDesignMd`.
+returns. Both call the upstream package's own `renderDesignMd`.
 
 Open **Assets** in the gallery to download individual files or the complete
 starter. Extract the ZIP and serve the directory with a local HTTP server,
@@ -262,23 +285,30 @@ and run `npm run frontend:build` to regenerate the pack.
 
 ---
 
-## Static Site & GitLab Pages
+## Static site: GitHub Pages and GitLab Pages
 
-The entire gallery (all 1,540 designs, Refero screenshots, OpenDesign & Claude
-Design previews, 109 AI components with 250 live demos, HyperUI & shadcn/ui
-Tailwind catalogs with client-side variant switching and viewport toggles,
-presets, 6 templates, assets, skill archive, and JSON APIs) can be built into a
-100% self-contained static site with relative URLs and zero external network
-requests:
+The entire gallery builds into a 100% self-contained static site with relative
+URLs and zero external network requests. One build carries:
+
+- all 1,540 designs: screenshots, Open Design previews, and Claude Design views
+- 109 AI components with 250 live demos
+- 1,264 ReUI components with live offline previews
+- the Dashboards tab: 2 starters with offline zips and bundled fonts
+- the HyperUI & shadcn/ui Tailwind catalogs with client-side variant switching
+- presets, 6 templates, assets, the skill archive, and the JSON APIs
 
 ```bash
-# Build into dist/static/ (or pass --out public for GitLab Pages)
+# Build into dist/static/ (or pass --out public for Pages)
 npm run build:static
 node scripts/build-static.mjs --out public
 
 # Preview the static build locally
 npm run preview:static
 ```
+
+The build reads `bake/` by default (`DESIGN_CACHE_DIR` overrides), so run
+`npm run bake` once from a working cache, or pass `--cache` to point at any
+populated cache directory.
 
 Or export/serve it directly from the Docker image offline:
 
@@ -293,11 +323,26 @@ docker run --rm -p 127.0.0.1:8787:8787 \
   designer-mcp:latest node scripts/static-serve.mjs
 ```
 
-A ready-to-use `.gitlab-ci.yml` is included to build `public/` and publish to
-GitLab Pages. All links and assets use relative paths, so the site works both at
-`/` and at project subpaths (`https://<user>.gitlab.io/<repo>/`).
+A ready-to-use `.gitlab-ci.yml` is included: it builds `public/` with the
+published image and publishes to GitLab Pages with no other setup.
 
-### Pointing MCP at a hosted static / GitLab Pages site
+### GitHub Pages
+
+`.github/workflows/pages.yml` does it already: every push to `main` builds
+`public/` with the published image and deploys it with the official Pages
+actions. Enable it once in the repo settings (Pages, Source: GitHub Actions)
+and the site serves at `https://<user>.github.io/<repo>/`.
+
+The Pages site is a preview of the Docker gallery, nothing more. MCP is not
+hosted there: both MCP servers are stdio processes that run from the Docker
+image on a local machine. An agent can still read the site's `api/*.json`
+remotely with `DESIGN_REMOTE_URL` (see below).
+
+All links and assets use relative paths, so the site works both at `/` and at
+project subpaths. Both `https://<user>.gitlab.io/<repo>/` and
+`https://<user>.github.io/<repo>/` work with no base-path configuration.
+
+### Pointing MCP at a hosted static site
 
 When `DESIGN_REMOTE_URL` (or `--url <url>`) is set, `scripts/mcp-server.mjs`
 reads the catalog, designs, packages, components, presets, and templates from
@@ -321,7 +366,7 @@ The `designer-mcp` image runs both surfaces over the same cache:
 
 | Surface | How to run | What it is |
 |---|---|---|
-| **Gallery** | `docker compose up -d gallery` | HTTP preview on `127.0.0.1:8787` — thumbnails, colour swatches, type scales, DESIGN.md |
+| **Gallery** | `docker compose up -d gallery` | HTTP preview on `127.0.0.1:8787`: thumbnails, colour swatches, type scales, DESIGN.md |
 | **MCP** | `docker compose run --rm design` | stdio JSON-RPC server, 20 `design_*` tools over both sources |
 | **MCP (upstream)** | `docker compose run --rm mcp` | stdio JSON-RPC server, 7 `refero_*` tools, Refero-only |
 | **Fetch** | `docker compose run --rm fetch` | populates the cache from Refero's public pages |
@@ -343,6 +388,15 @@ docker compose run --rm agentkit     #  46 more + the Claude layer
 docker compose run --rm thumbs       # 1,342 screenshots     (~55 MB)
 ```
 
+The ReUI and dashboard layers are not compose services. Stage them with npm:
+
+```bash
+npm run reui          # 1,264 components in 87 categories (Radix + Base UI TSX)
+npm run dashboards    # 2 starters with offline zips and bundled fonts
+```
+
+Both are baked into the published image.
+
 Each accepts trailing arguments, which append to the script's defaults:
 
 ```bash
@@ -354,7 +408,7 @@ docker compose run --rm compress --replace            # drop the originals
 
 ### Thumbnail compression
 
-The Refero screenshots are 1440×900 JPEGs, ~115 KB each — 150.6 MB for the
+The Refero screenshots are 1440×900 JPEGs, ~115 KB each: 150.6 MB for the
 full catalog, more than the JSON catalog itself.
 
 The gallery never renders them at that size: a grid card is 349 CSS px wide
@@ -367,7 +421,7 @@ and the detail page 716 CSS px. So the fetcher re-encodes to **WebP at
 | Compressed WebP | **55.9 MB** | ~43 KB |
 
 That is 37% of the original. Measured against a Lanczos reference the
-result is a mean **PSNR of 42.5 dB and SSIM of 0.990** — visually
+result is a mean **PSNR of 42.5 dB and SSIM of 0.990**, visually
 indistinguishable at both display sizes. A gallery page load drops from
 25.3 MB to 9.3 MB.
 
@@ -395,7 +449,7 @@ REFERO_CACHE_DIR=/Users/whit3rabbit/.refero-cache docker compose up -d gallery
 curl -s http://127.0.0.1:8787/healthz
 # {"ok":true,"styles":1342,"updatedAt":1794274864435}
 
-npm test        # 17 checks across cache, renderer, preview, and MCP
+npm test        # 88 checks with every layer cached
 ```
 
 ### Routes
@@ -403,7 +457,7 @@ npm test        # 17 checks across cache, renderer, preview, and MCP
 | Route | Returns |
 |---|---|
 | `/` | design systems gallery (1,540 cards) |
-| `/design/:id` | detail page — cover, colour tokens, type scale, do/don't |
+| `/design/:id` | detail page: cover, colour tokens, type scale, do/don't |
 | `/preview/:id/open-design` | the rendered Open Design preview for one system |
 | `/preview/:id/claude` | the same system in Claude's Design System format |
 | `/preview/:id/claude/file/*` | a Claude Design package file |
@@ -413,9 +467,13 @@ npm test        # 17 checks across cache, renderer, preview, and MCP
 | `/api/facets` | font/theme distributions |
 | `/design.md/:id` | rendered DESIGN.md |
 | `/components` | component library (109 components, 250 variants) |
-| `/component/:slug` | one component — variants, source, FAQ |
+| `/component/:slug` | one component: variants, source, FAQ |
 | `/presets` | preset catalogs |
 | `/presets/:kind` | one catalog with real CSS |
+| `/reui` | ReUI gallery: 1,264 components in 87 categories |
+| `/reui/:category` | one category with live offline previews |
+| `/dashboards` | dashboard starters with offline downloads |
+| `/dashboard/:slug` | one dashboard: file tree, cover, and zips |
 | `/skill` | the skill zip (`designer-mcp-skill.zip`) |
 | `/skill/SKILL.md` | the skill source |
 | `/healthz` | status + style count |
@@ -429,9 +487,9 @@ docker pull ghcr.io/whit3rabbit/designer-mcp:latest
 ```
 
 Public on GitHub Container Registry, multi-arch (`linux/amd64`, `linux/arm64`),
-~570MB — most of it the baked catalog.
+~570MB, most of it the baked catalog.
 
-`:latest` tracks the newest release — the publish workflow pushes it
+`:latest` tracks the newest release, and the publish workflow pushes it
 alongside every version tag. Pin to a specific tag (`v1.0.4`) when you want
 a reproducible deployment.
 
@@ -443,13 +501,14 @@ docker run -d --name designer-mcp-gallery \
   ghcr.io/whit3rabbit/designer-mcp:latest
 ```
 
-That container has 1,540 designs, 109 AI components and 159 presets baked
-in, and makes **no outbound calls** — verified with `--network none`.
+That container has 1,540 designs, 109 AI components, 1,264 ReUI components,
+2 dashboard starters, and 159 presets baked in, and makes **no outbound
+calls**, verified with `--network none`.
 
 **The image also ships the fetchers**, so you can refresh against a volume:
 
 ```bash
-# 1. populate a cache (reads only public pages; /api/ is never requested)
+# 1. populate a cache (reads only public pages, /api/ is never requested)
 docker volume create refero-cache
 docker run --rm -v refero-cache:/cache \
   ghcr.io/whit3rabbit/designer-mcp:latest \
@@ -493,14 +552,14 @@ hermes mcp add designer --command docker --args \
   node scripts/mcp-server.mjs
 ```
 
-The command prompts to enable tools; answer `y` (or pipe `y` if stdin is not
+The command prompts to enable tools: answer `y` (or pipe `y` if stdin is not
 a TTY, or it cancels).
 
 `mcp-server.mjs` is the generic server: 20 `design_*` tools across every
 source, fully offline. Use `mcp-entry.mjs` instead if you want the upstream
 `refero_*` tools instead (7 tools, styles only).
 
-Point it at the published tag rather than a locally built image — the
+Point it at the published tag rather than a locally built image: the
 registry tag works on any machine without a build step.
 
 ### Updating and publishing
@@ -560,7 +619,7 @@ changes that matter for this deployment:
 
 - **Tool names.** This server exposes `refero_search` / `refero_get`, not the
   official `refero_search_styles` / `refero_get_style`.
-- **Honest scope.** There is **no screens or flows layer** here — those need
+- **Honest scope.** There is **no screens or flows layer** here: those need
   the paid API. The skill routes those questions to the craft references
   instead of inventing precedent, and documents which tools fail and why.
 
@@ -597,20 +656,21 @@ Verdict: PASS  (errors: 0, warnings: 0, info: 3)
 ```
 
 For reference, the upstream `refero-design` skill it derives from currently
-fails the same audit (7 ST-04 warnings + an ST-01 error — its SKILL.md is 530
-lines and its long reference files have no table of contents). This version
-fixes all three: SKILL.md is 389 lines, every reference over 100 lines has a
-generated `## Contents`, and the detail that would have overflowed the body
-lives in `references/research-playbook.md`.
+fails the same audit (7 ST-04 warnings + an ST-01 error: its SKILL.md is 530
+lines and its long reference files have no table of contents).
+
+This version fixes all three: SKILL.md is 389 lines, every reference over 100
+lines has a generated `## Contents`, and the detail that would have overflowed
+the body lives in `references/research-playbook.md`.
 
 Three info-level findings remain, all deliberate:
 
-- **CQ-05** — a heuristic false positive: it reads upstream's rule *"Default is
+- **CQ-05** is a heuristic false positive: it reads upstream's rule *"Default is
   NO cards"* as an option dump, when it is literally stating a default.
-- **MD-07** — `name` is not gerund form. The linter's own guidance says noun
+- **MD-07**: `name` is not gerund form. The linter's own guidance says noun
   phrases are acceptable, and `designer-mcp` matches the container image and
   MCP server names.
-- **EV-02** — no cross-model test results recorded. `evals/evals.json` has 7
+- **EV-02**: no cross-model test results recorded. `evals/evals.json` has 7
   scenarios (including 2 trigger-paraphrase cases), but running them across
   Haiku/Sonnet/Opus needs live model runs.
 
@@ -633,9 +693,14 @@ designer-mcp-docker/
 ├── scripts/
 │   ├── refero-public-fetch.js  # cache builder (public pages only)
 │   ├── preview.mjs             # gallery + HTTP API
-│   ├── mcp-entry.mjs           # stdio MCP entrypoint
+│   ├── mcp-server.mjs          # generic stdio MCP server (design_*)
+│   ├── mcp-entry.mjs           # stdio MCP entrypoint (upstream refero_*)
+│   ├── fetch-reui.mjs          # cache the ReUI component library
+│   ├── fetch-dashboards.mjs    # cache dashboard starters, offline assets
+│   ├── build-static.mjs        # build the self-contained static site
+│   ├── static-serve.mjs        # serve a static build over HTTP
 │   ├── package-skill.mjs       # build the skill zip
-│   └── selftest.mjs            # 17 checks across all four surfaces
+│   └── selftest.mjs            # 88 checks across all surfaces
 ├── skills/designer-mcp/
 │   ├── SKILL.md            # agent skill
 │   ├── references/         # 11 craft reference files
@@ -665,11 +730,11 @@ Already-cached styles are skipped, so re-runs are incremental.
 ## Notes
 
 - **`OPENAI_API_KEY` changes search quality.** Without it the package falls back
-  to a BM25-lite keyword scorer — usable, but clearly worse on vibe queries.
+  to a BM25-lite keyword scorer, usable but clearly worse on vibe queries.
 - **The cache TTL is deliberately long** (`REFERO_CACHE_TTL_MS=86400000`). With
   a short TTL the package tries the live API on expiry, fails, and serves a
   stale copy with a warning banner. Refresh by re-running the fetcher instead.
-- **`colorScheme` can be `"mixed"`** — upstream's type only declares light and
+- **`colorScheme` can be `"mixed"`**: upstream's type only declares light and
   dark, so theme filters silently drop 133 styles.
 
 See [docs/DATA-SOURCE.md](docs/DATA-SOURCE.md) for the robots.txt / Terms of Use
@@ -678,6 +743,6 @@ analysis and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the internals.
 ## License
 
 MIT for this project. The vendored upstream package keeps its own license.
-Refero's design data belongs to Refero and the sites depicted — this project
-reads publicly available pages and caches them locally; it does not redistribute
-them.
+Refero's design data belongs to Refero and the sites depicted. This project
+reads publicly available pages and caches them locally. It does not
+redistribute them.
