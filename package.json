@@ -11,6 +11,8 @@
     "opendesign": "node scripts/fetch-opendesign.mjs",
     "agentkit": "node scripts/fetch-agentkit.mjs",
     "components": "node scripts/fetch-gradientdeck.mjs",
+    "reui": "node scripts/fetch-reui.mjs",
+    "dashboards": "node scripts/fetch-dashboards.mjs",
     "presets": "node scripts/fetch-presets.mjs",
     "templates": "node scripts/stage-design-systems.mjs",
     "thumbs": "node scripts/fetch-thumbs.mjs --compress",

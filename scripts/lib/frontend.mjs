@@ -178,5 +178,18 @@ export async function loadFrontend(directory) {
       const entry = variant(slug, item);
       return entry ? previewHtml(assetUrl(entry.module), assetUrl("previews/preview.css")) : null;
     },
+    reuiPreviewPath(category, name) {
+      if (!manifest || !validSlug(category) || !validSlug(name)) return null;
+      const entry = manifest.reuiPreviews?.[category]?.[name];
+      return entry && Object.hasOwn(files, entry.module) && Object.hasOwn(files, "previews/reui.css")
+        ? `/reui/preview/${category}/${name}`
+        : null;
+    },
+    reuiPreviewDocument(category, name) {
+      if (!manifest || !validSlug(category) || !validSlug(name)) return null;
+      const entry = manifest.reuiPreviews?.[category]?.[name];
+      if (!entry || !Object.hasOwn(files, entry.module) || !Object.hasOwn(files, "previews/reui.css")) return null;
+      return previewHtml(assetUrl(entry.module), assetUrl("previews/reui.css"));
+    },
   };
 }

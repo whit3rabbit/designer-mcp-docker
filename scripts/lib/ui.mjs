@@ -37,9 +37,11 @@ export function nav(active) {
     <span class="brand">▣ Designer</span>
     ${tab("/", "Designs", "designs")}
     ${tab("/components", "Components", "components")}
+    ${tab("/reui", "ReUI", "reui")}
     ${tab("/tailwind", "Tailwind", "tailwind")}
     ${tab("/presets", "Gradients &amp; Patterns", "presets")}
     ${tab("/templates", "System templates", "templates")}
+    ${tab("/dashboards", "Dashboards", "dashboards")}
     ${tab("/docs", "UI SDK Docs", "docs")}
     ${tab("/assets", "Assets", "assets")}
     <span class="spacer"></span>

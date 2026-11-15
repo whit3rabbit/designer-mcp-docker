@@ -50,7 +50,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.design-cache
-          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-thumbs.mjs') }}
+          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-reui.mjs', 'scripts/fetch-dashboards.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-thumbs.mjs') }}
           restore-keys: |
             catalog-${{ runner.os }}-
 
@@ -63,6 +63,8 @@ jobs:
           node scripts/fetch-opendesign.mjs || echo "opendesign import incomplete"
           node scripts/fetch-agentkit.mjs || echo "agentkit import incomplete"
           node scripts/fetch-gradientdeck.mjs || echo "component fetch incomplete"
+          node scripts/fetch-reui.mjs || echo "reui fetch incomplete"
+          node scripts/fetch-dashboards.mjs || echo "dashboards fetch incomplete"
           node scripts/fetch-presets.mjs || echo "preset fetch incomplete"
           node scripts/fetch-thumbs.mjs --compress || echo "thumb fetch incomplete"
           node scripts/bake-cache.mjs --cache "$HOME/.design-cache" --out bake

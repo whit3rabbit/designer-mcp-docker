@@ -31,6 +31,7 @@ COPY scripts/fetch-tailwind.mjs ./scripts/
 RUN node scripts/fetch-tailwind.mjs
 COPY bake/components.json bake/design-systems.json ./bake/
 COPY bake/components/ ./bake/components/
+COPY bake/reui/ ./bake/reui/
 COPY bake/design-systems/ ./bake/design-systems/
 RUN --network=none node frontend/build.mjs --out /frontend-cache
 

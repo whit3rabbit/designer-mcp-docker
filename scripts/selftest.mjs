@@ -268,6 +268,45 @@ try {
     bad("no presets in the cache — run: node scripts/fetch-presets.mjs");
   }
 
+  // ----------------------------------------------------------------- ReUI
+  const reui = await fetch(`http://127.0.0.1:${PORT}/api/reui`).then((r) => r.json());
+  if (reui.total && reui.categories?.length) {
+    ok(`api/reui reports ${reui.total} components across ${reui.categories.length} categories`);
+    const reuiHtml = await fetch(`http://127.0.0.1:${PORT}/reui`).then((r) => r.text());
+    reuiHtml.includes("ReUI Components") ? ok("reui gallery page renders") : bad("reui gallery wrong");
+    const catSlug = reui.categories[0].slug;
+    const catHtml = await fetch(`http://127.0.0.1:${PORT}/reui/${catSlug}`).then((r) => r.text());
+    catHtml.includes("reui-card") ? ok(`reui category page renders (${catSlug})`) : bad("reui category wrong");
+    const firstItem = reui.categories[0].items?.[0]?.name;
+    if (firstItem) {
+      const prevRes = await fetch(`http://127.0.0.1:${PORT}/reui/preview/${catSlug}/${firstItem}`);
+      prevRes.status === 200 ? ok(`reui preview HTML served (${catSlug}/${firstItem})`) : bad(`reui preview returned ${prevRes.status}`);
+    }
+  } else {
+    bad("no ReUI components in the cache — run: npm run reui");
+  }
+
+  // ------------------------------------------------------------- Dashboards
+  const dash = await fetch(`http://127.0.0.1:${PORT}/api/dashboards`).then((r) => r.json());
+  if (dash.total && dash.dashboards?.length) {
+    ok(`api/dashboards reports ${dash.total} dashboard(s)`);
+    const dSlug = dash.dashboards[0].slug;
+    const dListHtml = await fetch(`http://127.0.0.1:${PORT}/dashboards`).then((r) => r.text());
+    dListHtml.includes("Dashboards") ? ok("dashboards gallery page renders") : bad("dashboards gallery wrong");
+    const dDetailHtml = await fetch(`http://127.0.0.1:${PORT}/dashboard/${dSlug}`).then((r) => r.text());
+    dDetailHtml.includes("Quick Offline Setup") ? ok(`dashboard detail page renders (${dSlug})`) : bad("dashboard detail wrong");
+    const zipRes = await fetch(`http://127.0.0.1:${PORT}/dashboard/${dSlug}/download`);
+    zipRes.status === 200 && zipRes.headers.get("content-type") === "application/zip"
+      ? ok(`dashboard offline ZIP served (${dSlug})`)
+      : bad(`dashboard ZIP returned ${zipRes.status}`);
+    const fontsRes = await fetch(`http://127.0.0.1:${PORT}/dashboard/${dSlug}/fonts.zip`);
+    fontsRes.status === 200 && fontsRes.headers.get("content-type") === "application/zip"
+      ? ok(`dashboard offline fonts ZIP served (${dSlug})`)
+      : bad(`dashboard fonts ZIP returned ${fontsRes.status}`);
+  } else {
+    bad("no dashboards in the cache — run: npm run dashboards");
+  }
+
   // ------------------------------------------------- design-system templates
   const tmpl = await fetch(`http://127.0.0.1:${PORT}/api/templates`).then((r) => r.json());
   if (tmpl.total) {

@@ -205,6 +205,8 @@ async function main() {
   // --------------------------------------------- components and presets
   await copyFile("components.json");
   await copyDir("components");
+  await copyDir("reui");
+  await copyDir("dashboards");
   await copyFile("presets.json");
   await copyDir("presets");
 

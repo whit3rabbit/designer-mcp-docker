@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
@@ -125,6 +126,113 @@ ${await readFile(join(here, "preview.css"), "utf8")}
   tailwind(css, join(out, "previews", "preview.css"));
   console.log(`Compiled ${Object.keys(entries).length} catalog demos`);
   return { previews, packages };
+}
+
+const OFFLINE_AVATAR_SVG =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='32' fill='%2327272a'/%3E%3Ccircle cx='32' cy='25' r='10' fill='%2371717a'/%3E%3Cpath d='M16 54c2-10 10-14 16-14s14 4 16 14' fill='%2371717a'/%3E%3C/svg%3E";
+
+function sanitizeReuiCode(code) {
+  return String(code || "")
+    .replace(/https:\/\/images\.unsplash\.com\/[^"'\s`)]+/g, OFFLINE_AVATAR_SVG)
+    .replace(/https:\/\/github\.com\/shadcn\.png/g, OFFLINE_AVATAR_SVG)
+    .replace(/`https:\/\/randomuser\.me\/api\/portraits\/[^`]+`/g, JSON.stringify(OFFLINE_AVATAR_SVG))
+    .replace(/https:\/\/randomuser\.me\/api\/portraits\/[^"'\s`)]+/g, OFFLINE_AVATAR_SVG);
+}
+
+function resolveFileCandidate(base) {
+  for (const ext of ["", ".tsx", ".ts", ".jsx", ".js", "/index.tsx", "/index.ts"]) {
+    const candidate = base + ext;
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function reuiAliasPlugin(runtimeDir) {
+  return {
+    name: "reui-alias",
+    setup(build) {
+      build.onResolve({ filter: /^@\/app\/\(create\)\/components\/icon-placeholder$/ }, () => ({
+        path: join(here, "reui-icon-placeholder.tsx"),
+      }));
+      build.onResolve({ filter: /^next-themes$/ }, () => ({
+        path: join(here, "reui-next-themes.mjs"),
+      }));
+      build.onResolve({ filter: /^@\// }, (args) => {
+        const rel = args.path.slice(2);
+        const resolved = resolveFileCandidate(join(runtimeDir, rel));
+        if (resolved) return { path: resolved };
+        return null;
+      });
+    },
+  };
+}
+
+async function buildReuiPreviews(scratch, out) {
+  const reuiDir = join(cache, "reui");
+  const indexPath = join(reuiDir, "index.json");
+  if (!existsSync(indexPath)) return { reuiPreviews: {}, packages: new Set() };
+  const index = await readJson(indexPath);
+  const runtimeDir = join(reuiDir, "runtime");
+  const demos = join(scratch, "reui-demos");
+  const entries = {};
+  const reuiPreviews = {};
+
+  for (const { slug } of index.categories || []) {
+    if (!validSlug(slug)) throw new Error(`Invalid ReUI category slug: ${slug}`);
+    const cat = await readJson(join(reuiDir, "categories", `${slug}.json`));
+    if (!cat?.items?.length) continue;
+    reuiPreviews[slug] = {};
+    for (const item of cat.items) {
+      if (!validSlug(item.name)) throw new Error(`Invalid ReUI item name: ${slug}/${item.name}`);
+      if (!item.radixCode) continue;
+      const path = `reui/${slug}/${item.name}`;
+      const codeFile = join(demos, slug, `${item.name}.tsx`);
+      const entryFile = join(scratch, "reui-entries", slug, `${item.name}.mjs`);
+      await write(codeFile, sanitizeReuiCode(item.radixCode));
+      await write(entryFile, `import Demo from ${JSON.stringify(codeFile)};
+import { mount } from ${JSON.stringify(join(here, "reui-preview-root.mjs"))};
+mount(Demo);
+`);
+      entries[path] = entryFile;
+      reuiPreviews[slug][item.name] = { module: `previews/${path}.mjs` };
+    }
+  }
+
+  if (!Object.keys(entries).length) return { reuiPreviews: {}, packages: new Set() };
+
+  const packages = await bundle(scratch, entries, join(out, "previews"), {
+    plugins: [reuiAliasPlugin(runtimeDir)],
+    jsxImportSource: "react",
+  });
+
+  const { cssVars } = await readJson(join(vendor, "theme.json"));
+  const roles = Object.keys(cssVars.light);
+  const values = (theme) => Object.entries(cssVars[theme]).map(([name, value]) => `--${name}: hsl(${value});`).join("\n");
+  const css = join(scratch, "reui.css");
+  await write(css, `@import "${join(modules, "tailwindcss", "index.css")}" source(none);
+@import "${join(modules, "tw-animate-css", "dist", "tw-animate.css")}";
+@import "${join(vendor, "shadcn-tailwind.css")}";
+@source "./reui-demos";
+@source "${runtimeDir}";
+@custom-variant dark (&:is(.dark *));
+:root { ${values("light")} --radius: .625rem; }
+.dark { ${values("dark")} }
+@theme inline {
+  ${roles.map((name) => `--color-${name}: var(--${name});`).join("\n")}
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; font-family: Inter, system-ui, sans-serif; }
+}
+${await readFile(join(here, "preview.css"), "utf8")}
+`);
+  tailwind(css, join(out, "previews", "reui.css"));
+  console.log(`Compiled ${Object.keys(entries).length} ReUI component previews`);
+  return { reuiPreviews, packages };
 }
 
 async function stageFonts(out, names) {
@@ -311,7 +419,12 @@ async function stageLicenses(out, packages, deckPackages, bundlePackages, vendor
         await copy(join(vendor, upstreamNotice), join(out, path));
         files.push(path);
       }
-      if (!files.length) throw new Error(`Missing license notice for ${name}`);
+      if (!files.length) {
+        if (!license) throw new Error(`Missing license notice for ${name}`);
+        const path = `${dest}/LICENSE.txt`;
+        await write(join(out, path), `${name}@${version}\nLicense: ${license}\n`);
+        files.push(path);
+      }
       result.push({ name, version, license: license ?? null, notices: files, ...(group && { group }) });
     }
   }
@@ -350,10 +463,11 @@ try {
   const templateFontImport = '@import "../starter/fonts/fonts.css";\n';
   await write(join(out, "fonts", "fonts.css"), templateFontImport);
   const { previews, packages: previewPackages } = await buildPreviews(scratch, out);
+  const { reuiPreviews, packages: reuiPackages } = await buildReuiPreviews(scratch, out);
   const tailwindGallery = await stageTailwindGallery(out, hyperui, cache, modules, shadcn);
   await captureThumbnails(out, previews, tailwindGallery);
   const browserPackages = packages.filter((name) => !["esbuild", "parse5", "@tailwindcss/cli"].includes(name));
-  const licenses = await stageLicenses(pack, browserPackages, deckPackages, new Set([...starterPackages, ...previewPackages]), vendorFiles);
+  const licenses = await stageLicenses(pack, browserPackages, deckPackages, new Set([...starterPackages, ...previewPackages, ...reuiPackages]), vendorFiles);
   await writeJson(join(pack, "packages.json"), { packages: licenses, vendorSnapshot: vendorFiles });
   await write(join(pack, "README.txt"), `Offline design starter
 
@@ -377,7 +491,7 @@ for self-hosted font faces. Package versions and licenses are in packages.json.
   });
   const files = await inspectFiles(out);
   const version = sha256(JSON.stringify(files)).slice(0, 20);
-  const manifest = { version, files, previews, templates, tailwindGallery, packages: licenses, vendorSnapshot: vendorFiles };
+  const manifest = { version, files, previews, reuiPreviews, templates, tailwindGallery, packages: licenses, vendorSnapshot: vendorFiles };
   await writeJson(join(scratch, "output", "manifest.json"), manifest);
 
   // Copy completely before replacing an existing cache, and never replace unrelated files.

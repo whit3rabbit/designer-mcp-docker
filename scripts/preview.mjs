@@ -60,7 +60,17 @@ import {
   readGalleryArtifact,
   readGalleryThumb,
   readOpenDesignPackage,
+  readReuiIndex,
+  readReuiCategory,
+  readReuiScreenshot,
+  readDashboardsIndex,
+  readDashboard,
+  readDashboardFile,
+  readDashboardCover,
+  readDashboardArchive,
 } from "./lib/cache.mjs";
+import { reuiCatalogHtml, reuiCategoryHtml } from "./lib/reui-ui.mjs";
+import { dashboardsHtml, dashboardDetailHtml } from "./lib/dashboards-ui.mjs";
 import {
   assetsHtml,
   componentsHtml,
@@ -586,6 +596,105 @@ const server = createServer(async (req, res) => {
       if (content === null) return json(res, 404, { error: "doc not found" });
       res.writeHead(200, { "content-type": "text/markdown; charset=utf-8" });
       return res.end(content);
+    }
+
+    // ---------------------------------------------------- ReUI component library
+    if (p === "/reui" || p === "/reui/") {
+      return sendHtml(res, reuiCatalogHtml(await readReuiIndex()));
+    }
+    const mReuiShot = p.match(/^\/reui\/screenshot\/([a-z0-9-]+-(?:light|dark)\.png)$/);
+    if (mReuiShot) {
+      const buf = await readReuiScreenshot(mReuiShot[1]);
+      if (!buf) return json(res, 404, { error: "reui screenshot not in cache" });
+      res.writeHead(200, {
+        "content-type": "image/png",
+        "content-length": buf.length,
+        "cache-control": "public, max-age=86400",
+      });
+      return res.end(buf);
+    }
+    const mReuiPreview = p.match(/^\/reui\/preview\/([a-z0-9-]+)\/([a-z0-9-]+)$/);
+    if (mReuiPreview) {
+      const [, catSlug, name] = mReuiPreview;
+      const doc = frontend.reuiPreviewDocument(catSlug, name);
+      return doc
+        ? sendHtml(res, doc, "demo")
+        : json(res, 404, { error: "reui preview not built" });
+    }
+    const mReuiCat = p.match(/^\/reui\/([a-z0-9-]+)$/);
+    if (mReuiCat) {
+      const catSlug = mReuiCat[1];
+      const [index, category] = await Promise.all([readReuiIndex(), readReuiCategory(catSlug)]);
+      if (!category) return json(res, 404, { error: "reui category not in cache", category: catSlug });
+      return sendHtml(res, reuiCategoryHtml(index, category, frontend.reuiPreviewPath));
+    }
+    if (p === "/api/reui") {
+      const index = await readReuiIndex();
+      const q = (url.searchParams.get("q") || "").toLowerCase();
+      let categories = index.categories || [];
+      if (q) {
+        categories = categories.filter((c) =>
+          `${c.label} ${c.slug} ${c.description || ""} ${(c.items || []).map((i) => `${i.name} ${i.label} ${i.title}`).join(" ")}`
+            .toLowerCase()
+            .includes(q),
+        );
+      }
+      return json(res, 200, { total: categories.reduce((n, c) => n + c.count, 0), categories });
+    }
+    const mReuiApi = p.match(/^\/api\/reui\/([a-z0-9-]+)$/);
+    if (mReuiApi) {
+      const category = await readReuiCategory(mReuiApi[1]);
+      if (!category) return json(res, 404, { error: "reui category not in cache", category: mReuiApi[1] });
+      return json(res, 200, category);
+    }
+
+    // ---------------------------------------------------- Dashboards
+    if (p === "/dashboards" || p === "/dashboards/") {
+      return sendHtml(res, dashboardsHtml(await readDashboardsIndex()));
+    }
+    if (p === "/api/dashboards") {
+      return json(res, 200, await readDashboardsIndex());
+    }
+    const mDashCover = p.match(/^\/dashboard\/([a-z0-9-]+)\/cover$/);
+    if (mDashCover) {
+      const buf = await readDashboardCover(mDashCover[1]);
+      if (!buf) return json(res, 404, { error: "dashboard cover not in cache" });
+      res.writeHead(200, { "content-type": "image/png", "content-length": buf.length, "cache-control": "public, max-age=86400" });
+      return res.end(buf);
+    }
+    const mDashDownload = p.match(/^\/dashboard\/([a-z0-9-]+)\/(download|fonts\.zip)$/);
+    if (mDashDownload) {
+      const [, slug, what] = mDashDownload;
+      const kind = what === "fonts.zip" ? "fonts" : "template";
+      const buf = await readDashboardArchive(slug, kind);
+      if (!buf) return json(res, 404, { error: "dashboard archive not in cache" });
+      const filename = kind === "fonts" ? `${slug}-fonts.zip` : `${slug}-offline.zip`;
+      res.writeHead(200, {
+        "content-type": "application/zip",
+        "content-length": buf.length,
+        "content-disposition": `attachment; filename="${filename}"`,
+      });
+      return res.end(buf);
+    }
+    const mDashFileApi = p.match(/^\/api\/dashboard\/([a-z0-9-]+)\/file$/);
+    if (mDashFileApi) {
+      const rel = url.searchParams.get("path") || "";
+      const buf = await readDashboardFile(mDashFileApi[1], rel);
+      if (!buf) return json(res, 404, { error: "dashboard file not in cache" });
+      res.writeHead(200, { "content-type": contentTypeFor(rel), "content-length": buf.length });
+      return res.end(buf);
+    }
+    const mDashApi = p.match(/^\/api\/dashboard\/([a-z0-9-]+)$/);
+    if (mDashApi) {
+      const rec = await readDashboard(mDashApi[1]);
+      if (!rec) return json(res, 404, { error: "dashboard not in cache", slug: mDashApi[1] });
+      return json(res, 200, rec);
+    }
+    const mDashDetail = p.match(/^\/dashboard\/([a-z0-9-]+)$/);
+    if (mDashDetail) {
+      const rec = await readDashboard(mDashDetail[1]);
+      if (!rec) return json(res, 404, { error: "dashboard not in cache", slug: mDashDetail[1] });
+      return sendHtml(res, dashboardDetailHtml(rec));
     }
 
     // ---------------------------------------------------- component library

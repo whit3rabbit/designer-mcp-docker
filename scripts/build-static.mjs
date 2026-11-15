@@ -32,7 +32,16 @@ import {
   readOpenDesignPackage,
   readPresetCatalog,
   readPresetsIndex,
+  readReuiIndex,
+  readReuiCategory,
+  readReuiScreenshot,
+  readDashboardsIndex,
+  readDashboard,
+  readDashboardCover,
+  readDashboardArchive,
 } from "./lib/cache.mjs";
+import { reuiCatalogHtml, reuiCategoryHtml } from "./lib/reui-ui.mjs";
+import { dashboardsHtml, dashboardDetailHtml } from "./lib/dashboards-ui.mjs";
 import { loadFrontend, previewHtml } from "./lib/frontend.mjs";
 import {
   KIT_CSS,
@@ -125,10 +134,12 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
   const routePairs = [
     ['href="/"', `href="${p}index.html"`],
     ['href="/components"', `href="${p}components/index.html"`],
+    ['href="/reui"', `href="${p}reui/index.html"`],
     ['href="/tailwind"', `href="${p}tailwind/index.html"`],
     ['href="/tailwind/shadcn"', `href="${p}tailwind/shadcn/index.html"`],
     ['href="/presets"', `href="${p}presets/index.html"`],
     ['href="/templates"', `href="${p}templates/index.html"`],
+    ['href="/dashboards"', `href="${p}dashboards/index.html"`],
     ['href="/docs"', `href="${p}docs/index.html"`],
     ['href="/assets"', `href="${p}assets/index.html"`],
     ['href="/skill"', `href="${p}skill/designer-mcp-skill.zip"`],
@@ -142,8 +153,19 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
   // Rewrite dynamic route prefixes
   out = out.replace(/(href|src)="\/design\/([^"?#]+)"/g, (_, attr, id) => `${attr}="${p}design/${id}/index.html"`);
   out = out.replace(/(href|src)="\/component\/([^"/?#]+)"/g, (_, attr, slug) => `${attr}="${p}component/${slug}/index.html"`);
+  out = out.replace(/href="\/reui\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}reui/${slug}/index.html"`);
+  out = out.replace(/src="\/reui\/screenshot\/([^"]+)"/g, (_, file) => `src="${p}reui/screenshot/${file}"`);
+  out = out.replaceAll("'/reui/screenshot/' +", `'${p}reui/screenshot/' +`);
+  out = out.replace(
+    /(data-base-src|src)="\/reui\/preview\/([a-z0-9-]+)\/([a-z0-9-]+)(\?[^"]*)?"/g,
+    (_, attr, cat, name, q) => `${attr}="${p}reui/preview/${cat}/${name}.html${q || ""}"`,
+  );
   out = out.replace(/(href|src)="\/presets\/([^"/?#]+)"/g, (_, attr, kind) => `${attr}="${p}presets/${kind}/index.html"`);
   out = out.replace(/(href|src)="\/template\/([^"/?#]+)"/g, (_, attr, slug) => `${attr}="${p}template/${slug}/index.html"`);
+  out = out.replace(/href="\/dashboard\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}dashboard/${slug}/index.html"`);
+  out = out.replace(/src="\/dashboard\/([a-z0-9-]+)\/cover"/g, (_, slug) => `src="${p}dashboard/${slug}/cover.png"`);
+  out = out.replace(/href="\/dashboard\/([a-z0-9-]+)\/download"/g, (_, slug) => `href="${p}dashboard/${slug}/${slug}-offline.zip"`);
+  out = out.replace(/href="\/dashboard\/([a-z0-9-]+)\/fonts\.zip"/g, (_, slug) => `href="${p}dashboard/${slug}/fonts.zip"`);
   out = out.replace(/href="\/tailwind\/(hyperui|shadcn)\/([^"?#]+)"/g, (_, src, slug) => `href="${p}tailwind/${src}/${slug}/index.html"`);
 
   // Rewrite template thumbs
@@ -714,6 +736,50 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
       await writeOut(`component/${slug}/preview/${item.id}.html`, doc);
     }
     await writeOut(`component/${slug}/index.html`, relativizeHtml(componentDetailHtml(comp, previewPaths), 2, { assetBase }));
+  }
+
+  // 7b. ReUI Components
+  const reuiIndex = await readReuiIndex();
+  if (reuiIndex.categories?.length) {
+    await writeJson("api/reui.json", reuiIndex);
+    await writeOut("reui/index.html", relativizeHtml(reuiCatalogHtml(reuiIndex), 1, { assetBase }));
+    for (const { slug } of reuiIndex.categories) {
+      for (const theme of ["light", "dark"]) {
+        const file = `${slug}-${theme}.png`;
+        const buf = await readReuiScreenshot(file);
+        if (buf) await writeOut(`reui/screenshot/${file}`, buf);
+      }
+      const cat = await readReuiCategory(slug);
+      if (!cat) continue;
+      await writeJson(`api/reui/${slug}.json`, cat);
+      for (const item of cat.items || []) {
+        const entry = manifest?.reuiPreviews?.[slug]?.[item.name];
+        if (!entry) continue;
+        const p3 = prefixFor(3);
+        const doc = previewHtml(`${p3}assets/${manifest.version}/${entry.module}`, `${p3}assets/${manifest.version}/previews/reui.css`);
+        await writeOut(`reui/preview/${slug}/${item.name}.html`, doc);
+      }
+      await writeOut(`reui/${slug}/index.html`, relativizeHtml(reuiCategoryHtml(reuiIndex, cat, frontend.reuiPreviewPath), 2, { assetBase }));
+    }
+  }
+
+  // 7c. Dashboards
+  const dashIndex = await readDashboardsIndex();
+  if (dashIndex.dashboards?.length) {
+    await writeJson("api/dashboards.json", dashIndex);
+    await writeOut("dashboards/index.html", relativizeHtml(dashboardsHtml(dashIndex), 1, { assetBase }));
+    for (const { slug } of dashIndex.dashboards) {
+      const rec = await readDashboard(slug);
+      if (!rec) continue;
+      await writeJson(`api/dashboard/${slug}.json`, rec);
+      const cover = await readDashboardCover(slug);
+      if (cover) await writeOut(`dashboard/${slug}/cover.png`, cover);
+      const tplZip = await readDashboardArchive(slug, "template");
+      if (tplZip) await writeOut(`dashboard/${slug}/${slug}-offline.zip`, tplZip);
+      const fontsZip = await readDashboardArchive(slug, "fonts");
+      if (fontsZip) await writeOut(`dashboard/${slug}/fonts.zip`, fontsZip);
+      await writeOut(`dashboard/${slug}/index.html`, relativizeHtml(dashboardDetailHtml(rec), 2, { assetBase }));
+    }
   }
 
   // 8. Tailwind (HyperUI & shadcn/ui)

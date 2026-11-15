@@ -76,6 +76,8 @@ export const INDEX_PATH = join(CACHE_DIR, "index.json");
 export const THUMBS_DIR = join(CACHE_DIR, "thumbs");
 export const STYLES_DIR = join(CACHE_DIR, "styles");
 export const SYSTEMS_DIR = join(CACHE_DIR, "systems");
+export const REUI_DIR = join(CACHE_DIR, "reui");
+export const DASHBOARDS_DIR = join(CACHE_DIR, "dashboards");
 
 /**
  * The Claude Design layer, one directory per system.
@@ -419,4 +421,68 @@ export async function writeIndex() {
 
 export async function readIndex() {
   return (await readJson(INDEX_PATH)) ?? { updatedAt: 0, total: 0, counts: {} };
+}
+
+/** ReUI component library index: { updatedAt, total, categories[] }. */
+export async function readReuiIndex() {
+  const empty = { updatedAt: null, total: 0, categories: [] };
+  if (REMOTE_URL) return (await fetchRemoteJson("api/reui.json")) ?? empty;
+  return (await readJson(join(REUI_DIR, "index.json"))) ?? empty;
+}
+
+/** One ReUI category with all its component items (Radix UI & Base UI TSX). */
+export async function readReuiCategory(slug) {
+  if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  if (REMOTE_URL) return fetchRemoteJson(`api/reui/${encodeURIComponent(slug)}.json`);
+  return readJson(join(REUI_DIR, "categories", `${slug}.json`));
+}
+
+/** Raw bytes for a ReUI category screenshot PNG. */
+export async function readReuiScreenshot(filename) {
+  if (!/^[a-z0-9-]+-(?:light|dark)\.png$/i.test(filename)) return null;
+  const path = join(REUI_DIR, "screenshots", filename);
+  if (!existsSync(path)) return null;
+  return readFile(path);
+}
+
+/** Dashboard starter templates index: { updatedAt, total, dashboards[] }. */
+export async function readDashboardsIndex() {
+  const empty = { updatedAt: null, total: 0, dashboards: [] };
+  if (REMOTE_URL) return (await fetchRemoteJson("api/dashboards.json")) ?? empty;
+  return (await readJson(join(DASHBOARDS_DIR, "index.json"))) ?? empty;
+}
+
+/** Full dashboard template record, including files[], dependencies[], pages[]. */
+export async function readDashboard(slug) {
+  if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  if (REMOTE_URL) return fetchRemoteJson(`api/dashboard/${encodeURIComponent(slug)}.json`);
+  return readJson(join(DASHBOARDS_DIR, slug, "dashboard.json"));
+}
+
+/** Safe file read inside a dashboard template's source/ directory. */
+export async function readDashboardFile(slug, relPath) {
+  if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  const clean = String(relPath || "").replace(/^\/+/, "");
+  if (!clean || clean.includes("..") || clean.includes("\\")) return null;
+  const base = join(DASHBOARDS_DIR, slug, "source");
+  const full = join(base, clean);
+  if (!full.startsWith(base + "/") || !existsSync(full)) return null;
+  return readFile(full);
+}
+
+/** Cover PNG bytes for a dashboard template. */
+export async function readDashboardCover(slug) {
+  if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  const path = join(DASHBOARDS_DIR, slug, "cover.png");
+  if (!existsSync(path)) return null;
+  return readFile(path);
+}
+
+/** Downloadable ZIP archive bytes ("template" or "fonts") for a dashboard template. */
+export async function readDashboardArchive(slug, kind = "template") {
+  if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  const file = kind === "fonts" ? "fonts.zip" : "template.zip";
+  const path = join(DASHBOARDS_DIR, slug, file);
+  if (!existsSync(path)) return null;
+  return readFile(path);
 }
