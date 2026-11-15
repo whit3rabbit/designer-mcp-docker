@@ -30,17 +30,23 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build the static site from the baked image
         run: |
-          docker run --rm --network none -v "$PWD/public:/out" \
+          # The pulled image bakes the catalog (/cache) and the built
+          # frontend (/app/frontend-cache); the checked-out scripts override
+          # the image's copies so Pages always builds with the current
+          # builder, not whatever the last published image shipped.
+          docker run --rm --network none \
+            -v "$PWD/public:/out" \
+            -v "$PWD/scripts:/app/scripts:ro" \
             ghcr.io/whit3rabbit/designer-mcp:latest \
             node /app/scripts/build-static.mjs --out /out
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: public
 
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

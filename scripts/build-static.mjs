@@ -413,8 +413,13 @@ function patchTailwindStaticDetail(html, source, group, variantsData) {
 
 async function main() {
   console.log(`Building static site:\n  cache:    ${CACHE_DIR}\n  frontend: ${FRONTEND_DIR}\n  out:      ${OUT_DIR}`);
-  await rm(OUT_DIR, { recursive: true, force: true });
+  // Clear the output contents without removing the directory itself. /out is
+  // often a bind-mount target in CI (`docker run -v "$PWD/public:/out"`), and
+  // removing a mount point fails with EBUSY on Linux.
   await mkdir(OUT_DIR, { recursive: true });
+  for (const entry of await readdir(OUT_DIR)) {
+    await rm(join(OUT_DIR, entry), { recursive: true, force: true });
+  }
 
   const frontend = await loadFrontend(FRONTEND_DIR);
   const manifest = frontend.publicManifest ? JSON.parse(await readFile(join(FRONTEND_DIR, "manifest.json"), "utf8")) : null;
