@@ -93,14 +93,15 @@ const REUI_CSS = `
   }
   .reui-card.full { grid-column: 1 / -1; }
   .reui-frame-wrap {
-    position: relative; background: #09090b; min-height: 260px; flex: 1;
+    position: relative; background: #09090b; flex: 1;
     border-bottom: 1px solid var(--line); display: flex;
   }
   .reui-frame-wrap.light { background: #ffffff; }
+  /* Frames start compact and grow to the demo's reported height. */
   .reui-frame-wrap iframe {
-    width: 100%; height: 300px; border: 0; display: block; background: transparent;
+    width: 100%; height: 72px; border: 0; display: block; background: transparent;
   }
-  .reui-card.full .reui-frame-wrap iframe { height: 380px; }
+  .reui-card.full .reui-frame-wrap iframe { height: 160px; }
   .reui-card-foot {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
     padding: 9px 12px; background: var(--panel); min-height: 44px;
@@ -404,6 +405,14 @@ for (const f of frames) {
     try { f.contentWindow?.postMessage({ type: 'reui-theme', theme: currentTheme }, '*'); } catch {}
   });
 }
+// Each preview doc reports its rendered height; size its frame to fit so a
+// single button does not get a 300px box while calendars get room to show.
+window.addEventListener('message', (e) => {
+  const d = e.data;
+  if (!d || d.source !== 'design-preview' || d.type !== 'height') return;
+  const frame = frames.find((x) => x.contentWindow === e.source);
+  if (frame) frame.style.height = Math.max(48, Math.min(720, Math.ceil(d.height))) + 'px';
+});
 
 const baseBtns = [...document.querySelectorAll('[data-base]')];
 const sheetBaseBtns = [...document.querySelectorAll('[data-sheet-base]')];

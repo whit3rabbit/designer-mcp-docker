@@ -196,6 +196,16 @@ async function run() {
       join(runtimeDir, "components/ui/svgs"),
       tsFilter,
     );
+    // The demos style themselves through reui's cn-* component classes, which
+    // are defined in the upstream style sheets, not in the component sources.
+    // Cache the sheet for the style the upstream site ships as its default so
+    // the offline previews render styled. Scoped under `.style-nova` upstream;
+    // the preview docs carry that class.
+    await mkdir(join(runtimeDir, "styles"), { recursive: true });
+    await copyFile(
+      join(sourceDir, "registry/styles/style-nova.css"),
+      join(runtimeDir, "styles/style-nova.css"),
+    );
     if (existsSync(join(sourceDir, "LICENSE.md"))) {
       await copyFile(join(sourceDir, "LICENSE.md"), join(REUI_DIR, "LICENSE.md"));
     }

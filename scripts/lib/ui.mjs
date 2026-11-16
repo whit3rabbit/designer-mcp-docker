@@ -429,7 +429,7 @@ ${NAV_CSS}
   .panel.on { display:block; }
   .preview { margin-bottom:16px; }
   .preview h2 { font-size:14px; margin:0 0 6px; }
-  .preview iframe { width:100%; height:clamp(320px, 60vh, 640px); border:1px solid var(--line);
+  .preview iframe { width:100%; height:96px; min-height:64px; border:1px solid var(--line);
     background:var(--panel); border-radius:10px; }
   .preview p { color:var(--muted); }
   .phead { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
@@ -488,6 +488,15 @@ function selectVariant(t) {
 }
 tabs.forEach(t => t.addEventListener('click', () => selectVariant(t)));
 if (tabs.length) selectVariant(tabs[0]);
+// Preview docs report their rendered height; grow the frame to fit.
+window.addEventListener('message', (e) => {
+  const d = e.data;
+  if (!d || d.source !== 'design-preview' || d.type !== 'height') return;
+  const frame = previewSlot.querySelector('iframe');
+  if (frame && frame.contentWindow === e.source) {
+    frame.style.height = Math.max(64, Math.min(720, Math.ceil(d.height))) + 'px';
+  }
+});
 document.querySelectorAll('.copy').forEach(btn => btn.addEventListener('click', async () => {
   const panel = document.querySelector('.panel[data-i="' + btn.dataset.i + '"] code');
   try {

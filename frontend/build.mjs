@@ -207,18 +207,35 @@ mount(Demo);
 
   const { cssVars } = await readJson(join(vendor, "theme.json"));
   const roles = Object.keys(cssVars.light);
-  const values = (theme) => Object.entries(cssVars[theme]).map(([name, value]) => `--${name}: hsl(${value});`).join("\n");
+  // The vendored theme predates shadcn's sidebar palette, which the reui
+  // style sheets @apply. Provide the standard values for the reui previews.
+  const sidebarRoles = ["sidebar", "sidebar-foreground", "sidebar-primary", "sidebar-primary-foreground",
+    "sidebar-accent", "sidebar-accent-foreground", "sidebar-border", "sidebar-ring"];
+  const sidebarVars = {
+    light: "hsl(0 0% 98%)|hsl(240 5.3% 26.1%)|hsl(240 5.9% 10%)|hsl(0 0% 98%)|hsl(240 4.8% 95.9%)|hsl(240 5.9% 10%)|hsl(220 13% 91%)|hsl(217.2 91.2% 59.8%)",
+    dark: "hsl(240 5.9% 10%)|hsl(240 4.8% 95.9%)|hsl(224.3 76.3% 48%)|hsl(0 0% 100%)|hsl(240 3.7% 15.9%)|hsl(240 4.8% 95.9%)|hsl(240 3.7% 15.9%)|hsl(217.2 91.2% 59.8%)",
+  };
+  const sidebarByRole = (theme) => sidebarRoles
+    .map((name, i) => `  --${name}: ${sidebarVars[theme].split("|")[i]};`)
+    .join("\n");
+  const values = (theme) => Object.entries(cssVars[theme]).map(([name, value]) => `--${name}: hsl(${value});`).join("\n")
+    + "\n" + sidebarByRole(theme);
+  const styleSheet = join(runtimeDir, "styles", "style-nova.css");
+  if (!existsSync(styleSheet)) {
+    throw new Error(`ReUI style sheet is missing: ${styleSheet}. Re-run \`npm run reui\` so the cn-* component classes are cached.`);
+  }
   const css = join(scratch, "reui.css");
   await write(css, `@import "${join(modules, "tailwindcss", "index.css")}" source(none);
 @import "${join(modules, "tw-animate-css", "dist", "tw-animate.css")}";
 @import "${join(vendor, "shadcn-tailwind.css")}";
+@import "${styleSheet}";
 @source "./reui-demos";
 @source "${runtimeDir}";
 @custom-variant dark (&:is(.dark *));
 :root { ${values("light")} --radius: .625rem; }
 .dark { ${values("dark")} }
 @theme inline {
-  ${roles.map((name) => `--color-${name}: var(--${name});`).join("\n")}
+  ${roles.concat(sidebarRoles).map((name) => `--color-${name}: var(--${name});`).join("\n  ")}
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
