@@ -2,6 +2,8 @@
 
 **1,540 real product design systems, queryable by an agent and browsable by a human.**
 
+**Browse it live: [whit3rabbit.github.io/designer-mcp-docker](https://whit3rabbit.github.io/designer-mcp-docker/)**. The full gallery on GitHub Pages: design systems, AI components with live previews, the ReUI gallery, dashboard starters, and presets. No Docker needed to look.
+
 [![publish](https://github.com/whit3rabbit/designer-mcp-docker/actions/workflows/publish.yml/badge.svg)](https://github.com/whit3rabbit/designer-mcp-docker/actions/workflows/publish.yml)
 [![latest tag](https://img.shields.io/github/v/tag/whit3rabbit/designer-mcp-docker)](https://github.com/whit3rabbit/designer-mcp-docker/tags)
 [![license MIT](https://img.shields.io/badge/license-MIT-blue)](#license)

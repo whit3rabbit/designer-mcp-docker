@@ -185,11 +185,12 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
     });
   }
 
-  // Rewrite component thumbnails: /component/<slug>/thumbnail/<id>?v=... -> assets/<ver>/thumbnails/components/<slug>/<id>.jpg
+  // Rewrite component thumbnails to the files the frontend build actually
+  // captures: one screenshot per component, at <slug>.jpg, not per variant.
   if (assetBase) {
     out = out.replace(
       /src="\/component\/([a-z0-9-]+)\/thumbnail\/([a-z0-9-]+)(?:\?[^"]*)?"/g,
-      (_, slug, id) => `src="${p}${assetBase}/thumbnails/components/${slug}/${id}.jpg"`,
+      (_, slug) => `src="${p}${assetBase}/thumbnails/components/${slug}.jpg"`,
     );
   }
 
