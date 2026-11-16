@@ -1,5 +1,53 @@
 # Changelog
 
+## v1.5.4 (2026-11-16)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.5.4`
+- Docs: the README Quick start now leads with the published image (`docker
+  pull` plus the gallery run) instead of a checkout path and a source-build
+  pipeline, and registers the MCP server for Claude Code, Codex, OpenCode,
+  Pi, and Hermes, all Docker-based with no build step and no volume. The
+  skill section downloads the published zip from Pages and lists the skills
+  directory per agent. Stale audit facts and two leftover local paths are
+  corrected. No runtime code changes since v1.5.3.
+
+## v1.5.3 (2026-11-16)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.5.3`
+- ReUI previews are sized to their content: each preview document reports its
+  rendered height from inside the bundled demo modules and its iframe sizes
+  itself (clamped 48 to 720 px). A single button no longer gets a 300 px box.
+- ReUI previews render with their component styles: the fetcher caches
+  `style-nova.css` (the style reui.io ships as default), the preview CSS
+  build imports it with the sidebar palette tokens it needs, and preview
+  documents carry the scoping class. Previously the `cn-*` classes were
+  never cached and buttons rendered as bare text.
+- Verified: `frontend:test` passes with zero off-origin requests across all
+  250 component demos, selftest green, offline image verification green.
+
+## v1.5.2 (2026-11-16)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.5.2`
+- Fixed component card thumbnails in the static site: the builder rewrote
+  card image sources to a per-variant path the frontend build never writes,
+  so every card on the Pages components index fell back to a placeholder.
+  The rewrite now emits the slug-level screenshot. README links the live
+  Pages gallery at the top.
+
+## v1.5.1 (2026-11-15)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.5.1`
+- Skills: fixed every finding from the 2026-11-15 skills audit (SKILL.md
+  restructured under the 500-line limit, a Contents section for the one
+  reference missing it, dependency lines completed in docx and xlsx, a
+  third-person description for pdf-reading, ui-sdk naming and link fixes,
+  ui-sdk routed in the parent tables). Audit ends PASS WITH WARNINGS with
+  one accepted vendor constraint; see `designer-mcp-audit.md`.
+- CI: fixed the Pages EBUSY failure (the static builder cleared the output
+  mount root, which Linux refuses), Pages now builds with the checked-out
+  scripts against the published image, and all workflow actions moved to
+  their Node 24 majors.
+
 ## v1.4.0 — 2026-11-12
 
 - **A third source: the Open Design Agent Kit.** `npm run agentkit` imports
