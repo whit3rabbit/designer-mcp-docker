@@ -72,26 +72,6 @@ export function previewHtml(module, css, rootClass = "") {
 <title>Component preview</title>
 <link rel="stylesheet" href="${css}">
 <script type="module" src="${module}" crossorigin="anonymous"></script>
-<script>
-  // Tell the parent page how tall the rendered demo is, so preview frames
-  // size themselves to their content instead of a fixed box. Harmless when
-  // viewed standalone: the message lands on this window and nothing listens.
-  const reportHeight = () => {
-    try {
-      const root = document.getElementById('preview-root');
-      const height = Math.ceil(Math.max(
-        root ? root.getBoundingClientRect().height : 0,
-        document.body ? document.body.scrollHeight : 0,
-      ));
-      window.parent.postMessage({ source: 'design-preview', type: 'height', height }, '*');
-    } catch {}
-  };
-  document.addEventListener('DOMContentLoaded', () => {
-    new ResizeObserver(reportHeight).observe(document.body);
-    reportHeight();
-  });
-  window.addEventListener('load', () => requestAnimationFrame(reportHeight));
-</script>
 </head>
 <body><div id="preview-root"></div></body>
 </html>`;

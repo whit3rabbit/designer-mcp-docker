@@ -411,7 +411,9 @@ window.addEventListener('message', (e) => {
   const d = e.data;
   if (!d || d.source !== 'design-preview' || d.type !== 'height') return;
   const frame = frames.find((x) => x.contentWindow === e.source);
-  if (frame) frame.style.height = Math.max(48, Math.min(720, Math.ceil(d.height))) + 'px';
+  if (!frame) return;
+  const next = String(Math.max(48, Math.min(720, Math.ceil(d.height))) + 'px');
+  if (frame.style.height !== next) frame.style.height = next;
 });
 
 const baseBtns = [...document.querySelectorAll('[data-base]')];

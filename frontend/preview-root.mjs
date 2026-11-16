@@ -1,6 +1,7 @@
 import { Component, createElement as h, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { MotionConfig } from "motion/react";
+import { useReportHeight } from "./preview-height.mjs";
 
 class Boundary extends Component {
   state = { failed: false };
@@ -22,6 +23,7 @@ function DemoRoot({ demo }) {
   useEffect(() => {
     document.documentElement.dataset.preview = "ready";
   }, []);
+  useReportHeight();
   return h(demo);
 }
 

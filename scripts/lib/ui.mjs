@@ -493,9 +493,9 @@ window.addEventListener('message', (e) => {
   const d = e.data;
   if (!d || d.source !== 'design-preview' || d.type !== 'height') return;
   const frame = previewSlot.querySelector('iframe');
-  if (frame && frame.contentWindow === e.source) {
-    frame.style.height = Math.max(64, Math.min(720, Math.ceil(d.height))) + 'px';
-  }
+  if (!frame || frame.contentWindow !== e.source) return;
+  const next = String(Math.max(64, Math.min(720, Math.ceil(d.height))) + 'px');
+  if (frame.style.height !== next) frame.style.height = next;
 });
 document.querySelectorAll('.copy').forEach(btn => btn.addEventListener('click', async () => {
   const panel = document.querySelector('.panel[data-i="' + btn.dataset.i + '"] code');

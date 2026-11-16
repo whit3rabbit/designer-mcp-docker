@@ -1,6 +1,7 @@
 import { Component, createElement as h, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { MotionConfig } from "motion/react";
+import { useReportHeight } from "./preview-height.mjs";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/registry/bases/radix/ui/tooltip";
 
@@ -44,12 +45,13 @@ function DemoRoot({ demo }) {
   useEffect(() => {
     document.documentElement.dataset.preview = "ready";
   }, []);
+  useReportHeight();
   return h(
     TooltipProvider,
     null,
     h(
       "div",
-      { className: "min-h-screen w-full flex items-center justify-center p-6 bg-background text-foreground" },
+      { className: "w-full flex items-center justify-center p-6 bg-background text-foreground" },
       h(demo),
     ),
     h(Toaster),
