@@ -72,35 +72,109 @@ are taken from it.
 
 ## Quick start
 
+The image is published on GHCR (multi-arch, ~570 MB, catalog baked in).
+Nothing to build or clone:
+
 ```bash
-cd ~/Documents/Github/designer-mcp-docker
+docker pull ghcr.io/whit3rabbit/designer-mcp:latest
 
-npm install          # upstream package
-npm run fetch        # populate ./cache from public pages (~2.5 min, 1,342 styles)
-npm run opendesign   # import the OpenDesign design systems (~30s, 38 MB)
-npm run agentkit     # add the Agent Kit layer: 46 new systems, Claude packages, previews
-npm run reui         # cache the ReUI component library (1,264 components, 87 categories)
-npm run dashboards   # cache dashboard starters with offline zips and bundled fonts
-npm run thumbs       # cache every screenshot locally, compressed (~55 MB)
-npm test             # self-test everything
-
-docker compose up -d # gallery → http://127.0.0.1:8787
+docker run -d --name designer-mcp-gallery \
+  -p 127.0.0.1:8787:8787 \
+  ghcr.io/whit3rabbit/designer-mcp:latest
+# gallery → http://127.0.0.1:8787
 ```
 
-Register the MCP server with your agent:
+That one container serves 1,540 designs, 109 AI components, 1,264 ReUI
+components, 2 dashboard starters, and 159 presets, and makes **zero
+outbound calls** (verified with `--network none`).
+
+### Register the MCP server with your agent
+
+Every client registers the same stdio command: docker on the outside,
+the baked catalog on the inside. The generic `design_*` server covers
+every source and is fully offline.
+
+**Claude Code**
 
 ```bash
-hermes mcp add designer \
+claude mcp add designer -- \
+  docker run --rm -i --network none \
+  ghcr.io/whit3rabbit/designer-mcp:latest node scripts/mcp-server.mjs
+```
+
+Or in a project `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "designer": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "--network", "none",
+        "ghcr.io/whit3rabbit/designer-mcp:latest",
+        "node", "scripts/mcp-server.mjs"]
+    }
+  }
+}
+```
+
+**Codex**, in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.designer]
+command = "docker"
+args = ["run", "--rm", "-i", "--network", "none",
+        "ghcr.io/whit3rabbit/designer-mcp:latest",
+        "node", "scripts/mcp-server.mjs"]
+```
+
+**OpenCode**, in `opencode.json` (project) or
+`~/.config/opencode/opencode.json`:
+
+```json
+{
+  "mcp": {
+    "designer": {
+      "type": "local",
+      "command": ["docker", "run", "--rm", "-i", "--network", "none",
+        "ghcr.io/whit3rabbit/designer-mcp:latest",
+        "node", "scripts/mcp-server.mjs"]
+    }
+  }
+}
+```
+
+**Pi**
+
+```bash
+pi mcp add designer -- \
+  docker run --rm -i --network none \
+  ghcr.io/whit3rabbit/designer-mcp:latest node scripts/mcp-server.mjs
+```
+
+**Hermes**
+
+```bash
+printf 'y\n' | hermes mcp add designer \
   --command docker \
-  --args run --rm -i -v "$HOME/.design-cache:/cache:ro" \
+  --args run --rm -i --network none \
          ghcr.io/whit3rabbit/designer-mcp:latest \
          node scripts/mcp-server.mjs
 ```
 
-The command prompts to enable tools: answer `y`. If stdin is not a TTY it
-cancels, so pipe it: `printf 'y\n' | hermes mcp add designer ...`.
+The hermes command prompts to enable tools: answer `y`. If stdin is not
+a TTY it cancels, hence the pipe. Restart the gateway (or `/reload-mcp`)
+so the tools register.
 
-Restart the gateway (or `/reload-mcp`) so the tools register.
+Want a refreshed cache instead of the baked one? Fill a docker volume
+once and mount it read-only into any registration above:
+
+```bash
+docker volume create designer-cache
+docker run --rm -v designer-cache:/cache \
+  ghcr.io/whit3rabbit/designer-mcp:latest \
+  node scripts/refero-public-fetch.js --limit 0
+# then add -v designer-cache:/cache:ro to the registration
+```
 
 ### The two MCP servers
 
@@ -116,7 +190,8 @@ Restart the gateway (or `/reload-mcp`) so the tools register.
 
 `refero_*` (upstream), Refero-specific, includes `refero_similar` and
 `refero_refresh`, which need network. Swap the command to
-`node scripts/mcp-entry.mjs` to use it.
+`node scripts/mcp-entry.mjs` to use it, and drop `--network none` from
+that registration or the two networked tools fail by design.
 
 ---
 
@@ -442,7 +517,7 @@ docker compose run --rm compress --width 720 --quality 80
 The default mount is `./cache`. To use a cache populated elsewhere:
 
 ```bash
-REFERO_CACHE_DIR=/Users/whit3rabbit/.refero-cache docker compose up -d gallery
+REFERO_CACHE_DIR="$HOME/.design-cache" docker compose up -d gallery
 ```
 
 ### Verify both surfaces
@@ -544,25 +619,12 @@ GALLERY_PORT=8788 docker compose up -d gallery
 
 `docker compose build` still rebuilds from the Dockerfile in the repo.
 
-### Registering with an agent (Hermes)
+### Registering with an agent
 
-```bash
-hermes mcp add designer --command docker --args \
-  run --rm -i \
-  -v ~/.design-cache:/cache:ro \
-  ghcr.io/whit3rabbit/designer-mcp:latest \
-  node scripts/mcp-server.mjs
-```
-
-The command prompts to enable tools: answer `y` (or pipe `y` if stdin is not
-a TTY, or it cancels).
-
-`mcp-server.mjs` is the generic server: 20 `design_*` tools across every
-source, fully offline. Use `mcp-entry.mjs` instead if you want the upstream
-`refero_*` tools instead (7 tools, styles only).
-
-Point it at the published tag rather than a locally built image: the
-registry tag works on any machine without a build step.
+See [Register the MCP server with your agent](#register-the-mcp-server-with-your-agent)
+in the Quick start. The published image needs no build step and no cache
+mount. Swap `node scripts/mcp-server.mjs` for `node scripts/mcp-entry.mjs`
+to get the upstream `refero_*` tools instead (7 tools, styles only).
 
 ### Updating and publishing
 
@@ -625,10 +687,14 @@ changes that matter for this deployment:
   the paid API. The skill routes those questions to the craft references
   instead of inventing precedent, and documents which tools fail and why.
 
-The skill ships **inside the Docker image** and is served for download at
-`/skill` from the running gallery.
+The skill ships **inside the Docker image**, is served for download at
+`/skill` from a running gallery, and is published with the static site:
 
 ```bash
+# from the published Pages site (no Docker needed)
+curl -LO https://whit3rabbit.github.io/designer-mcp-docker/skill/designer-mcp-skill.zip
+
+# or from a running local gallery
 curl -O http://127.0.0.1:8787/skill     # designer-mcp-skill.zip
 ```
 
@@ -638,48 +704,57 @@ Build the distributable zip from a checkout:
 node scripts/package-skill.mjs      # → dist/designer-mcp-skill.zip
 ```
 
-Install it:
+Install it into the skills directory your agent reads (the zip keeps the
+`skills/designer-mcp/` layout, so unzip to scratch and move the folder):
 
 ```bash
-# Hermes
-cp -r skills/designer-mcp ~/.hermes/skills/
+DEST=~/.claude/skills    # see the table below for other agents
+unzip designer-mcp-skill.zip -d /tmp/skill-src
+mkdir -p "$DEST" && mv /tmp/skill-src/skills/designer-mcp "$DEST/"
+```
 
-# any client that installs from a path
+| Agent | User-level skills directory |
+|---|---|
+| Claude Code | `~/.claude/skills/` |
+| Codex | `~/.agents/skills/` |
+| OpenCode | register the extracted folder under `"skills"` in `opencode.json` |
+| Pi | `~/.pi/skills/` or `~/.agents/skills/` |
+| Hermes | `~/.hermes/skills/` |
+
+Any client that installs from a path can also use the checkout directly:
+
+```bash
 npx -y skills add ./skills/designer-mcp --skill designer-mcp
 ```
 
 ### Skill quality
 
-The skill is audited with
-[`rabbit-skills-audit`](https://github.com/whit3rabbit/rabbit-skills):
+The bundle is audited with
+[`rabbit-skills-audit`](https://github.com/whit3rabbit/rabbit-skills). The
+latest audit (2026-11-15, see `designer-mcp-audit.md`) ends
+**PASS WITH WARNINGS**: 0 errors, one accepted vendor constraint, and two
+info items. The one error the audit found (a SKILL.md over the 500-line
+limit) was fixed by moving detail into `references/catalog-tools.md`,
+`references/mcp-tools.md`, and `references/research-playbook.md`, and the
+one broken link it surfaced in the vendored ui-sdk docs is fixed too.
 
-```
-Verdict: PASS  (errors: 0, warnings: 0, info: 3)
-```
+Remaining, all deliberate:
 
-For reference, the upstream `refero-design` skill it derives from currently
-fails the same audit (7 ST-04 warnings + an ST-01 error: its SKILL.md is 530
-lines and its long reference files have no table of contents).
-
-This version fixes all three: SKILL.md is 389 lines, every reference over 100
-lines has a generated `## Contents`, and the detail that would have overflowed
-the body lives in `references/research-playbook.md`.
-
-Three info-level findings remain, all deliberate:
-
-- **CQ-05** is a heuristic false positive: it reads upstream's rule *"Default is
-  NO cards"* as an option dump, when it is literally stating a default.
+- **ST-04 (vendor)**: 138 files in the vendored `ui-sdk/docs/` bundle exceed
+  100 lines without a per-file table of contents. The `llms.txt` indexes
+  and `design_docs_search` mitigate, and generating TOCs would rewrite 138
+  vendor files for marginal gain.
 - **MD-07**: `name` is not gerund form. The linter's own guidance says noun
   phrases are acceptable, and `designer-mcp` matches the container image and
   MCP server names.
-- **EV-02**: no cross-model test results recorded. `evals/evals.json` has 7
-  scenarios (including 2 trigger-paraphrase cases), but running them across
-  Haiku/Sonnet/Opus needs live model runs.
+- **EV-02**: no cross-model test results recorded. `evals/evals.json` has 12
+  scenarios (including trigger-paraphrase cases), but running them across
+  model tiers needs live model runs.
 
 Re-run the audit with:
 
 ```bash
-python3 ~/.hermes/skills/rabbit-skills-audit/scripts/audit_static.py \
+python3 <path-to>/rabbit-skills-audit/scripts/audit_static.py \
   skills/designer-mcp --format text
 ```
 
