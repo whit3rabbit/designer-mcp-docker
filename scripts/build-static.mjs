@@ -762,7 +762,7 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
         const entry = manifest?.reuiPreviews?.[slug]?.[item.name];
         if (!entry) continue;
         const p3 = prefixFor(3);
-        const doc = previewHtml(`${p3}assets/${manifest.version}/${entry.module}`, `${p3}assets/${manifest.version}/previews/reui.css`);
+        const doc = previewHtml(`${p3}assets/${manifest.version}/${entry.module}`, `${p3}assets/${manifest.version}/previews/reui.css`, "style-nova");
         await writeOut(`reui/preview/${slug}/${item.name}.html`, doc);
       }
       await writeOut(`reui/${slug}/index.html`, relativizeHtml(reuiCategoryHtml(reuiIndex, cat, frontend.reuiPreviewPath), 2, { assetBase }));
