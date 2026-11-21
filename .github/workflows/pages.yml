@@ -13,6 +13,9 @@ on:
     branches:
       - main
   workflow_dispatch:
+  workflow_run:
+    workflows: [publish]
+    types: [completed]
 
 permissions:
   pages: write
@@ -25,6 +28,11 @@ concurrency:
 
 jobs:
   deploy:
+    # The static build pulls ghcr.io/...:latest, so a tag release must win
+    # the race: wait for publish to finish before rebuilding Pages, or the
+    # site ships the previous release's bake and skill zip. The push trigger
+    # above covers doc and script changes that never touch the image.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
