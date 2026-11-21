@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.6.0 (2026-11-21)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.6.0`
+- Templates: loam joins `data/design-systems/` as the seventh vendored
+  system, slide-first, with its deck starter as the layout contract for
+  generated decks. No pptx ships in git.
+- Skill: `design-template-authoring/` ships as the eighth bundled sub-skill
+  (scaffold and verify scripts, template skeleton, anatomy reference) under
+  its own Apache-2.0 LICENSE.txt.
+- Skill: `install/` carries MCP registration snippets for 23 agent
+  harnesses, each with a Docker and a local-checkout variant, linked from
+  SKILL.md, `references/mcp-tools.md`, and the README.
+- Skill: three cross-model eval runs (ZCode harness, GLM-5.3-Flash) are
+  recorded in `evals/evals.json` beside the two Codex runs, closing EV-02.
+- Offline: `scripts/mcp-entry.mjs` defaults `REFERO_CACHE_TTL_MS` to the
+  image's ten-year value, so a bare-host run no longer tries the live API
+  when the cache mirror ages past the vendored 24-hour default.
+- Docs: the README is restructured install-first (skills-CLI one-liner, a
+  tell-the-skill step, manual blocks for Claude Code, Codex, and GitHub
+  Copilot under collapsible details, Docker after, Sources collapsed), with
+  local badge SVGs in `assets/badges/` and the MIT LICENSE at the repo
+  root. The skills audit report file is removed with every finding closed.
+
 ## v1.5.4 (2026-11-16)
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v1.5.4`
