@@ -14,8 +14,10 @@ so treat every file as distributable: no secrets, no scratch material.
 |---|---|---|
 | `SKILL.md` | Primary skill: research-first design methodology + local MCP tool docs, plus routing to the sub-skills | See repo |
 | `references/`, `agents/`, `evals/` | Craft references, agent interface metadata, eval harness | See repo |
+| `install/` | Ready-made MCP registration snippets for 23 agent harnesses: config location per harness, Docker image and local-checkout variants | See repo |
 | `docx/`, `pptx/`, `xlsx/`, `pdf/`, `pdf-reading/` | Document skills, rewritten to be agent/harness-agnostic and routed under designer-mcp for design decisions | Apache-2.0 (`LICENSE.txt` in each, verbatim from [anthropics/skills](https://github.com/anthropics/skills)) |
 | `frontend-design/` | Implementation-craft layer for distinctive UI work, executed inside designer-mcp's research-first workflow | Apache-2.0 (`LICENSE.txt`, verbatim from upstream) |
+| `design-template-authoring/` | Scaffold and verify scripts for authoring new vendored design-system templates | Apache-2.0 (`LICENSE.txt`) |
 | `ui-sdk/` | Offline docs bundle for the `@ui-sdk/*` headless UI packages (core, react, web), the sanctioned behavior/accessibility layer, searchable via `design_docs_search` / `design_docs_get` | Apache-2.0 (`LICENSE.txt` from the ui-sdk package) |
 | `requirements.txt`, `package.json` | Dependency manifests for the sub-skills' scripts | See repo |
 

@@ -1,0 +1,40 @@
+<!-- @dsCard group="Foundations" name="Type" subtitle="The heading and body pairing at real sizes" viewport="640x520" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>__NAME__ — Type</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from ../styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; }
+.wordmark-demo { font-size: 30px; }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Wordmark lockup</div>
+  <a class="wordmark wordmark-demo" href="#">__SLUG__<i></i></a>
+  <p class="note">TODO: the wordmark grammar (case, period, slash rule).</p>
+<div class="demo-head">Interface scale</div>
+  <h1>Heading one</h1>
+  <h2>Heading two</h2>
+  <h3>Heading three</h3>
+  <h4>Heading four</h4>
+  <h5>Heading five</h5>
+  <h6>Label six</h6>
+  <p>TODO: the body voice in one sentence.</p>
+  <p class="text-muted">Muted text is the same face at 55% ink.</p>
+<div class="demo-head">Notes</div>
+  <p class="note">TODO: font loading note (system stack or import) and the bold-voice rule.</p>
+</main>
+</body>
+</html>

@@ -44,12 +44,13 @@ gradients, and glass surfaces.
 
 ## Templates
 
-Six vendored design-system templates ship in the image: modernist, classical,
-nocturne, organic, broadsheet, industry. Each is a complete, generic system
-with a token sheet (`styles.css`), written rules (`readme.md`), foundation and
-component demo cards, and two starter templates (a landing page and a 21-slide
-deck). Use them when the task is to start a project or product from a coherent
-system rather than from scratch.
+Seven vendored design-system templates ship in the image: modernist, classical,
+nocturne, organic, broadsheet, industry, and loam (slide-first: its deck starter
+is the flagship). Each is a complete, generic system with a token sheet
+(`styles.css`), written rules (`readme.md`), foundation and component demo
+cards, and two starter templates (a landing page and a 21-slide deck). Use
+them when the task is to start a project or product from a coherent system
+rather than from scratch.
 
 Workflow:
 
@@ -78,3 +79,30 @@ Rules:
 - Seed a manifest from a catalog design or your own DESIGN.md with
   `design_manifest_from`. Its provenance records available tokens, conflicts,
   and gaps.
+- Authoring a new template, or cloning a reference design (slides, website,
+  brand board) into this format: follow the bundled
+  `design-template-authoring/SKILL.md` (scaffold, fill, verify, register,
+  then generate deliverables from the template).
+
+## Generate a slide deck from a template
+
+The deck starter is the layout contract. For a branded .pptx or a new HTML
+deck, work from a vendored template instead of inventing tokens:
+
+1. `design_template_list`, then `design_template_get` for the chosen system
+   (loam is the slide-first one): tokens, brand fonts, theme knobs, manifest.
+2. `design_template_file` for `styles.css` (the token sheet) and
+   `templates/deck/Deck.dc.html` (the slide inventory: variants, motifs,
+   wordmark lockup, per-slide markup patterns).
+3. Build the deck with the bundled `pptx/SKILL.md` mechanics, mapping the
+   template's token roles to theme colors and honoring its motifs (for loam:
+   the lowercase wordmark with the accent period, diamond chips, one dark
+   slate panel per light slide, pill and arch photo masks).
+4. Run the deck's render-and-inspect QA, then keep the manifest beside the
+   work as the contract. To make the deck unique, retune the template's theme
+   knobs first and derive new values from its ramps, not from new hues.
+
+Rules: do not soften the template's deliberate extremes, and do not introduce
+a hue outside its ramps. If the deliverable is a restyled HTML deck instead
+of a .pptx, copy the starter folder and edit the markup against the same
+tokens.

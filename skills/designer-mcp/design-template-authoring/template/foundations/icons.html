@@ -1,0 +1,42 @@
+<!-- @dsCard group="Foundations" name="Icons" subtitle="Lucide at interface sizes" viewport="640x420" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>__NAME__ — Icons</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.row { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; }
+.icon { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dot { width: 36px; height: 36px; border-radius: 999px; background: var(--color-accent); color: #ffffff; display: inline-flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Interface sizes, inline Lucide</div>
+  <div class="row">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+    <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+  </div>
+<div class="demo-head">In accent dots</div>
+  <div class="row">
+    <span class="dot"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+    <span class="dot" style="background: var(--color-accent-2)"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
+  </div>
+<div class="demo-head">Notes</div>
+  <p class="note">TODO: icon sizing and the dot treatment rules for grids.</p>
+</main>
+</body>
+</html>

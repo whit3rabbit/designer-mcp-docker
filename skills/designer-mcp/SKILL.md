@@ -100,7 +100,9 @@ This skill is useful on its own as a research-first design methodology and
 craft reference. The generic `design_*` server provides the offline catalog
 and Markdown tools. The `refero_*` server is a fallback for Refero catalog
 reads. Registration commands, the gallery command, and full tool details
-live in [references/mcp-tools.md](references/mcp-tools.md).
+live in [references/mcp-tools.md](references/mcp-tools.md). Copy-paste MCP
+config snippets for 23 agent harnesses, Docker and local-checkout variants,
+live in [install/README.md](install/README.md).
 
 ## Discovery
 
@@ -168,6 +170,7 @@ and follow it:
 | Reading PDFs from disk | [pdf-reading/SKILL.md](pdf-reading/SKILL.md) |
 | Implementation craft for UI work | [frontend-design/SKILL.md](frontend-design/SKILL.md) |
 | Headless UI behavior, accessibility, agent-ready interfaces (@ui-sdk/*) | [ui-sdk/SKILL.md](ui-sdk/SKILL.md) |
+| A new vendored design-system template, or cloning a reference design (slides, website, brand) into the structured template format | [design-template-authoring/SKILL.md](design-template-authoring/SKILL.md) |
 
 The division of authority is fixed. This skill's research workflow and
 reference lock own every design decision: palette, type, layout, imagery, copy.
@@ -239,14 +242,17 @@ After finding strong styles:
 ### Use Components, Presets, and Templates
 
 Components are working TSX, presets are real CSS for backgrounds and glass,
-and templates are six complete starting systems. Route by need:
+and templates are seven complete starting systems. Route by need:
 
 - A chat, agent, voice, or media UI to build: `design_component_search`,
   then `design_component_code` for the variant source.
 - Hero backgrounds, ambient gradients, glass surfaces: `design_preset_search`
   and `design_preset_get`.
-- Starting a project from a coherent system: `design_template_list`, then
+- Starting a project from a coherent template: `design_template_list`, then
   `design_manifest_template` for its manifest contract.
+- A slide deck that must land on-brand: `design_template_get` for the
+  slide-first template (loam) and its deck starter, then build the .pptx
+  with the bundled `pptx/SKILL.md` mechanics.
 
 When to use each layer, the workflows, and the manifest rules live in
 [references/catalog-tools.md](references/catalog-tools.md).

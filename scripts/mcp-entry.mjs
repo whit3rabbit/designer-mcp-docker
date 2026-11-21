@@ -15,6 +15,12 @@ import { createRequire } from "node:module";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = process.env.REFERO_CACHE_DIR || "/cache";
+// The upstream package defaults its cache TTL to 24 hours and re-fetches from
+// the live API when the mirror looks stale. The image sets a deliberate 10-year
+// TTL (Dockerfile) so reads always come from the cache and refresh happens by
+// re-running the fetcher. Apply the same default here so a bare-host run
+// without the env keeps that offline behavior. An explicit env still wins.
+process.env.REFERO_CACHE_TTL_MS ||= "315360000000";
 const catalog = join(CACHE_DIR, "catalog.json");
 
 if (!existsSync(catalog)) {

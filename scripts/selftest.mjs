@@ -81,9 +81,9 @@ if (!existsSync(catalogPath)) {
     bad(`no design-systems index at ${dsIndexPath} — run: npm run templates`);
   } else {
     const ds = JSON.parse(readFileSync(dsIndexPath, "utf8"));
-    ds.total === 6
+    ds.total === 7
       ? ok(`design-systems index has ${ds.total} templates`)
-      : bad(`design-systems index has ${ds.total} templates, expected 6`);
+      : bad(`design-systems index has ${ds.total} templates, expected 7`);
     let dsOk = true;
     for (const entry of ds.systems) {
       const record = JSON.parse(
@@ -102,7 +102,7 @@ if (!existsSync(catalogPath)) {
       bad("manifest-template.json missing from the design-systems layer");
       dsOk = false;
     }
-    dsOk && ok("all six template records carry the manifest schema and 48+ tokens");
+    dsOk && ok("all seven template records carry the manifest schema and 48+ tokens");
   }
 }
 

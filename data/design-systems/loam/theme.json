@@ -1,0 +1,42 @@
+{
+  "name": "Loam",
+  "palette": {
+    "hue": 140,
+    "band": "light",
+    "scheme": "mono",
+    "sat": 0.62,
+    "bg": "#ffffff",
+    "surface": "#f3f3f3",
+    "text": "#212730",
+    "accent": "#4cb45f",
+    "accent2": "#2f9c4d"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Avenir Next",
+      "class": "geometric",
+      "weights": [400, 600, 700]
+    },
+    "body": {
+      "family": "Avenir Next",
+      "class": "geometric",
+      "weights": [400, 600, 700]
+    }
+  },
+  "density": 1,
+  "radius": 2,
+  "layoutStyle": "band",
+  "dividers": "hairline",
+  "buttonAlign": "left",
+  "imageTreatment": "natural",
+  "photo": "loam",
+  "canvas": "1920x1080",
+  "motifs": [
+    "lowercase wordmark with an accent period and a thin 45-degree slash",
+    "diamond bullets (small rotated squares)",
+    "ring arcs cropped by slide edges",
+    "pill and arch photo masks",
+    "small uppercase paired buttons (dark and green, plus a ghost outline)",
+    "one dark slate panel per light slide"
+  ]
+}

@@ -54,7 +54,7 @@ these routes, all served from the local cache:
 | `/reui` and `/reui/:category` | 1,264 ReUI components in 87 categories: live previews, Radix + Base UI TSX |
 | `/dashboards` and `/dashboard/:slug` | 2 dashboard starters with offline zips and bundled fonts |
 | `/presets` and `/presets/:kind` | gradients, patterns, glass effects with real CSS |
-| `/templates` and `/template/:slug` | 6 vendored design-system templates: tokens, theme knobs, manifest, files |
+| `/templates` and `/template/:slug` | 7 vendored design-system templates: tokens, theme knobs, manifest, files (loam ships the slide-first deck starter) |
 | `/api/designs`, `/api/search?q=`, `/api/facets` | JSON for programmatic picking |
 | `/thumb/:id` | local WebP thumbnail bytes (jpg/png also accepted) |
 | `/skill` | the skill zip for offline download |
@@ -82,13 +82,16 @@ these routes, all served from the local cache:
 - Keep the skill's tool names (`design_*`, `refero_*`) in sync with the
   actual servers and its scope honest: no screens/flows layer exists. Route
   those asks to the craft references. Never invent precedent.
-- The skill bundles seven sub-skills: `docx/`, `pptx/`, `xlsx/`, `pdf/`,
-  `pdf-reading/`, `frontend-design/`, `ui-sdk/`. Each ships dependency
-  manifests (`requirements.txt`, `package.json`). The five adapted from
+- The skill bundles eight sub-skills: `docx/`, `pptx/`, `xlsx/`, `pdf/`,
+  `pdf-reading/`, `frontend-design/`, `ui-sdk/`, and
+  `design-template-authoring/`. Each ships dependency manifests
+  (`requirements.txt`, `package.json`). The five adapted from
   upstream (`anthropics/skills`) carry a per-directory Apache-2.0
   `LICENSE.txt` copied verbatim, and `pdf-reading/` reuses that license
   text. `ui-sdk/` is the ui-sdk package's own docs bundle under its
-  Apache-2.0 `LICENSE.txt`.
+  Apache-2.0 `LICENSE.txt`. `design-template-authoring/` is original work
+  under its own Apache-2.0 `LICENSE.txt` and carries no dependency
+  manifests: its scripts are plain Node.
 - The image serves those files but installs none of their dependencies. The
   consuming agent runs the scripts and installs what its task needs
   (check-then-install).
@@ -110,7 +113,7 @@ these routes, all served from the local cache:
 |---|---|
 | `cache/` | working cache: gitignored, mounted read-only at runtime, **overrides** the baked catalog |
 | `bake/` | build output copied into the image: gitignored but kept in the Docker build context |
-| `data/design-systems/` | vendored source of the 6 design-system templates, copied into `bake/design-systems/` by `npm run bake` and staged into a live cache by `npm run templates` |
+| `data/design-systems/` | vendored source of the 7 design-system templates, copied into `bake/design-systems/` by `npm run bake` and staged into a live cache by `npm run templates` |
 | `dist/` | built skill zip |
 
 - Changing cache format or fetchers: run `npm run bake`, then `npm test`

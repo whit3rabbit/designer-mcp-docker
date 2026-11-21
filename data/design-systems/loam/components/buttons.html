@@ -1,0 +1,48 @@
+<!-- @dsCard group="Components" name="Buttons" subtitle="Dark and green pair with the ghost variant, plus tags" viewport="640x520" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loam — Buttons</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from ../styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; }
+.pair-dark { background: var(--color-neutral-900); padding: var(--space-4); border-radius: var(--radius-md); display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+.pair-green { background: var(--color-accent); padding: var(--space-4); border-radius: var(--radius-md); display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+.tags { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">The pair, on light</div>
+  <div class="row">
+    <button class="btn btn-dark">About us</button>
+    <button class="btn btn-primary">Contact us</button>
+  </div>
+  <p class="note">Buttons run in a pair: dark slate and green, uppercase labels flush left, 2px corners. They sit at the end of a text column, never centered.</p>
+<div class="demo-head">Ghost, on photo grounds</div>
+  <div class="pair-green">
+    <button class="btn btn-dark">About us</button>
+    <button class="btn btn-ghost">Contact us</button>
+    <span style="color:#ffffff;font-size:12px;opacity:.8;">the ghost outlines on green and on photography</span>
+  </div>
+<div class="demo-head">Tags</div>
+  <div class="tags">
+    <span class="tag tag-accent">Brand systems</span>
+    <span class="tag tag-accent-2">Decks</span>
+    <span class="tag tag-neutral">Templates</span>
+    <span class="tag tag-outline">Draft</span>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!-- @template name="Landing" description="A one-page product landing in the system's own voice — the loam studio itself, a ringed hero, stat row, feature rows, a moody photograph, a quote and a green poster close" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loam — landing</title>
+<script src="./ds-base.js"></script>
+<style>
+/* Template scaffolding — page layout and web-scale sizing only; every color,
+   font, radius and shadow comes from ../../styles.css. The voice is the
+   deck's, re-derived for a scrolling page: bands stack one message at a
+   time, hairlines draw the seams, green is spent as fill and mark, and the
+   one dark slate panel anchors the middle of the page.
+
+   THE RHYTHM: a 28px leading unit (17px body at ~1.65), 14px half-step;
+   line-heights and block margins in unit multiples, heads cap-trimed,
+   ?baselines/B to review.
+
+   THE LANDING LAWS (shared by all seven systems' landing templates):
+   #1 display headers break per sentence (.line spans); #2 the landing
+   advertises an invented product played straight — loam's product is the
+   studio itself, brand systems that stay quiet; #3 spacing is cluster-scoped
+   (display leading ratio-governed, tight single-unit gaps inside a text
+   cluster, the air between sections); #4 no hero eyebrow — the nav brand
+   names the product. */
+:root {
+  --leading: 28px;
+  --half: 14px;
+  --edge: clamp(20px, 5vw, 72px);
+  --measure: 58ch;
+}
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; text-wrap: pretty; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 var(--edge); }
+
+/* — nav — */
+.nav { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) 0; }
+.nav a { text-decoration: none; }
+.nav-links { display: flex; gap: var(--space-6); font-size: 14px; }
+.nav-links a { color: var(--color-neutral-600); }
+.nav-links a[aria-current='location'] { color: var(--color-accent-2); font-weight: 600; }
+@media (max-width: 480px) { .nav-links { display: none; } }
+
+/* — hero: ghost ring behind a display cluster — */
+.hero { position: relative; padding: calc(6 * var(--leading)) 0 calc(5 * var(--leading)); overflow: hidden; }
+.hero .ring { position: absolute; left: 50%; top: -160px; width: 560px; height: 560px; transform: translateX(-50%); border: 12px solid var(--color-ring-ghost); border-radius: 999px; }
+.display {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: clamp(56px, 9vw, 124px); line-height: 1.04; letter-spacing: -0.015em;
+  margin: 0; position: relative;
+}
+.display .line { display: block; }
+.hero-sub { max-width: 44ch; font-size: 17px; color: color-mix(in srgb, var(--color-text) 62%, transparent); margin: var(--space-6) 0 0; position: relative; }
+.hero .btnrow { display: flex; gap: var(--space-3); margin-top: var(--space-6); position: relative; }
+
+/* — seams — */
+.rule1 { height: 1px; border: 0; margin: 0; background: var(--color-divider); }
+
+/* — stats — */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-6); padding: calc(4 * var(--leading)) 0; }
+.stat-num { font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 44px; line-height: 1; color: var(--color-accent); }
+.stat-num.ink { color: var(--color-text); }
+.stat-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: color-mix(in srgb, var(--color-text) 55%, transparent); margin-top: var(--space-2); }
+@media (max-width: 720px) { .stats { grid-template-columns: 1fr 1fr; } }
+
+/* — features: dark slate panel band — */
+.features { background: var(--color-neutral-900); color: #ffffff; padding: calc(5 * var(--leading)) 0; margin: calc(2 * var(--leading)) 0; }
+.features h2 { font-size: 30px; margin: 0 0 calc(2 * var(--leading)); }
+.feature-row { display: grid; grid-template-columns: 220px 1fr; gap: var(--space-6); padding: var(--space-4) 0; border-top: 1px solid var(--color-neutral-700); }
+.feature-row h3 { font-size: 17px; margin: 0; font-weight: var(--font-heading-weight); }
+.feature-row p { margin: 0; font-size: 15px; color: color-mix(in srgb, #ffffff 66%, transparent); }
+@media (max-width: 720px) { .feature-row { grid-template-columns: 1fr; gap: var(--space-2); } }
+
+/* — split photograph — */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); align-items: center; padding: calc(4 * var(--leading)) 0; }
+.split image-slot, .split image-slot > img { display: block; width: 100%; height: 420px; object-fit: cover; }
+@media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
+
+/* — quote — */
+.quote { padding: calc(4 * var(--leading)) 0; }
+.quote blockquote { margin: 0; font-size: clamp(22px, 3vw, 32px); line-height: 1.5; font-style: italic; max-width: 30ch; }
+.quote figcaption { margin-top: var(--space-4); font-size: 13px; color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+
+/* — poster close — */
+.close { background: var(--color-accent); color: var(--color-bg); padding: calc(7 * var(--leading)) 0; }
+.close .display { font-size: clamp(44px, 7vw, 96px); }
+.close p { max-width: 44ch; font-size: 17px; color: color-mix(in srgb, #ffffff 85%, transparent); }
+.close .btn { margin-top: var(--space-6); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="wordmark" href="#">loam<i></i></a>
+    <div class="nav-links">
+      <a href="#work" aria-current='location'>Work</a>
+      <a href="#services">Services</a>
+      <a href="#studio">Studio</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </nav>
+
+  <section class="hero" id="studio">
+    <div class="ring"></div>
+    <h1 class="display">
+      <span class="line">Say one thing,</span>
+      <span class="line">say it well.</span>
+    </h1>
+    <p class="hero-sub">Loam is a brand studio for teams that want quiet confidence. Strategy, identity, and slide systems that hold up in public, in product, and in print.</p>
+    <div class="btnrow">
+      <a class="btn btn-primary" href="#contact">Start a project</a>
+      <a class="btn btn-dark" href="#work">See the work</a>
+    </div>
+  </section>
+
+  <hr class="rule1" />
+
+  <section class="stats" id="work">
+    <div><div class="stat-num">6432+</div><div class="stat-label">Teams shipping</div></div>
+    <div><div class="stat-num ink">8566+</div><div class="stat-label">Assets delivered</div></div>
+    <div><div class="stat-num ink">40+</div><div class="stat-label">Decks a quarter</div></div>
+    <div><div class="stat-num">12</div><div class="stat-label">Design partners</div></div>
+  </section>
+
+  <section class="features" id="services">
+    <div class="wrap">
+      <h2>What the studio does</h2>
+      <div class="feature-row"><h3>Brand strategy</h3><p>Positioning, naming, and messaging that survive contact with real audiences.</p></div>
+      <div class="feature-row"><h3>Design systems</h3><p>Tokens, components, and rules that keep every surface consistent.</p></div>
+      <div class="feature-row"><h3>Slide systems</h3><p>Decks your team can run: layouts, tokens, and a generator that keeps them on brand.</p></div>
+    </div>
+  </section>
+
+  <section class="split">
+    <div>
+      <h2 class="display" style="font-size: clamp(32px, 4.5vw, 56px);">
+        <span class="line">Moody by choice,</span>
+        <span class="line">quiet by design.</span>
+      </h2>
+      <p class="hero-sub">Photography stays natural and low-key: portraits, architecture, city scenes. Green carries the page; the photograph carries the mood.</p>
+    </div>
+    <image-slot id="split-photo" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="Glass towers looking up against a clear sky"></image-slot>
+  </section>
+
+  <section class="quote">
+    <figure>
+      <blockquote>&ldquo;A company is a set of people organized to say one thing well. Loam keeps the sentence short and the voice steady.&rdquo;</blockquote>
+      <figcaption>&mdash; the loam readme</figcaption>
+    </figure>
+  </section>
+
+  <section class="close" id="contact">
+    <div class="wrap">
+      <h2 class="display">
+        <span class="line">Plant something</span>
+        <span class="line">worth keeping.</span>
+      </h2>
+      <p>Tell us the one sentence your team keeps failing to say. We will build the system that says it for you.</p>
+      <a class="btn btn-ghost" href="mailto:studio@example.com">studio@example.com</a>
+    </div>
+  </section>
+
+</div>
+<script src="./image-slot.js"></script>
+</body>
+</html>

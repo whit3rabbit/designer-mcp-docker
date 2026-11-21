@@ -1,0 +1,45 @@
+<!-- @dsCard group="Components" name="Cards" subtitle="TODO: cards and panels" viewport="640x560" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>__NAME__ — Cards</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from ../styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.row { display: flex; align-items: stretch; gap: var(--space-4); flex-wrap: wrap; }
+.row .card { flex: 1; min-width: 240px; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; margin-top: var(--space-4); }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Surface card</div>
+  <div class="card">
+    <div class="card-kicker">TODO: kicker</div>
+    <div class="card-title">TODO: title</div>
+    <div class="card-body">TODO: one sentence of body copy demonstrating the card voice.</div>
+    <div class="card-meta">TODO: meta</div>
+  </div>
+<div class="demo-head">Panels</div>
+  <div class="row">
+    <div class="card panel-ink">
+      <div class="card-title">TODO: dark panel</div>
+      <div class="card-body">TODO: the dark panel rule in one line.</div>
+    </div>
+    <div class="card panel-accent">
+      <div class="card-title">TODO: green panel</div>
+      <div class="card-body">TODO: when this pairs beside the dark panel.</div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

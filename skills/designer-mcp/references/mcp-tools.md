@@ -105,6 +105,9 @@ gallery of the same data — thumbnails, swatches, type scales:
 cd designer-mcp-docker && docker compose up -d   # http://127.0.0.1:8787
 ```
 
+Copy-paste snippets for 23 agent harnesses, each with a Docker and a
+local-checkout variant, live in [../install/README.md](../install/README.md).
+
 ---
 
 ## Styles
@@ -425,7 +428,7 @@ One preset catalog in full. Each preset has `id`, `name`, `category`,
 
 ### `design_template_list`
 
-The six vendored design-system templates: complete, generic systems with a
+The seven vendored design-system templates: complete, generic systems with a
 token sheet, written rules, demo cards, and starter pages. Offline.
 
 | Argument | Type | Notes |
@@ -437,7 +440,8 @@ Each template entry: `slug`, `name`, `description`, `ground`/`text`/`accent`
 hex swatches, `headingFont`, `tokensCount`, `filesCount`, and
 `starterTemplates` (a landing page and a deck for every system). Current
 slugs: `modernist`, `classical`, `nocturne`, `organic`, `broadsheet`,
-`industry`.
+`industry`, `loam` (slide-first: its deck starter is the layout contract for
+generated decks).
 
 ### `design_template_get`
 

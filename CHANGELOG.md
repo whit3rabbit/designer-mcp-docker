@@ -42,7 +42,7 @@
   reference missing it, dependency lines completed in docx and xlsx, a
   third-person description for pdf-reading, ui-sdk naming and link fixes,
   ui-sdk routed in the parent tables). Audit ends PASS WITH WARNINGS with
-  one accepted vendor constraint; see `designer-mcp-audit.md`.
+  one accepted vendor constraint.
 - CI: fixed the Pages EBUSY failure (the static builder cleared the output
   mount root, which Linux refuses), Pages now builds with the checked-out
   scripts against the published image, and all workflow actions moved to

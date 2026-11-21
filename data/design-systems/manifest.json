@@ -1,5 +1,5 @@
 {
-  "$comment": "The six default design systems, one folder each — static content served verbatim from public/. Fields path/thumbnail/readme/theme are relative to this directory; the app serves it under its base path (/design/design-systems/ as deployed). Each system's files array lists every file in its folder, folder-relative (fetch from path + files[i].path), with binary:true on non-text assets — so a client can copy a whole system from one manifest read. One exception: the committed preview image named by thumbnailImage lives in the folder but stays OUT of files — it seeds the picked project's server-side thumbnail slot and must not be copied into the project (it is also a render artifact: re-render it from thumbnail.html after restyling a system). A client can read this file instead of globbing the directory.",
+  "$comment": "The seven default design systems, one folder each — static content served verbatim from public/. Fields path/thumbnail/readme/theme are relative to this directory; the app serves it under its base path (/design/design-systems/ as deployed). Each system's files array lists every file in its folder, folder-relative (fetch from path + files[i].path), with binary:true on non-text assets — so a client can copy a whole system from one manifest read. One exception: the committed preview image named by thumbnailImage lives in the folder but stays OUT of files — it seeds the picked project's server-side thumbnail slot and must not be copied into the project (it is also a render artifact: re-render it from thumbnail.html after restyling a system). A client can read this file instead of globbing the directory.",
   "systems": [
     {
       "slug": "modernist",
@@ -537,6 +537,108 @@
           "path": "templates/deck/deck-stage.js"
         },
       { "path": "templates/deck/image-slot.js" },
+        {
+          "path": "templates/deck/ds-base.js"
+        },
+        {
+          "path": "templates/deck/Deck.dc.html"
+        },
+        {
+          "path": "templates/deck/support.js"
+        },
+        {
+          "path": "templates/landing/image-slot.js"
+        },
+        {
+          "path": "templates/landing/ds-base.js"
+        },
+        {
+          "path": "templates/landing/index.html"
+        },
+        {
+          "path": "theme.html"
+        },
+        {
+          "path": "theme.json"
+        },
+        {
+          "path": "thumbnail.html"
+        }
+      ]
+    }
+,
+{
+      "slug": "loam",
+      "name": "Loam",
+      "description": "Fresh earth and grass green on white: Avenir Next, hairline bands, one dark slate panel per page, diamond chips, ring arcs and moody photos in pill and arch masks. Slide-first: ships a twenty-one-slide deck starter.",
+      "path": "loam/",
+      "ground": "#ffffff",
+      "text": "#212730",
+      "accent": "#4cb45f",
+      "headingFont": "Avenir Next",
+      "thumbnail": "loam/thumbnail.html",
+      "thumbnailImage": "loam/thumbnail.webp",
+      "readme": "loam/readme.md",
+      "theme": "loam/theme.json",
+      "files": [
+        {
+          "path": "assets/photo.jpg",
+          "binary": true
+        },
+        {
+          "path": "components/buttons.html"
+        },
+        {
+          "path": "components/cards.html"
+        },
+        {
+          "path": "components/grids.html"
+        },
+        {
+          "path": "components/navigation.html"
+        },
+        {
+          "path": "components/stats.html"
+        },
+        {
+          "path": "components/table.html"
+        },
+        {
+          "path": "foundations/color.html"
+        },
+        {
+          "path": "foundations/icons.html"
+        },
+        {
+          "path": "foundations/image.html"
+        },
+        {
+          "path": "foundations/layout.html"
+        },
+        {
+          "path": "foundations/type.html"
+        },
+        {
+          "path": "readme.md"
+        },
+        {
+          "path": "styles.css"
+        },
+        {
+          "path": "_ds_manifest.json"
+        },
+        {
+          "path": "_adherence.oxlintrc.json"
+        },
+        {
+          "path": "_ds_bundle.js"
+        },
+        {
+          "path": "templates/deck/deck-stage.js"
+        },
+        {
+          "path": "templates/deck/image-slot.js"
+        },
         {
           "path": "templates/deck/ds-base.js"
         },

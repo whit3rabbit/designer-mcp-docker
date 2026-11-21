@@ -47,7 +47,7 @@ Paths are relative to this skill's directory. Everything else is plain Python, `
 | `scripts/thumbnail.py deck.pptx [prefix]` | Labeled grid of every slide, for picking template layouts. `.pptx` only. Pass `prefix` — it defaults to `thumbnails`, which overwrites the grids of any other deck done in the same directory |
 | `scripts/add_slide.py unpacked/ slide2.xml [--after slideN.xml]` | Duplicate a slide (or a `slideLayoutN.xml`) with all the package bookkeeping. Also takes a `.pptx` directly with `-o out.pptx` |
 | `scripts/clean.py unpacked/` | Delete slides, media, and rels no longer referenced. Run **after** `<p:sldIdLst>` is final |
-| `scripts/apply_theme.js` | Node module: `const { applyTheme } = require("<this skill's directory>/scripts/apply_theme.js")`. `await applyTheme("deck.pptx", THEME)` after `pres.writeFile()` writes `THEME`'s colors and name (escaped for XML) into the deck's theme, for [structured decks](#structured-decks). Also a CLI: `node scripts/apply_theme.js deck.pptx theme.json` |
+| `scripts/apply_theme.js` | Node module: `const { applyTheme } = require("<this skill's directory>/scripts/apply_theme.js")`. `await applyTheme("deck.pptx", THEME)` after `pres.writeFile()` writes `THEME`'s colors and name (escaped for XML) into the deck's theme, for [structured decks](#structured-decks). Also a CLI: `node scripts/apply_theme.js deck.pptx theme.json`. If pptxgenjs and jszip are not installed in this skill's root, point `NODE_PATH` at the node_modules directory that has them |
 | `scripts/office/validate.py deck.pptx [--original src.pptx]` | Schema, relationship, content-type, chart and slide checks; each failure names its fix. Pass `--original` for any template-derived deck — it baselines the schema checks against the template, so the template's own XSD errors don't read as yours |
 | `scripts/office/soffice.py --headless --convert-to pdf deck.pptx` | LibreOffice wrapper — bare `soffice` can hang or fail in sandboxed/container environments; the wrapper isolates the user profile and works around blocked Unix-domain sockets |
 
@@ -64,6 +64,10 @@ Write the script and `require('pptxgenjs')` directly. If that require fails, run
 - **One `new pptxgen()` per output file** — never reuse an instance.
 - **`rectRadius` only works on `ROUNDED_RECTANGLE`**, not `RECTANGLE`.
 - **Gradient fills aren't supported** — use a gradient image as the background instead.
+- **Downscale photos before `addImage`** — a 33MB source photo bloats the deck and breaks preview tooling. Cap sources at roughly 2000px on the long edge (Pillow or sharp) before embedding.
+- **Shaped photos need pre-masked PNGs** — pptxgenjs cannot round an image's corners. Cut pill, arch or rounded masks as alpha PNGs with Pillow and insert those.
+- **`arc` shapes take `angleRange`** for partial rings; combine with `fill: { type: "none" }` for outline-only rings, and `rotate` composes with `sizing: { type: "cover" }`.
+- **Template-mimic decks need a rename pass** — grep the slide text, speaker notes and doc properties for the source design's name before delivering.
 - **Every `addText` call without a `placeholder` needs `isTextBox: true`** — without it the shape lacks `txBox="1"`, so screen readers announce the text as a "graphic" instead of a text box. No visual change.
 - **Text boxes have built-in internal padding** — set `margin: 0` whenever text must align with a shape, line, or icon at the same x.
 - **Speaker notes go in `slide.addNotes("...")`** (plain text, once per slide), never in a text box on the slide.
@@ -88,6 +92,10 @@ A deck built on a theme, layouts, placeholders and sections can be restyled in o
 5. **Fill by name:** `addSlide({ masterName, sectionTitle })`, then `addText("…", { placeholder: "title" })` with no position, size or color — the placeholder's own options win, and anything it doesn't set (italic, `align`, `fontFace`) still applies; style one run with `[{ text, options }]`. A misspelt `placeholder` or `masterName` fails silently (a stray text box at 0,0; the blank layout). Only `title`, `body` and `chart` placeholders fill by name alone: `addImage({ placeholder })` takes the placeholder's x and y but not its size (a 1" × 1" picture) — pass `w`/`h` too. `addTable({ placeholder })` takes its x and y only — always pass `w`; when it auto-pages it ignores the placeholder and runs off the slide, so also pass `x`, `y` and `autoPageSlideStartY` (same as `y`, or continuation pages are laid out from the top margin), give the layout a `margin` whose bottom clears the footer, and fill the continuation slides' titles through `slide.newAutoPagedSlides`.
 6. **A layout is the frame, not the "layout" Design Ideas means.** Cards, icons, stat callouts and images are still composed slide by slide on top of it, in scheme colors, each with an `objectName` — every Design Idea applies, and most content slides sit on the title-only layout.
 7. **Write, then apply the theme:** `await pres.writeFile({ fileName: "deck.pptx" })`, then `await applyTheme("deck.pptx", THEME)`. pptxgenjs cannot write theme colors: until this runs, scheme colors resolve to Office's stock palette. It throws, changing nothing, on a scheme color in a hex-only option — fix what it names and rebuild.
+
+### Slide design systems
+
+When the deck belongs to a brand system, start from a vendored design template instead of inventing tokens: `design_template_list`, then `design_template_get` and `design_template_file` for the token sheet (`styles.css`) and the deck starter (`templates/deck/Deck.dc.html`). The starter is the layout contract: its slide inventory, motifs and wordmark lockup carry the look (loam is the slide-first template in the current catalog). Build the .pptx honoring the template's token roles, run the QA loop below, and keep the manifest beside the work.
 
 ## Editing existing decks and templates
 
@@ -286,6 +294,21 @@ rm -f slide-*.jpg
 pdftoppm -jpeg -r 150 output.pdf slide
 ls -1 "$PWD"/slide-*.jpg
 ```
+
+**macOS without LibreOffice:** when Microsoft PowerPoint is installed, export the PDF through it (the first run shows a one-time automation consent dialog):
+
+```bash
+osascript -e 'tell application "Microsoft PowerPoint"
+  open POSIX file "/abs/path/output.pptx"
+  delay 5
+  save active presentation in POSIX file "/abs/path/output.pdf" as save as PDF
+  close active presentation saving no
+end tell'
+rm -f slide-*.jpg
+pdftoppm -jpeg -r 150 output.pdf slide
+```
+
+This renders with PowerPoint itself, so the preview is ground truth. If every export starts failing with `Parameter error (-50)` — including files that exported fine earlier — fully quit and relaunch PowerPoint: its export pipeline wedges after repeated scripted quit cycles.
 
 **Inspect the images at the paths printed above.** The `rm` clears stale images from prior runs. `pdftoppm` zero-pads based on page count: `slide-1.jpg` for decks under 10 pages, `slide-01.jpg` for 10-99, `slide-001.jpg` for 100+.
 

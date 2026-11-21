@@ -31,6 +31,7 @@ const EXCLUDED = new Set(["tmp"]);
 // Sub-skills bundled inside designer-mcp. The merged zip must carry each one's
 // SKILL.md and LICENSE.txt, plus the shared dependency manifests.
 const BUNDLED = [
+  "design-template-authoring",
   "docx",
   "frontend-design",
   "pdf",

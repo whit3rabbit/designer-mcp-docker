@@ -1,0 +1,45 @@
+<!-- @dsCard group="Foundations" name="Layout" subtitle="Bands, hairlines and the spacing scale" viewport="640x420" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loam — Layout</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; }
+.scale-row { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-2) 0; }
+.scale-label { flex: none; width: 84px; font-size: 10px; letter-spacing: 0.08em; opacity: 0.45; }
+.scale-bar { height: 12px; background: var(--color-accent-300); }
+.ring { width: 72px; height: 72px; border: 6px solid var(--color-ring-ghost); border-radius: 999px; }
+.row { display: flex; align-items: center; gap: var(--space-4); }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Spacing scale</div>
+  <div class="scale-row"><span class="scale-label">--space-1</span><div class="scale-bar" style="width: calc(var(--space-1) * 4)"></div></div>
+  <div class="scale-row"><span class="scale-label">--space-2</span><div class="scale-bar" style="width: calc(var(--space-2) * 4)"></div></div>
+  <div class="scale-row"><span class="scale-label">--space-3</span><div class="scale-bar" style="width: calc(var(--space-3) * 4)"></div></div>
+  <div class="scale-row"><span class="scale-label">--space-4</span><div class="scale-bar" style="width: calc(var(--space-4) * 4)"></div></div>
+  <div class="scale-row"><span class="scale-label">--space-6</span><div class="scale-bar" style="width: calc(var(--space-6) * 4)"></div></div>
+  <div class="scale-row"><span class="scale-label">--space-8</span><div class="scale-bar" style="width: calc(var(--space-8) * 4)"></div></div>
+<div class="demo-head">Edges and bands</div>
+  <hr class="hr" />
+  <p class="note" style="margin-top: var(--space-3);">Bands stack: one message per band, a hairline between them, generous air. Every light page may carry exactly one dark slate panel; green appears as fills and marks.</p>
+<div class="demo-head">Ghost ring</div>
+  <div class="row">
+    <div class="ring"></div>
+    <p class="note">Rings draw in <code>--color-ring-ghost</code> on light grounds and in green on dark ones. They crop off the slide edge on purpose.</p>
+  </div>
+</main>
+</body>
+</html>

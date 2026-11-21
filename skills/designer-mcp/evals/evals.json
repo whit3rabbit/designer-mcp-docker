@@ -194,6 +194,30 @@
       "model": "CLI default",
       "outcome": "passed on final run",
       "notes": "The first run wrote a token table in place of portable front matter. The final run used alpha YAML, committed measured page dimensions, and kept raster estimates in evidence and recipes. The starter printed as a single custom-size page in the host check. MCP validation was pending by design for this scenario."
+    },
+    {
+      "eval_id": "diagnose-failing-refresh-tool",
+      "date": "2026-11-21",
+      "runner": "ZCode",
+      "model": "GLM-5.3-Flash",
+      "outcome": "passed",
+      "notes": "Fresh subagent session with no MCP tools registered. Reported refero_refresh and refero_similar as by-design failures behind the robots.txt-blocked API, never called the install broken, and gave node scripts/refero-public-fetch.js --limit 0 --force with the public-pages-only and never-/api/ rationale. Covered the TTL item by explaining the vendored package's 24-hour default against the baked long TTL, reproducing the stale-cache fallback before confirming offline reads. Cross-model record for EV-02."
+    },
+    {
+      "eval_id": "product-pattern-without-screens-layer",
+      "date": "2026-11-21",
+      "runner": "ZCode",
+      "model": "GLM-5.3-Flash",
+      "outcome": "passed",
+      "notes": "Fresh subagent session with no MCP tools registered, so it drove the local stdio server over Bash for catalog access. Ran 5 searches and pulled full records for Attio, Stripe, and PostHog before implementing, used the craft references for the comparison and CTA decisions, stated plainly that the deployment has no screens or flows layer, and never invented screen or flow precedent. Produced the research-playbook summary and a decision ledger before building, then rendered the page and QA'd it in a browser at two widths. Cross-model record for EV-02."
+    },
+    {
+      "eval_id": "anti-slop-hero-repair",
+      "date": "2026-11-21",
+      "runner": "ZCode",
+      "model": "GLM-5.3-Flash",
+      "outcome": "passed",
+      "notes": "Named both tells from references/anti-ai-slop.md up front: the warm wash and the decorative word-treatment fingerprint. Grounded the rebuild in catalog research (four searches, full robot.com and Firecrawl records over the local stdio server), kept the highlight yellow strictly in its source role with a black primary CTA, and replaced the word swap with a source-backed highlighter mark in the same face and weight. The memorable detail is the irregular marker stroke and the matching selection color, not another swap. Rendered the result and contrast-checked it. Cross-model record for EV-02."
     }
   ]
 }

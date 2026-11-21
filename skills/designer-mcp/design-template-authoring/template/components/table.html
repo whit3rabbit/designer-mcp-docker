@@ -1,0 +1,44 @@
+<!-- @dsCard group="Components" name="Table" subtitle="A data table with themed rules" viewport="640x420" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>__NAME__ — Table</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from ../styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th {
+  text-align: left; font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-600);
+  padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-divider);
+}
+.table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-divider); }
+.table tr:last-child td { border-bottom: 0; }
+.table td.num { font-family: var(--font-heading); font-weight: 600; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Data table</div>
+  <table class="table">
+    <thead><tr><th>TODO</th><th>TODO</th><th>TODO</th></tr></thead>
+    <tbody>
+      <tr><td>TODO</td><td class="num">24</td><td class="num">118</td></tr>
+      <tr><td>TODO</td><td class="num">31</td><td class="num">142</td></tr>
+      <tr><td>TODO</td><td class="num">28</td><td class="num">151</td></tr>
+    </tbody>
+  </table>
+  <p class="note">TODO: the table treatment rule (rule weights, header style, numerals).</p>
+</main>
+</body>
+</html>

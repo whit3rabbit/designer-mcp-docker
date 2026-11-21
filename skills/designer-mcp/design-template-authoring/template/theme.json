@@ -1,0 +1,29 @@
+{
+  "name": "__NAME__",
+  "palette": {
+    "hue": "__HUE__",
+    "band": "__BAND__",
+    "scheme": "__SCHEME__",
+    "sat": "__SAT__",
+    "bg": "__BG__",
+    "surface": "__SURFACE__",
+    "text": "__TEXT__",
+    "accent": "__ACCENT__",
+    "accent2": "__ACCENT2__"
+  },
+  "fonts": {
+    "heading": { "family": "__FONT__", "class": "__FONTCLASS__", "weights": [400, 600, 700] },
+    "body": { "family": "__FONT__", "class": "__FONTCLASS__", "weights": [400, 600, 700] }
+  },
+  "density": 1,
+  "radius": "__RADIUS__",
+  "layoutStyle": "__LAYOUT__",
+  "dividers": "__DIVIDERS__",
+  "buttonAlign": "left",
+  "imageTreatment": "__IMAGE__",
+  "photo": "__SLUG__",
+  "canvas": "1920x1080",
+  "motifs": [
+    "TODO: list the motifs that make this system itself (bullet marks, masks, panel rules, wordmark grammar)."
+  ]
+}

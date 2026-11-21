@@ -1,0 +1,46 @@
+<!-- @dsCard group="Theme" name="Parameters" subtitle="The parameters this system was derived from" viewport="640x520" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>__NAME__ — Parameters</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; }
+code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.92em; }
+.params { border: 1px solid var(--color-divider); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); }
+.def { display: flex; gap: var(--space-3); padding: var(--space-1) 0; }
+dl { margin: 0; } dt { flex: none; width: 140px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.5; } dd { margin: 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Theme parameters</div>
+  <section class="params" data-theme-ground="__BAND__" data-theme-scheme="__SCHEME__" data-theme-hue="__HUE__">
+    <dl>
+    <div class="def"><dt>Ground</dt><dd>__BAND__ (scheme: __SCHEME__, hue __HUE__°)</dd></div>
+    <div class="def"><dt>Fonts</dt><dd>__FONT__ / __FONT__</dd></div>
+    <div class="def"><dt>Density</dt><dd>1.00×</dd></div>
+    <div class="def"><dt>Radius</dt><dd>__RADIUS__</dd></div>
+    <div class="def"><dt>Layout</dt><dd>__LAYOUT__</dd></div>
+    <div class="def"><dt>Dividers</dt><dd>__DIVIDERS__</dd></div>
+    <div class="def"><dt>Buttons</dt><dd>TODO: the button grammar</dd></div>
+    <div class="def"><dt>Image treatment</dt><dd>__IMAGE__</dd></div>
+    <div class="def"><dt>Icons</dt><dd>Lucide</dd></div>
+    <div class="def"><dt>Canvas</dt><dd>1920×1080 (deck starter)</dd></div>
+    <div class="def"><dt>Motifs</dt><dd>TODO: the motif list</dd></div>
+    </dl>
+  </section>
+  <p class="note">These values are the seed this system was derived from: styles.css, every page in this project and the guide in readme.md were built from them (the machine-readable copy is <code>theme.json</code>). If you retune the system by hand (palette, type, radii, spacing), do it in styles.css (the one place tokens live) and keep this page and <code>theme.json</code> in step so the record stays true.</p>
+</main>
+</body>
+</html>

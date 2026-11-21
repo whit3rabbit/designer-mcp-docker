@@ -1,0 +1,50 @@
+<!-- @dsCard group="Components" name="Cards" subtitle="Surface, dark slate and green panel cards" viewport="640x560" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loam — Cards</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from ../styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.row { display: flex; align-items: stretch; gap: var(--space-4); flex-wrap: wrap; }
+.row .card { flex: 1; min-width: 240px; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; margin-top: var(--space-4); }
+.check { width: 34px; height: 34px; border: 1px solid currentColor; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: var(--space-3); }
+.check svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Surface card</div>
+  <div class="card">
+    <div class="card-kicker">Service</div>
+    <div class="card-title">Strategy in one pass</div>
+    <div class="card-body">Positioning, identity, and slide systems shaped together, so the voice and the look ship together.</div>
+    <div class="card-meta">Two week engagement</div>
+  </div>
+<div class="demo-head">Dark slate and green panels</div>
+  <div class="row">
+    <div class="card panel-ink">
+      <span class="check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <div class="card-title">About service</div>
+      <div class="card-body">The dark panel anchors the left of a light page and carries white text at full and 68% ink.</div>
+    </div>
+    <div class="card panel-accent">
+      <span class="check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <div class="card-title">About service</div>
+      <div class="card-body">The green panel pairs beside it. Headings white, body at 82% ink.</div>
+    </div>
+  </div>
+  <p class="note">One dark panel per light page. The green panel only ever pairs beside the dark one, never alone on a page.</p>
+</main>
+</body>
+</html>

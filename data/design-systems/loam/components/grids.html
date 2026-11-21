@@ -1,0 +1,46 @@
+<!-- @dsCard group="Components" name="Grids" subtitle="The diamond chip and the pill, arch and framed masks" viewport="640x520" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loam — Grids</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from ../styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.item { display: flex; gap: var(--space-3); align-items: flex-start; margin: var(--space-4) 0; }
+.item .chip { margin-top: 7px; }
+.item h4 { margin: 0 0 var(--space-1); font-size: 16px; }
+.item p { margin: 0; font-size: 13px; color: color-mix(in srgb, var(--color-text) 65%, transparent); }
+.shapes { display: flex; gap: var(--space-4); align-items: flex-end; flex-wrap: wrap; }
+.shapes figure { margin: 0; }
+.shapes img { display: block; object-fit: cover; }
+.shape-pill { width: 110px; height: 220px; }
+.shape-arch { width: 130px; height: 180px; }
+.shape-frame { width: 170px; height: 120px; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; margin-top: var(--space-4); }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Diamond chip bullets</div>
+  <div class="item"><span class="chip"></span><div><h4>Brand strategy</h4><p>Positioning, naming, and messaging that survive contact with real audiences.</p></div></div>
+  <div class="item"><span class="chip"></span><div><h4>Design systems</h4><p>Tokens, components, and rules that keep every surface consistent.</p></div></div>
+  <p class="note">The chip is a 9px rotated square in the accent. Numbered topics put the figure in bold before the title.</p>
+<div class="demo-head">Photo masks</div>
+  <div class="shapes">
+    <figure class="pill"><img class="shape-pill" src="../assets/photo.jpg" alt="Tall pill crop of the reference photograph"></figure>
+    <figure class="arch"><img class="shape-arch" src="../assets/photo.jpg" alt="Arch crop of the reference photograph"></figure>
+    <figure class="frame"><img class="shape-frame" src="../assets/photo.jpg" alt="Framed crop of the reference photograph"></figure>
+  </div>
+  <p class="note">Pills cascade diagonally, arches stand on a ghost arc, frames hold straight cuts. Masks crop, they never tint.</p>
+</main>
+</body>
+</html>

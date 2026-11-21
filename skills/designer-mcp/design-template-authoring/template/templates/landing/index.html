@@ -1,0 +1,135 @@
+<!-- @template name="Landing" description="TODO: one sentence listing the page inventory (ringed hero, stat row, features, photograph, quote, poster close)" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>__NAME__ — landing</title>
+<script src="./ds-base.js"></script>
+<style>
+/* Template scaffolding — page layout and web-scale sizing only; every color,
+   font, radius and shadow comes from ../../styles.css.
+
+   THE LANDING LAWS (shared by all seven systems' landing templates):
+   #1 display headers break per sentence (.line spans); #2 the landing
+   advertises an invented product played straight; #3 spacing is
+   cluster-scoped; #4 no hero eyebrow — the nav brand names the product.
+
+   TODO: restyle the sections to the reference (hero ground, rules, masks). */
+:root { --leading: 28px; --half: 14px; --edge: clamp(20px, 5vw, 72px); }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; text-wrap: pretty; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 var(--edge); }
+.nav { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) 0; }
+.nav a { text-decoration: none; }
+.nav-links { display: flex; gap: var(--space-6); font-size: 14px; }
+.nav-links a { color: var(--color-neutral-600); }
+.nav-links a[aria-current='location'] { color: var(--color-accent-2); font-weight: 600; }
+@media (max-width: 480px) { .nav-links { display: none; } }
+
+.hero { position: relative; padding: calc(6 * var(--leading)) 0 calc(5 * var(--leading)); overflow: hidden; }
+.hero .ring { position: absolute; left: 50%; top: -160px; width: 560px; height: 560px; transform: translateX(-50%); border: 12px solid var(--color-ring-ghost); border-radius: 999px; }
+.display {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: clamp(56px, 9vw, 124px); line-height: 1.04; margin: 0; position: relative;
+}
+.display .line { display: block; }
+.hero-sub { max-width: 44ch; font-size: 17px; color: color-mix(in srgb, var(--color-text) 62%, transparent); margin: var(--space-6) 0 0; position: relative; }
+.hero .btnrow { display: flex; gap: var(--space-3); margin-top: var(--space-6); position: relative; }
+.rule1 { height: 1px; border: 0; margin: 0; background: var(--color-divider); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-6); padding: calc(4 * var(--leading)) 0; }
+.stat-num { font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 44px; line-height: 1; color: var(--color-accent); }
+.stat-num.ink { color: var(--color-text); }
+.stat-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: color-mix(in srgb, var(--color-text) 55%, transparent); margin-top: var(--space-2); }
+@media (max-width: 720px) { .stats { grid-template-columns: 1fr 1fr; } }
+.features { padding: calc(4 * var(--leading)) 0; }
+.feature-row { display: grid; grid-template-columns: 220px 1fr; gap: var(--space-6); padding: var(--space-4) 0; border-top: 1px solid var(--color-divider); }
+.feature-row h3 { font-size: 17px; margin: 0; font-weight: var(--font-heading-weight); }
+.feature-row p { margin: 0; font-size: 15px; color: color-mix(in srgb, var(--color-text) 62%, transparent); }
+@media (max-width: 720px) { .feature-row { grid-template-columns: 1fr; gap: var(--space-2); } }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); align-items: center; padding: calc(4 * var(--leading)) 0; }
+.split image-slot, .split image-slot > img { display: block; width: 100%; height: 420px; object-fit: cover; }
+@media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
+.quote { padding: calc(4 * var(--leading)) 0; }
+.quote blockquote { margin: 0; font-size: clamp(22px, 3vw, 32px); line-height: 1.5; font-style: italic; max-width: 32ch; }
+.quote figcaption { margin-top: var(--space-4); font-size: 13px; color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.close { background: var(--color-accent); color: var(--color-bg); padding: calc(7 * var(--leading)) 0; }
+.close .display { font-size: clamp(44px, 7vw, 96px); }
+.close p { max-width: 44ch; font-size: 17px; color: color-mix(in srgb, #ffffff 85%, transparent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="wordmark" href="#">__SLUG__<i></i></a>
+    <div class="nav-links">
+      <a href="#work" aria-current='location'>TODO: Work</a>
+      <a href="#services">TODO: Services</a>
+      <a href="#contact">TODO: Contact</a>
+    </div>
+  </nav>
+
+  <section class="hero" id="studio">
+    <div class="ring"></div>
+    <h1 class="display">
+      <span class="line">TODO: hero line one,</span>
+      <span class="line">TODO: hero line two.</span>
+    </h1>
+    <p class="hero-sub">TODO: the product sentence, played straight.</p>
+    <div class="btnrow">
+      <a class="btn btn-primary" href="#contact">TODO: primary action</a>
+      <a class="btn btn-dark" href="#work">TODO: secondary action</a>
+    </div>
+  </section>
+
+  <hr class="rule1" />
+
+  <section class="stats" id="work">
+    <div><div class="stat-num">TODO</div><div class="stat-label">TODO</div></div>
+    <div><div class="stat-num ink">TODO</div><div class="stat-label">TODO</div></div>
+    <div><div class="stat-num ink">TODO</div><div class="stat-label">TODO</div></div>
+    <div><div class="stat-num">TODO</div><div class="stat-label">TODO</div></div>
+  </section>
+
+  <section class="features" id="services">
+    <h2>TODO: what the product does</h2>
+    <div class="feature-row"><h3>TODO: feature one</h3><p>TODO: one line of proof.</p></div>
+    <div class="feature-row"><h3>TODO: feature two</h3><p>TODO: one line of proof.</p></div>
+    <div class="feature-row"><h3>TODO: feature three</h3><p>TODO: one line of proof.</p></div>
+  </section>
+
+  <section class="split">
+    <div>
+      <h2 class="display" style="font-size: clamp(32px, 4.5vw, 56px);">
+        <span class="line">TODO: split line one,</span>
+        <span class="line">TODO: split line two.</span>
+      </h2>
+      <p class="hero-sub">TODO: the imagery rule in prose.</p>
+    </div>
+    <image-slot id="split-photo" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The reference photograph"></image-slot>
+  </section>
+
+  <section class="quote">
+    <figure>
+      <blockquote>TODO: the sentence the system keeps repeating.</blockquote>
+      <figcaption>TODO: attribution</figcaption>
+    </figure>
+  </section>
+
+  <section class="close" id="contact">
+    <div class="wrap">
+      <h2 class="display">
+        <span class="line">TODO: close line one,</span>
+        <span class="line">TODO: close line two.</span>
+      </h2>
+      <p>TODO: the call sentence.</p>
+      <a class="btn btn-ghost" href="mailto:studio@example.com">TODO: contact action</a>
+    </div>
+  </section>
+
+</div>
+<script src="./image-slot.js"></script>
+</body>
+</html>

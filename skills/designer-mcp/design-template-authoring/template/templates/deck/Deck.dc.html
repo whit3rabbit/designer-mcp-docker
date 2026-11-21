@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Deck" description="TODO: one sentence listing the slide inventory this starter ships (cover, divider, content layouts, image slides, quote, close)" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css" />
+<title>__NAME__ — deck</title>
+<script src="./ds-base.js"></script>
+<script src="./image-slot.js"></script>
+<style>
+/* Template scaffolding — slide layout and projection-scale sizing only; every
+   color, font, radius and shadow comes from ../../styles.css. Change one
+   number here to re-size the whole deck. */
+deck-stage {
+  --type-display: 108px;
+  --type-title: 54px;
+  --type-subtitle: 34px;
+  --type-body: 28px;
+  --type-small: 24px;
+  --type-kicker: 19px;
+  --pad-x: 110px;
+  --pad-top: 90px;
+  --pad-bottom: 110px;
+  --page-foot-note: "__NAME__ studio";
+}
+.slide {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column;
+  background: var(--color-bg); color: var(--color-text);
+  font-family: var(--font-body);
+  padding: var(--pad-top) var(--pad-x) var(--pad-bottom);
+  print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+.slide.dark { background: var(--color-neutral-900); color: #ffffff; }
+.slide img { object-fit: cover; width: 100%; height: 100%; }
+
+/* — wordmark lockup: TODO restyle to the reference grammar — */
+.mark {
+  position: absolute; top: 64px; left: var(--pad-x);
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 44px; line-height: 1; color: var(--color-text);
+}
+.mark::after { content: "."; color: var(--color-accent); }
+.dark .mark, .on-dark .mark { color: #ffffff; }
+
+/* — kicker row: TODO adapt to the reference (band, rule, ghost ring, none) — */
+.kicker {
+  position: absolute; top: 72px; left: var(--pad-x); right: var(--pad-x);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: var(--type-kicker); letter-spacing: 0.14em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.kicker::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -18px;
+  height: 1px; background: var(--color-divider);
+}
+.kicker .mark { position: static; font-size: 30px; }
+.slide-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: var(--type-title); line-height: 1.1; margin: 0;
+}
+.body-copy {
+  font-size: var(--type-body); line-height: 1.5;
+  color: color-mix(in srgb, var(--color-text) 62%, transparent); max-width: 44ch; margin: 0 0 28px;
+}
+.dark .body-copy, .on-dark .body-copy { color: color-mix(in srgb, #ffffff 66%, transparent); }
+.btnrow { display: flex; gap: 20px; }
+.btnrow .btn { font-size: 15px; padding: 12px 26px; }
+
+/* — page furniture (deck-stage page counter) — */
+deck-stage { counter-reset: page; }
+.slide { counter-increment: page; }
+.page-foot {
+  position: absolute; left: var(--pad-x); bottom: 54px;
+  font-size: var(--type-kicker);
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.dark .page-foot { color: color-mix(in srgb, #ffffff 55%, transparent); }
+.page-foot::before { content: counter(page) " · "; }
+.page-foot::after { content: var(--page-foot-note); }
+
+/* 1 — cover: TODO restyle to the reference cover */
+.cover-photo { position: absolute; left: 44px; top: 0; bottom: 0; width: 42%; }
+.cover-copy { position: absolute; left: calc(46% + 80px); right: var(--pad-x); top: 200px; }
+.cover-copy .mark { position: relative; display: inline-block; font-size: 52px; }
+.cover-copy .body-copy { margin-top: 44px; }
+.cover-copy .btnrow { margin-top: 24px; }
+
+/* 2 — divider: TODO set the divider ground (dark panel, accent poster, ghost ring) */
+.divider { justify-content: center; background: var(--color-accent); color: var(--color-bg); }
+.divider .rise { display: flex; flex-direction: column; gap: 48px; }
+.divider .slide-title { font-size: var(--type-display); }
+
+/* content slides */
+.content { padding-top: calc(5 * var(--baseline, 46px)); }
+.cols { display: grid; column-gap: 48px; margin-top: 64px; }
+.cols-2 { grid-template-columns: 1fr 1fr; }
+.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.cols h3 { font-size: var(--type-body); margin: 0 0 18px; font-weight: var(--font-heading-weight); }
+.cols p { font-size: var(--type-small); line-height: 1.55; color: color-mix(in srgb, var(--color-text) 62%, transparent); margin: 0; }
+.bullets { display: flex; flex-direction: column; gap: 26px; list-style: none; padding: 0; margin: 48px 0 0; font-size: var(--type-body); max-width: 1220px; }
+.bullets li { position: relative; padding-left: 40px; line-height: 1.5; }
+.bullets li::before {
+  content: ""; position: absolute; left: 0; top: 10px;
+  width: 12px; height: 12px; background: var(--color-accent); transform: rotate(45deg);
+}
+
+/* image slides: TODO pick the masks the reference uses (straight, pill, arch) */
+.split-photo { position: absolute; left: 0; top: 0; bottom: 0; width: 46%; }
+.split-copy { position: absolute; left: calc(46% + 90px); right: var(--pad-x); top: 190px; }
+.split-copy .mark { position: relative; display: inline-block; }
+.split-copy .body-copy { margin-top: 40px; }
+
+/* quote slide */
+.quote-slide { justify-content: center; }
+.quote-slide blockquote { margin: 0; font-size: var(--type-subtitle); line-height: 1.5; font-style: italic; max-width: 32ch; }
+.quote-slide figcaption { margin-top: 30px; font-size: var(--type-kicker); color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+
+/* close */
+.close-mark { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); text-align: center; }
+.close-mark .display { font-size: var(--type-display); margin: 0; font-weight: var(--font-heading-weight); }
+.close-meta { position: absolute; left: 50%; transform: translateX(-50%); bottom: 120px; font-size: var(--type-kicker); color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+
+/* TODO: author further variant styles here to match the reference's slide
+   inventory (stats, panels, grids, masked photo layouts, charts, trees),
+   then add matching <section> children below. */
+</style>
+</helmet>
+
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+  <section class="slide dark" data-label="Cover">
+    <figure class="slot cover-photo"><image-slot id="cover-photo" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The cover photograph"></image-slot></figure>
+    <div class="cover-copy on-dark">
+      <span class="mark">__SLUG__</span>
+      <p class="body-copy">TODO: the cover sentence, one line, in the system's voice.</p>
+      <div class="btnrow"><button class="btn btn-dark">About us</button><button class="btn btn-primary">Portfolio</button></div>
+    </div>
+  </section>
+
+  <section class="slide divider" data-label="Divider">
+    <div class="rise">
+      <h2 class="slide-title">TODO: section name</h2>
+    </div>
+  </section>
+
+  <section class="slide content" data-label="Columns">
+    <div class="kicker"><span class="mark">__SLUG__</span><span>TODO: section label</span></div>
+    <h2 class="slide-title">TODO: content title</h2>
+    <div class="cols cols-3">
+      <div><h3>TODO: column one</h3><p>TODO: supporting line.</p></div>
+      <div><h3>TODO: column two</h3><p>TODO: supporting line.</p></div>
+      <div><h3>TODO: column three</h3><p>TODO: supporting line.</p></div>
+    </div>
+  </section>
+
+  <section class="slide split" data-label="Image">
+    <figure class="slot split-photo"><image-slot id="split-photo" shape="rect" src="../../assets/photo.jpg" role="img" aria-label="The split photograph"></image-slot></figure>
+    <div class="split-copy">
+      <p class="body-copy">TODO: copy beside the photograph, masked per the reference.</p>
+    </div>
+  </section>
+
+  <section class="slide quote-slide" data-label="Quote">
+    <figure>
+      <blockquote>TODO: the sentence the system keeps repeating.</blockquote>
+      <figcaption>TODO: attribution</figcaption>
+    </figure>
+  </section>
+
+  <section class="slide dark" data-label="Close">
+    <div class="close-mark">
+      <h2 class="display">Thank you</h2>
+    </div>
+    <div class="close-meta">TODO: the close line and contact.</div>
+  </section>
+
+</x-import>
+</x-dc>
+</body>
+</html>

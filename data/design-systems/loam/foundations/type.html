@@ -1,0 +1,44 @@
+<!-- @dsCard group="Foundations" name="Type" subtitle="The Avenir Next scale at real sizes" viewport="640x520" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loam — Type</title>
+<link rel="stylesheet" href="../styles.css" />
+<style>
+/* Demo scaffolding only — everything visual comes from ../styles.css. */
+.demo { max-width: 620px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
+.demo-head {
+  font-family: var(--font-body); font-size: 11px; font-weight: inherit;
+  letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.55;
+  margin: var(--space-6) 0 var(--space-3);
+}
+.demo-head:first-child { margin-top: 0; }
+.note { font-size: 12px; opacity: 0.6; max-width: 60ch; }
+.spec { font-size: 11px; opacity: 0.45; margin-left: var(--space-2); }
+.wordmark-demo { font-size: 30px; }
+</style>
+</head>
+<body>
+<main class="demo">
+<div class="demo-head">Wordmark lockup</div>
+  <a class="wordmark wordmark-demo" href="#">loam<i></i></a>
+  <p class="note">Lowercase, bold, one accent period. The slash (`i` element) appears at most once per page.</p>
+<div class="demo-head">Display and title</div>
+  <h1 style="font-size: var(--type-display); line-height: 1.02; margin: 0;">loam display</h1>
+  <h2 style="font-size: var(--type-title); line-height: 1.1; margin: var(--space-3) 0 0;">Title: one message per band</h2>
+<div class="demo-head">Interface scale</div>
+  <h1>Heading one</h1>
+  <h2>Heading two</h2>
+  <h3>Heading three</h3>
+  <h4>Heading four</h4>
+  <h5>Heading five</h5>
+  <h6>Label six</h6>
+  <p>Body text at 15px carries the reading voice: short sentences, generous leading, left aligned, never centered.</p>
+  <p class="text-muted">Muted text is the same face at 55% ink for captions and asides.</p>
+<div class="demo-head">Notes</div>
+  <p class="note">Avenir Next is system-installed on macOS; the stack falls to Segoe UI and Helvetica Neue elsewhere. Headings take the bold weight, body the regular. Stat numbers reuse the heading weight at display scale.</p>
+</main>
+</body>
+</html>
