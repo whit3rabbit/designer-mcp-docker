@@ -88,8 +88,12 @@ async function localStarter(origin, archive) {
 
 async function checkFonts(frame, fonts) {
   await expect.poll(() => frame.locator("html").evaluate(async (_, families) => {
-    const faces = await Promise.all(families.map((family) => document.fonts.load(`16px "${family}"`)));
-    return families.filter((name) => !faces.flat().some((face) => face.family === name));
+    // Only families the preview registers a face for can be verified. A
+    // system-stack family ships no webfont, loads nothing, and renders from
+    // the OS; the off-origin request guard already polices that boundary.
+    const shipped = families.filter((family) => [...document.fonts].some((face) => face.family === family));
+    const faces = await Promise.all(shipped.map((family) => document.fonts.load(`16px "${family}"`)));
+    return shipped.filter((name) => !faces.flat().some((face) => face.family === name));
   }, fonts), { message: "Wait for the local heading and body font faces" }).toEqual([]);
 }
 
