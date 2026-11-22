@@ -107,9 +107,13 @@ const CACHE_DIR =
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || "127.0.0.1";
 
-// Where the skill lives. In the image it is /app/skills/designer-mcp; in a
-// checkout it is <repo>/skills/designer-mcp.
-const SKILL_DIR = process.env.SKILL_DIR || join(HERE, "..", "skills", "designer-mcp");
+// Where the plugin skills live. In the image it is
+// /app/plugins/designer-mcp/skills; in a checkout it is
+// <repo>/plugins/designer-mcp/skills. SKILL_DIR is the legacy alias.
+const SKILLS_ROOT =
+  process.env.SKILLS_ROOT ||
+  process.env.SKILL_DIR || // legacy alias for the skills root
+  join(HERE, "..", "plugins", "designer-mcp", "skills");
 const frontend = await loadFrontend(process.env.DESIGN_FRONTEND_DIR || join(HERE, "..", "dist", "frontend"));
 
 // The upstream package renders DESIGN.md from the full style record. Import it
@@ -1014,14 +1018,15 @@ const server = createServer(async (req, res) => {
       return json(res, 404, { error: "no thumbnail", id });
     }
 
-    // The skill is served from the container so a container-only deployment
-    // can hand it out without needing the repo.
+    // The skills are served from the container so a container-only deployment
+    // can hand them out without needing the repo.
     if (p === "/skill" || p === "/skill/" || p === "/skill.zip") {
-      // In the image the zip sits beside the skill dir; in a checkout it may
-      // be inside it. Try both.
+      // In the image the zip sits beside the skills root; in a checkout it may
+      // be inside it or under dist/ after `npm run package:skill`. Try all three.
       const zipCandidates = [
-        join(SKILL_DIR, "designer-mcp-skill.zip"),
-        join(dirname(SKILL_DIR), "designer-mcp-skill.zip"),
+        join(SKILLS_ROOT, "designer-mcp-skill.zip"),
+        join(dirname(SKILLS_ROOT), "designer-mcp-skill.zip"),
+        join(HERE, "..", "dist", "designer-mcp-skill.zip"),
       ];
       for (const zip of zipCandidates) {
         if (!existsSync(zip)) continue;
@@ -1033,10 +1038,16 @@ const server = createServer(async (req, res) => {
         });
         return res.end(buf);
       }
-      // No prebuilt zip in the image — offer the skill directory as a tarball.
+      // No prebuilt zip — offer the skills root as a tarball.
       const tar = spawnSync(
         "tar",
-        ["-czf", "-", "-C", dirname(SKILL_DIR), "designer-mcp"],
+        [
+          "--exclude=skills/tmp",
+          "--exclude=.DS_Store",
+          "--exclude=__pycache__",
+          "--exclude=*.pyc",
+          "-czf", "-", "-C", dirname(SKILLS_ROOT), "skills",
+        ],
         { maxBuffer: 64 * 1024 * 1024 },
       );
       if (tar.status === 0 && tar.stdout?.length) {
@@ -1047,11 +1058,11 @@ const server = createServer(async (req, res) => {
         });
         return res.end(tar.stdout);
       }
-      return json(res, 404, { error: "skill not found in image", skillDir: SKILL_DIR });
+      return json(res, 404, { error: "skills not found in image", skillsRoot: SKILLS_ROOT });
     }
 
     if (p === "/skill/SKILL.md") {
-      const md = join(SKILL_DIR, "SKILL.md");
+      const md = join(SKILLS_ROOT, "design-system", "SKILL.md");
       if (!existsSync(md)) return json(res, 404, { error: "SKILL.md not found" });
       const body = await readFile(md, "utf8");
       res.writeHead(200, { "content-type": "text/markdown; charset=utf-8" });

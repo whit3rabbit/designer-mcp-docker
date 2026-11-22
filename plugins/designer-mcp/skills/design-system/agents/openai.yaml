@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design System"
+  short_description: "Research-first UI design grounded in an offline catalog"
+  default_prompt: "Use $design-system to capture this source as DESIGN.md and preserve its content hierarchy."

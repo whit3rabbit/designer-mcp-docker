@@ -139,10 +139,13 @@ own pages: they are static documents with no external references, so they get
 The skill is also served from the container at `/skill`, so a container-only
 deployment can hand out the skill without the repo.
 
-## 4. The skill
+## 4. The plugin skills
 
-`skills/designer-mcp/` — research-first design methodology plus reference
-files, adapted from Refero's MIT-licensed `refero_skill`.
+`plugins/designer-mcp/skills/design-system/` — research-first design
+methodology plus reference files, adapted from Refero's MIT-licensed
+`refero_skill`. `plugins/designer-mcp/skills/designer-mcp/` — catalog tool
+routing, MCP setup, and install snippets. Eight delivery skills sit beside
+them at the plugin's `skills/` root.
 
 Two adaptations matter:
 

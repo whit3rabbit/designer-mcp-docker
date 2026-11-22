@@ -21,6 +21,8 @@ permissions:
   pages: write
   id-token: write
   contents: read
+  # Deleting an earlier attempt's artifact needs actions: write.
+  actions: write
 
 concurrency:
   group: pages
@@ -38,6 +40,19 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Drop any artifact left by an earlier attempt
+        # A re-run of this job keeps the run's old artifacts. deploy-pages
+        # refuses to choose between two named github-pages, so clear the
+        # slate before this attempt uploads its own.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ids=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name == "github-pages") | .id')
+          for id in $ids; do
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id"
+          done
+
       - uses: actions/checkout@v7
 
       - name: Build the static site from the baked image
@@ -55,6 +70,24 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: public
+
+      - name: Wait for the artifact to be listed
+        # The artifact API can lag the upload by a second or two, and
+        # deploy-pages fails the run when it sees zero. Poll briefly so the
+        # lag never reaches the deploy step.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for _ in $(seq 1 10); do
+            count=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100" \
+              --jq '[.artifacts[] | select(.name == "github-pages")] | length')
+            if [ "$count" = "1" ]; then
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::github-pages artifact still not visible after 30s"
+          exit 1
 
       - id: deployment
         uses: actions/deploy-pages@v5

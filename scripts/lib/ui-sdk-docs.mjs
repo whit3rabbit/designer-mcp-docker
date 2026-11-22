@@ -1,8 +1,9 @@
 /**
  * ui-sdk-docs.mjs — offline index and reader for bundled @ui-sdk/* documentation.
  *
- * Reads Markdown docs from `skills/designer-mcp/ui-sdk/` on disk (offline) or
- * from `DESIGN_REMOTE_URL/api/ui-sdk-docs.json` when pointed at a static host.
+ * Reads Markdown docs from `plugins/designer-mcp/skills/designer-ui/ui-sdk/`
+ * on disk (offline) or from `DESIGN_REMOTE_URL/api/ui-sdk-docs.json` when
+ * pointed at a static host.
  */
 
 import { existsSync } from "node:fs";
@@ -12,8 +13,16 @@ import { fileURLToPath } from "node:url";
 import { getRemoteUrl } from "./cache.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+// SKILL_DIR keeps two legacy meanings: the old single-skill dir (which held
+// ui-sdk/ directly) or the skills root. Prefer whichever layout exists.
 const DEFAULT_UI_SDK_DIR = resolve(
-  process.env.SKILL_DIR ? join(process.env.SKILL_DIR, "ui-sdk") : join(HERE, "..", "..", "skills", "designer-mcp", "ui-sdk"),
+  process.env.SKILLS_ROOT
+    ? join(process.env.SKILLS_ROOT, "designer-ui", "ui-sdk")
+    : process.env.SKILL_DIR && existsSync(join(process.env.SKILL_DIR, "ui-sdk"))
+      ? join(process.env.SKILL_DIR, "ui-sdk")
+      : process.env.SKILL_DIR
+        ? join(process.env.SKILL_DIR, "designer-ui", "ui-sdk")
+        : join(HERE, "..", "..", "plugins", "designer-mcp", "skills", "designer-ui", "ui-sdk"),
 );
 
 let cachedIndex = null;

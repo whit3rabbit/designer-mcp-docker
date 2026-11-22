@@ -103,7 +103,8 @@ in a fork of the consumer.
 
 - This project: MIT.
 - `fidgetcoding-refero-mcp`: MIT.
-- The craft references in `skills/designer-mcp/references/` are adapted from
+- The craft references in `plugins/designer-mcp/skills/design-system/references/`
+  are adapted from
   Refero's MIT-licensed [`refero_skill`](https://github.com/referodesign/refero_skill)
   (Copyright (c) 2026 Refero).
 - The design data belongs to Refero and to the sites depicted. This project

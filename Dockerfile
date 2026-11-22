@@ -53,9 +53,10 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 # Fetchers, preview server, MCP entrypoints.
 COPY scripts/ ./scripts/
 
-# The skill ships inside the image so a container-only deployment can serve
-# it for download, and so `docker run ... cat /app/skills/...` works offline.
-COPY skills/ ./skills/
+# The plugin (manifests, four top-level skills, and bundled sub-skills) ships
+# inside the image so a container-only deployment can serve it for download,
+# and so `docker run ... cat /app/plugins/...` works offline.
+COPY plugins/designer-mcp/ ./plugins/designer-mcp/
 
 # A catalog volume can hide /cache, so keep immutable browser assets alongside the skill.
 COPY --from=frontend-build /frontend-cache/ /app/frontend-cache/
@@ -65,8 +66,9 @@ COPY --from=frontend-build /frontend-cache/ /app/frontend-cache/
 COPY bake/ /cache/
 
 # Prebuilt zip so /skill serves a proper .zip rather than a tarball.
+# It lands beside the skills root, where the /skill route looks for it.
 RUN node scripts/package-skill.mjs --out /app/dist && \
-    cp /app/dist/designer-mcp-skill.zip /app/skills/ && \
+    cp /app/dist/designer-mcp-skill.zip /app/plugins/designer-mcp/ && \
     rm -rf /app/dist
 
 ENV DESIGN_CACHE_DIR=/cache \

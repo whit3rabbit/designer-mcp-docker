@@ -1,0 +1,97 @@
+# Plugin skill directory
+
+Knowledge of the designer-mcp plugin's skills, for routing and install
+recommendations. This skill does not bundle the others. When the user's task
+matches an entry below, name the skill exactly, say one line about what it
+covers, and follow it. If its files are missing from this install, offer to
+install it before proceeding.
+
+## The four skills
+
+Paths resolve relative to this skill's own directory, the same convention as
+script paths elsewhere in the plugin.
+
+| Skill | Covers | Path from here |
+|---|---|---|
+| design-system | The research-first design methodology: capture DESIGN.md from a page or document, research references from the offline catalog, lock a direction, craft references (typography, color, motion, icons, copy), quality gate, visual QA | [../../design-system/SKILL.md](../../design-system/SKILL.md) |
+| designer-documents | Document toolchains, one bundled sub-skill per format, with render-and-inspect QA loops | [../../designer-documents/SKILL.md](../../designer-documents/SKILL.md) |
+| designer-ui | Implementation craft for web UI plus headless behavior and accessibility primitives | [../../designer-ui/SKILL.md](../../designer-ui/SKILL.md) |
+| designer-mcp | This skill: catalog tools, MCP setup, install snippets | [SKILL.md](../SKILL.md) |
+
+## Bundled sub-skills
+
+| Sub-skill | Bundled under | Triggers | Path from here |
+|---|---|---|---|
+| design-template-authoring | design-system | "author a new template", "clone this site/deck/brand into a template", vendored design-system format (theme.json, styles.css, foundations, components, starters) | [../../design-system/design-template-authoring/SKILL.md](../../design-system/design-template-authoring/SKILL.md) |
+| docx | designer-documents | Word documents: .docx/.dotx create, edit, validate, convert | [../../designer-documents/docx/SKILL.md](../../designer-documents/docx/SKILL.md) |
+| pptx | designer-documents | Slide decks: .pptx/.potx create, theme injection via apply_theme.js, deck QA | [../../designer-documents/pptx/SKILL.md](../../designer-documents/pptx/SKILL.md) |
+| xlsx | designer-documents | Spreadsheets: .xlsx/.xlsm/.csv create, edit, recalculate, validate | [../../designer-documents/xlsx/SKILL.md](../../designer-documents/xlsx/SKILL.md) |
+| pdf | designer-documents | PDF creation, form filling, merge, split, watermark, OCR | [../../designer-documents/pdf/SKILL.md](../../designer-documents/pdf/SKILL.md) |
+| pdf-reading | designer-documents | Reading and extracting content from PDFs on disk (text, tables, images, page rasterization) | [../../designer-documents/pdf-reading/SKILL.md](../../designer-documents/pdf-reading/SKILL.md) |
+| frontend-design | designer-ui | Distinctive UI implementation craft: aesthetic direction, typography, color, layout, motion restraint, avoiding templated AI defaults | [../../designer-ui/frontend-design/SKILL.md](../../designer-ui/frontend-design/SKILL.md) |
+| ui-sdk | designer-ui | Headless behavior and accessibility for @ui-sdk/core, @ui-sdk/react, @ui-sdk/web, with offline docs via design_docs_search / design_docs_get | [../../designer-ui/ui-sdk/SKILL.md](../../designer-ui/ui-sdk/SKILL.md) |
+
+## How to tell what is installed
+
+Test whether the path exists on disk. From a shell:
+`test -f ../design-system/SKILL.md`, resolved against this skill's
+directory. Present means installed and usable: read it and follow it.
+Missing means this copy of designer-mcp is standalone (installed alone or
+copied out), and the sibling needs an install.
+
+Whether a harness auto-triggers an installed skill varies by harness.
+Reading and following the SKILL.md works everywhere.
+
+## Recommend and offer install
+
+When the task matches a skill that is missing:
+
+1. Name it exactly. "That's the design-system template authoring skill."
+2. One line on what it covers for this task.
+3. Ask before installing: "Want me to install it?" Then use the matching
+   command:
+
+   ```bash
+   # Full plugin: all four skills, and the .mcp.json registers the MCP server
+   claude plugin marketplace add whit3rabbit/designer-mcp-docker
+   claude plugin install designer-mcp@designer-mcp-docker
+
+   # One skill via the skills CLI (ZCode, Codex, and most others)
+   npx -y skills add whit3rabbit/designer-mcp-docker --skill design-system
+
+   # From a checkout of this repo
+   npx -y skills add <repo>/plugins/designer-mcp/skills --skill design-system
+   ```
+
+   On ZCode the full plugin also installs through the Plugin Marketplace UI:
+   Add, paste the repo, install Designer MCP. The zip from the `/skill`
+   route installs all four skills at once.
+
+4. After installing, read the new skill's SKILL.md and follow it for the
+   task.
+
+Rules:
+
+- Do not install without asking.
+- Do not bundle the sibling skills here, and do not duplicate their content.
+  The directory is metadata only.
+- Do not invent skills outside this plugin. If nothing above covers the
+  task, say so plainly, fall back to the craft references in design-system
+  or the user's own material, and only mention the skills CLI
+  (`npx -y skills add <repo>` for any GitHub skill repo) if the user asks
+  where else to look.
+
+## Example routings
+
+- "Design a PowerPoint" → designer-documents pptx for the deck mechanics,
+  with design-system's research loop and reference lock for the visual
+  direction, and `design_template_get` (loam) when the deck must land
+  on-brand.
+- "Turn this website into a reusable template" → design-system's
+  design-template-authoring.
+- "Make this landing page less generic" → design-system's research loop,
+  then designer-ui's frontend-design for execution craft.
+- "Install shadcn / tailwind / react" → this skill's `design_library_search`
+  and `design_library_get`.
+- "What skills do I have for documents?" → walk the directory above and
+  report the four skills and their sub-skills with install status.

@@ -87,7 +87,14 @@ const CACHE_DIR = resolve(
 const FRONTEND_DIR = resolve(
   arg("--frontend", process.env.DESIGN_FRONTEND_DIR || join(ROOT, "dist", "frontend")),
 );
-const SKILL_DIR = resolve(arg("--skill", process.env.SKILL_DIR || join(ROOT, "skills", "designer-mcp")));
+const SKILLS_ROOT = resolve(
+  arg(
+    "--skills-root",
+    process.env.SKILLS_ROOT ||
+      process.env.SKILL_DIR || // legacy name for the old single-skill dir
+      join(ROOT, "plugins", "designer-mcp", "skills"),
+  ),
+);
 const OUT_DIR = resolve(arg("--out", join(ROOT, "dist", "static")));
 
 async function loadRenderer() {
@@ -452,11 +459,11 @@ async function main() {
   // No origin for the static site: the import map renders site-root relative.
   await writeOut("assets/index.html", relativizeHtml(assetsHtml(frontend.publicManifest, frontend.importMap()), 1, { assetBase }));
 
-  // 2. Copy skill zip & SKILL.md
-  if (existsSync(SKILL_DIR)) {
+  // 2. Copy skill zip & the primary SKILL.md
+  if (existsSync(SKILLS_ROOT)) {
     const zipCandidates = [
-      join(SKILL_DIR, "designer-mcp-skill.zip"),
-      join(dirname(SKILL_DIR), "designer-mcp-skill.zip"),
+      join(SKILLS_ROOT, "designer-mcp-skill.zip"),
+      join(dirname(SKILLS_ROOT), "designer-mcp-skill.zip"),
       join(ROOT, "dist", "designer-mcp-skill.zip"),
     ];
     for (const z of zipCandidates) {
@@ -466,9 +473,10 @@ async function main() {
         break;
       }
     }
-    if (existsSync(join(SKILL_DIR, "SKILL.md"))) {
+    const primarySkillMd = join(SKILLS_ROOT, "design-system", "SKILL.md");
+    if (existsSync(primarySkillMd)) {
       await mkdir(join(OUT_DIR, "skill"), { recursive: true });
-      await cp(join(SKILL_DIR, "SKILL.md"), join(OUT_DIR, "skill", "SKILL.md"));
+      await cp(primarySkillMd, join(OUT_DIR, "skill", "SKILL.md"));
     }
   }
 
@@ -868,10 +876,11 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
   await writeOut("templates/index.html", relativizeHtml(templatesHtml(dsIndex), 1, { assetBase, templateThumbMap }));
 
   // 11. Offline UI SDK docs
-  const uiSdkIndex = await listUiSdkDocs(join(SKILL_DIR, "ui-sdk"));
+  const uiSdkDir = join(SKILLS_ROOT, "designer-ui", "ui-sdk");
+  const uiSdkIndex = await listUiSdkDocs(uiSdkDir);
   await writeJson("api/ui-sdk-docs.json", uiSdkIndex);
   for (const doc of uiSdkIndex.docs || []) {
-    const content = await readUiSdkDoc(doc.path, join(SKILL_DIR, "ui-sdk"));
+    const content = await readUiSdkDoc(doc.path, uiSdkDir);
     if (content !== null) await writeOut(`api/ui-sdk-docs/${doc.path}`, content);
   }
   const docsHtml = relativizeHtml(uiSdkDocsHtml(uiSdkIndex.docs || []), 1, { assetBase })

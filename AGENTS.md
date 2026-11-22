@@ -24,7 +24,8 @@ This is the core invariant. Every change is measured against it.
   `scripts/mcp-entry.mjs`) make **zero outbound network requests**. Every byte
   they serve comes from the cache directory (`/cache` in the image).
 - All assets are **baked into the image**: catalog, thumbnails, components,
-  presets, and the skill zip (`COPY bake/ /cache/`, `COPY skills/ ./skills/`).
+  presets, and the skill zip (`COPY bake/ /cache/`,
+  `COPY plugins/designer-mcp/ ./plugins/designer-mcp/`).
   A plain `docker run` with no volume and no network serves the complete
   catalog. Verify exactly that way:
 
@@ -60,7 +61,7 @@ these routes, all served from the local cache:
 | `/assets` | built frontend assets as a local CDN: offline starter (zip + page), browser modules, tailwind examples, template files, thumbnails, import map |
 | `/assets/importmap.json` | the offline import map: bare specifiers (react, motion, radix-ui, shadcn/*) resolved to content-addressed module URLs on this origin |
 | `/thumb/:id` | local WebP thumbnail bytes (jpg/png also accepted) |
-| `/skill` | the skill zip for offline download |
+| `/skill` | the plugin skills zip for offline download (four skills) |
 
 - New pages/routes must be answerable from the cache alone (Rule 1).
 - Keep the DESIGN.md output byte-identical to what `refero_design_md` returns.
@@ -83,46 +84,83 @@ these routes, all served from the local cache:
 - The upstream package is vendored **unmodified**. Never patch
   `node_modules/fidgetcoding-refero-mcp`. Adapt in `scripts/` so upstream
   updates drop in cleanly.
-- The skill (`skills/designer-mcp/`) ships inside the image, is zipped at
-  build time (`scripts/package-skill.mjs`) and served at `/skill`. The
-  Dockerfile runs the packager itself, so the zip always matches the
-  tagged checkout.
+- The plugin (`plugins/designer-mcp/`) ships inside the image, is zipped at
+  build time (`scripts/package-skill.mjs`, four skills under its `skills/`
+  with the bundled sub-skills inside them, manifests at the zip root) and
+  served at `/skill`. The Dockerfile runs the packager itself, so the zip
+  always matches the tagged checkout.
+- The repo root carries the marketplace manifests for each harness:
+  `.claude-plugin/marketplace.json` (Claude Code and ZCode),
+  `.agents/plugins/marketplace.json` (Codex), and
+  `.cursor-plugin/marketplace.json` (Cursor), while `.agents/skills.json`
+  and `.agents/plugins/designer-mcp/` provide Antigravity workspace
+  discovery. Inside `plugins/designer-mcp/`, each harness has its manifest
+  (`.claude-plugin/plugin.json`, `.zcode-plugin/plugin.json`,
+  `.codex-plugin/plugin.json`, `.cursor-plugin/plugin.json`) plus `.mcp.json`.
+  Bump the version in `package.json`, all plugin manifests, and the
+  `.claude-plugin/marketplace.json` entry together, aligned with the release
+  tag.
+- Gotchas for the plugin/skill layout:
+  - Keep `metadata.category` out of `.claude-plugin/marketplace.json` (Claude
+    Code only accepts `category` on each `plugins[]` entry; `claude plugin
+    validate .` warns otherwise).
+  - The `@ui-sdk/*` offline docs live under
+    `plugins/designer-mcp/skills/designer-ui/ui-sdk/` (not `designer-mcp/`).
+    `scripts/lib/ui-sdk-docs.mjs` and `scripts/build-static.mjs` must point
+    there, and `selftest.mjs` verifies `design_docs_search` / `design_docs_get`.
+  - Relative links inside `plugins/designer-mcp/skills/designer-mcp/references/skill-directory.md`
+    resolve from `references/`, so sibling skills need `../../<skill>/SKILL.md`
+    (whereas the shell `test -f ../design-system/SKILL.md` check resolves
+    from the skill root `designer-mcp/`).
+  - In local dev, `scripts/preview.mjs`'s `/skill` route checks
+    `SKILLS_ROOT`, `dirname(SKILLS_ROOT)`, and `dist/designer-mcp-skill.zip`
+    before falling back to a tarball.
 - `build-static.mjs` copies the image's zip into the Pages output and
   never packages one.
-- The skill installs remotely with the skills CLI
+- The skills install remotely with the skills CLI
   (`npx skills add whit3rabbit/designer-mcp-docker`). Discovery offers
-  exactly one skill: a shallower `SKILL.md` shadows any nested one, so
-  the eight bundled sub-skills ride along inside the parent directory.
+  four skills: a shallower `SKILL.md` shadows any nested one, so the
+  bundled sub-skills ride along inside their parents.
 - Do not publish deeper `SKILL.md` files expecting separate listings.
 - Remote installs serve the last-pushed commit on main. A skill change is
   not live for installers until it lands there.
-- `skills/designer-mcp/install/` holds MCP registration snippets for 23
-  coding agents, each with a Docker and a local-checkout variant. Route
-  "install the MCP server" asks to `<harness>.md` in that folder. The
-  files are plain Markdown: edit by hand.
+- `plugins/designer-mcp/skills/designer-mcp/install/` holds MCP registration
+  snippets for 24 coding agents, each with a Docker and a local-checkout
+  variant. Route "install the MCP server" asks to `<harness>.md` in that
+  folder. The files are plain Markdown: edit by hand.
 - The snippets are adapted from the whit3rabbit/agent-config repo's
   harness docs (`docs/agents/` there, not in this repo). Keep paths in
   sync when those docs change.
-- Keep the skill's tool names (`design_*`, `refero_*`) in sync with the
-  actual servers and its scope honest: no screens/flows layer exists. Route
+- Keep the skills' tool names (`design_*`, `refero_*`) in sync with the
+  actual servers and their scope honest: no screens/flows layer exists. Route
   those asks to the craft references. Never invent precedent.
-- The skill bundles eight sub-skills: `docx/`, `pptx/`, `xlsx/`, `pdf/`,
-  `pdf-reading/`, `frontend-design/`, `ui-sdk/`, and
-  `design-template-authoring/`.
-- Dependency manifests live at the parent skill level
-  (`requirements.txt`, `package.json` there), not per sub-skill. They
-  cover the sub-skills' core Node and Python needs.
-- Each sub-skill carries an Apache-2.0 `LICENSE.txt`. The five adapted
-  from upstream (`anthropics/skills`) have it copied verbatim,
+- The designer-mcp skill carries the plugin's skill directory
+  (`skills/designer-mcp/references/skill-directory.md`): the four skills,
+  their bundled sub-skills, trigger phrases, an installed-check, and the
+  offer-to-install commands. Keep it in sync when skills move or change
+  names. It routes and recommends, and never bundles the other skills.
+- Four skills carry the surface: `design-system` (methodology, capture,
+  craft references, and the bundled `design-template-authoring/`),
+  `designer-mcp` (catalog tools, MCP setup, install snippets),
+  `designer-documents` (bundled `docx/`, `pptx/`, `xlsx/`, `pdf/`,
+  `pdf-reading/`), and `designer-ui` (bundled `frontend-design/`,
+  `ui-sdk/`).
+- Dependency manifests live at the plugin root
+  (`plugins/designer-mcp/requirements.txt`, `package.json` there), not per
+  skill. They cover the sub-skills' core Node and Python needs, and the
+  zip carries them at the archive root.
+- Each bundled sub-skill carries an Apache-2.0 `LICENSE.txt`. The five
+  adapted from upstream (`anthropics/skills`) have it copied verbatim,
   `pdf-reading/` reuses that text, and `ui-sdk/` ships the ui-sdk
   package's own bundle. `design-template-authoring/` is original work
   with plain Node scripts.
 - The image serves those files but installs none of their dependencies. The
   consuming agent runs the scripts and installs what its task needs
   (check-then-install).
-- Anything under `skills/` is COPY'd into the image. Treat it as
-  distributable: no secrets, no scratch material. Scratch goes in
-  `skills/tmp/`, which is dockerignored.
+- Anything under `plugins/designer-mcp/` is COPY'd into the image. Treat it
+  as distributable: no secrets, no scratch material. Scratch goes in
+  `plugins/designer-mcp/skills/tmp/` (or the legacy repo-level
+  `skills/tmp/`), which are dockerignored.
 
 ## Rule 4: data-source compliance
 
@@ -175,11 +213,19 @@ reference.
 - Pushing main and a tag together once shipped a stale site (previous
   bake, old skill zip), so never treat the first pages run of a release
   as final. Confirm the post-publish rerun instead.
-- Order: push main, push the tag, wait for publish green, then confirm
-  pages re-ran green, then verify the live site serves the release.
+- Order:
+  1. Bump `version` in `package.json`, `.claude-plugin/marketplace.json`, and
+     all `plugins/designer-mcp/.{claude,zcode,codex,cursor}-plugin/plugin.json`
+     manifests, and record the release in `CHANGELOG.md`.
+  2. Run `npm test`, `npm run package:skill`, `claude plugin validate .`,
+     `claude plugin validate plugins/designer-mcp`, and
+     `npx --yes skills add . --list`.
+  3. Commit and push `main`, push the `vX.Y.Z` tag, wait for `publish.yml`
+     green, then confirm `pages.yml` re-ran green, then verify the live site
+     serves the release.
 - Verification checks `api/templates.json` for the expected systems and
   `/skill/designer-mcp-skill.zip` for the current generation (look for
-  `install/` and the newest sub-skill inside).
+  `skills/design-system/` and `skills/designer-mcp/` inside).
 - A tag can be re-pointed only before its image exists (the first v1.6.0
   run died before "Build and push" and its tag was moved). Never move a
   tag whose image already shipped. Publish a new version instead.

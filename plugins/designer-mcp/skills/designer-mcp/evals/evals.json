@@ -1,0 +1,63 @@
+{
+  "skills": [
+    "designer-mcp"
+  ],
+  "notes": "Guide-structured evaluations (query, files, expected_behavior). Run each query in a fresh session against the listed files and compare behavior. Record every run in results[] with the model name to build cross-model evidence (EV-02). The design-system skill owns the research methodology evals; this file covers catalog tool behavior and MCP server facts.",
+  "evals": [
+    {
+      "id": "diagnose-failing-refresh-tool",
+      "query": "The refero_refresh tool failed. Is the MCP server broken, and how do I get fresh styles?",
+      "tools": [],
+      "files": [
+        "SKILL.md",
+        "references/mcp-tools.md"
+      ],
+      "expected_behavior": [
+        "Knows refero_refresh and refero_similar require the live /api/ endpoint and fail by design here",
+        "Does NOT report the install as broken",
+        "Gives the working refresh command: node scripts/refero-public-fetch.js --limit 0 --force",
+        "Explains the fetcher reads only public pages and never requests /api/",
+        "Mentions the long REFERO_CACHE_TTL_MS is deliberate and refresh is done by re-running the fetcher"
+      ]
+    },
+    {
+      "id": "facets-before-promising-a-direction",
+      "query": "Which fonts and themes are actually in this design library? I want to make sure my brand font has precedent here.",
+      "files": [
+        "SKILL.md",
+        "references/mcp-tools.md"
+      ],
+      "expected_behavior": [
+        "Calls design_facets before promising a direction, to see what is actually present",
+        "Reports concrete font families and theme counts rather than generic claims",
+        "Notes that colorScheme can be 'mixed' and that upstream's theme filter silently drops mixed styles",
+        "Uses design_list with filters to browse, and design_search for ranked matches"
+      ]
+    },
+    {
+      "id": "design-system-template-start",
+      "query": "Start a new product landing page from a generic design system template, and give me a manifest of its tokens and rules.",
+      "files": [
+        "SKILL.md",
+        "references/mcp-tools.md"
+      ],
+      "expected_behavior": [
+        "Lists templates with design_template_list, then picks one that matches the brief and says why",
+        "Calls design_manifest_template with the chosen slug and saves the manifest beside the work",
+        "Builds against the manifest contract: no color outside roles and ramps, no raw px where a token exists",
+        "Copies starter files with design_template_file instead of inventing parallel markup",
+        "Does not invent tool names beyond design_template_list/get/file and design_manifest_template"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "eval_id": "diagnose-failing-refresh-tool",
+      "date": "2026-11-21",
+      "runner": "ZCode",
+      "model": "GLM-5.3-Flash",
+      "outcome": "evaluated on the pre-split parent skill",
+      "notes": "Fresh subagent session with no MCP tools registered. Reported refero_refresh and refero_similar as by-design failures behind the robots.txt-blocked API, never called the install broken, and gave node scripts/refero-public-fetch.js --limit 0 --force with the public-pages-only and never-/api/ rationale. Covered the TTL item by explaining the vendored package's 24-hour default against the baked long TTL, reproducing the stale-cache fallback before confirming offline reads. Cross-model record for EV-02. Recorded against the pre-split parent skill."
+    }
+  ]
+}

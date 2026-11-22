@@ -11,7 +11,7 @@
 Three surfaces over one cache:
 
 - **MCP server** (stdio): 7 upstream `refero_*` tools for agents
-- **Generic MCP server** (stdio): 20 source-neutral `design_*` tools across both sources
+- **Generic MCP server** (stdio): 26 source-neutral `design_*` tools across both sources
 - **Live gallery** (HTTP): design systems, AI components, the ReUI gallery, dashboard starters, and presets
 
 The upstream package [`fidgetcoding-refero-mcp`](https://github.com/fidgetcoding/refero-design-mcp)
@@ -26,38 +26,64 @@ makes zero outbound requests. Verified against a container with
 
 ## Install
 
-Two steps: install the skill, then tell it to install the MCP server.
+Two ways in, fastest first. The plugin brings all four skills, the
+dependency manifests, and the routing eval cases, and it registers the MCP
+server for you. The skills CLI brings the skills alone, and step 3
+registers the server when you installed that way.
 
-### 1. Install the skill
+### 1. Install the plugin (Claude Code and ZCode)
 
-No Docker needed. The repo ships one skill, so the skills CLI needs no
-skill name:
+This repo is its own marketplace. A plugin install is the complete one: all
+four skills, the dependency manifests, the routing eval cases, and the
+Docker `design_*` server registered automatically through the plugin's
+`.mcp.json`.
+
+On ZCode: open **Plugin Marketplace → Add → Add Plugin Marketplace**, paste
+`https://github.com/whit3rabbit/designer-mcp-docker` (or a local clone of
+this repo), then install **Designer MCP** from it.
+
+On Claude Code:
+
+```bash
+claude plugin marketplace add whit3rabbit/designer-mcp-docker
+claude plugin install designer-mcp@designer-mcp-docker
+```
+
+The marketplace command also takes a path, so a checkout can install itself
+before any release exists: `claude plugin marketplace add /path/to/this-repo`.
+
+### 2. Install the skills alone (Codex and every other harness)
+
+The skills CLI discovers the four skills and asks which to install:
 
 ```bash
 npx -y skills add whit3rabbit/designer-mcp-docker
 ```
 
 Run it inside a project for a project-local install, or add `-g` for
-user-level. The install carries the whole bundle: references, all eight
-sub-skills, the eval scenarios, and the MCP install snippets step 2 uses.
+user-level. Add `--all` to install the four skills everywhere without
+prompts, or `-s <skill>` for one, for example
+`-s designer-documents`. The install carries each skill's references,
+scripts, and eval suite, and the MCP install snippets step 3 uses. The
+plugin-root dependency manifests and routing eval cases stay in the repo:
+the sub-skills name every dependency inline with check-then-install
+guidance, so nothing is required upfront. Pin a release tag for repeatable
+installs (`npx -y skills add whit3rabbit/designer-mcp-docker@v1.8.0`), and
+run `skills update` later to move an installed copy to the latest push.
 
-Pin a release tag for repeatable installs
-(`npx -y skills add whit3rabbit/designer-mcp-docker@v1.5.4`), and run
-`skills update` later to move an installed copy to the latest push.
+### 3. Tell the skill to install the MCP server
 
-### 2. Tell the skill to install the MCP server
-
-The skill bundles copy-paste config snippets for 23 harnesses under
-`install/`, each with a Docker and a local-checkout variant. In the same
-session, say:
+Non-plugin installs register the server separately. The designer-mcp skill
+bundles copy-paste config snippets for 24 harnesses under `install/`, each
+with a Docker and a local-checkout variant. In the same session, say:
 
 > Install the designer MCP server for \<your agent\>
 
 The agent opens the matching `install/<harness>.md`, writes the config, and
-tells you where it registered. The three blocks below are the manual path
-for the most common harnesses.
+tells you where it registered. The blocks below are the manual path for the
+most common harnesses.
 
-### Manual setup: Claude Code, Codex, GitHub Copilot
+### Manual setup: Claude Code, Codex, ZCode, GitHub Copilot
 
 <details>
 <summary><strong>Claude Code</strong></summary>
@@ -122,6 +148,32 @@ Add to `~/.copilot/mcp-config.json`. Project scope is `<root>/.mcp.json`.
   }
 }
 ```
+
+</details>
+
+<details>
+<summary><strong>ZCode</strong></summary>
+
+Add to `~/.zcode/cli/config.json` under `mcp.servers`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "designer": {
+        "type": "stdio",
+        "command": "docker",
+        "args": ["run", "--rm", "-i", "--network", "none",
+          "ghcr.io/whit3rabbit/designer-mcp:latest",
+          "node", "scripts/mcp-server.mjs"]
+      }
+    }
+  }
+}
+```
+
+Merge the entry into an existing `mcp.servers` object. Do not replace the
+whole file, since it also holds skills and plugin state.
 
 </details>
 
@@ -319,6 +371,8 @@ one: it covers every source and works fully offline:
 | `design_preset_search` | search gradients, patterns and glass effects |
 | `design_preset_get` | one preset catalog with real CSS |
 
+Plus `design_template_*` (7 vendored design-system templates), `design_library_*` (install manifests), `design_asset_*` (local asset CDN & import map), `design_markdown_*` (DESIGN.md parse/render/validate), and `design_docs_*` (offline `@ui-sdk/*` docs) — 26 tools in total.
+
 ---
 
 ## Gallery
@@ -474,7 +528,7 @@ The `designer-mcp` image runs both surfaces over the same cache:
 | Surface | How to run | What it is |
 |---|---|---|
 | **Gallery** | `docker compose up -d gallery` | HTTP preview on `127.0.0.1:8787`: thumbnails, colour swatches, type scales, DESIGN.md |
-| **MCP** | `docker compose run --rm design` | stdio JSON-RPC server, 20 `design_*` tools over both sources |
+| **MCP** | `docker compose run --rm design` | stdio JSON-RPC server, 26 `design_*` tools over both sources |
 | **MCP (upstream)** | `docker compose run --rm mcp` | stdio JSON-RPC server, 7 `refero_*` tools, Refero-only |
 | **Fetch** | `docker compose run --rm fetch` | populates the cache from Refero's public pages |
 | **OpenDesign** | `docker compose run --rm opendesign` | imports the OpenDesign design-system packages |
@@ -556,7 +610,7 @@ REFERO_CACHE_DIR="$HOME/.design-cache" docker compose up -d gallery
 curl -s http://127.0.0.1:8787/healthz
 # {"ok":true,"styles":1342,"updatedAt":1794274864435}
 
-npm test        # 88 checks with every layer cached
+npm test        # end-to-end checks across all cached layers and servers
 ```
 
 ### Routes
@@ -653,9 +707,9 @@ GALLERY_PORT=8788 docker compose up -d gallery
 
 ### Registering with an agent
 
-See [Install](#install) at the top of this README. Step 2 has the skill
+See [Install](#install) at the top of this README. Step 3 has the skill
 write the config for you, and the manual blocks cover Claude Code, Codex,
-and GitHub Copilot.
+GitHub Copilot, and ZCode.
 
 The published image needs no build step and no cache mount. Swap
 `node scripts/mcp-server.mjs` for `node scripts/mcp-entry.mjs` to get the
@@ -706,24 +760,33 @@ docker login ghcr.io -u <owner> --password-stdin < <(gh auth token)
 
 ---
 
-## The skill
+## The plugin
 
-`skills/designer-mcp/` is a research-first design skill: methodology, MCP
-instructions, and 13 craft reference files (typography, color, motion, icons,
-craft details, copywriting, anti-AI-slop, visual workflow, example workflow).
+`plugins/designer-mcp/` is a marketplace plugin with four skills. Two carry
+the core surface: `design-system` is the research-first design methodology
+with 11 craft reference files (typography, color, motion, icons, craft
+details, copywriting, anti-AI-slop, visual workflow, example workflow) and
+bundles the `design-template-authoring` sub-skill, and `designer-mcp` owns
+the offline catalog: MCP setup, tool routing, and MCP install snippets for
+24 harnesses. `designer-documents` bundles the document toolchains (docx,
+pptx, xlsx, pdf, pdf-reading), and `designer-ui` bundles the craft and SDK
+layers (frontend-design, ui-sdk). The repo root carries the marketplace
+manifests: `.claude-plugin/marketplace.json` (Claude Code and ZCode),
+`.agents/plugins/marketplace.json` (Codex), and `.cursor-plugin/marketplace.json`
+(Cursor).
 
-It is adapted from Refero's MIT-licensed
+The methodology is adapted from Refero's MIT-licensed
 [`refero_skill`](https://github.com/referodesign/refero_skill), with two
 changes that matter for this deployment:
 
 - **Tool names.** This server exposes `refero_search` / `refero_get`, not the
   official `refero_search_styles` / `refero_get_style`.
 - **Honest scope.** There is **no screens or flows layer** here: those need
-  the paid API. The skill routes those questions to the craft references
-  instead of inventing precedent, and documents which tools fail and why.
+  the paid API. The skills route those questions to the craft references
+  instead of inventing precedent, and document which tools fail and why.
 
-The skill ships **inside the Docker image**, is served for download at
-`/skill` from a running gallery, and is published with the static site:
+The skills ship **inside the Docker image**, are served for download at
+`/skill` from a running gallery, and are published with the static site:
 
 ```bash
 # from the published Pages site (no Docker needed)
@@ -739,13 +802,14 @@ Build the distributable zip from a checkout:
 node scripts/package-skill.mjs      # → dist/designer-mcp-skill.zip
 ```
 
-Install it into the skills directory your agent reads (the zip keeps the
-`skills/designer-mcp/` layout, so unzip to scratch and move the folder):
+The zip carries `skills/<four skill directories, with the bundled
+sub-skills inside>`, the plugin-root `evals/` routing suite, and the
+dependency manifests at the zip root. Unzip it
+straight into the skills directory your agent reads:
 
 ```bash
 DEST=~/.claude/skills    # see the table below for other agents
-unzip designer-mcp-skill.zip -d /tmp/skill-src
-mkdir -p "$DEST" && mv /tmp/skill-src/skills/designer-mcp "$DEST/"
+mkdir -p "$DEST" && unzip designer-mcp-skill.zip -d "$DEST"
 ```
 
 | Agent | User-level skills directory |
@@ -755,11 +819,13 @@ mkdir -p "$DEST" && mv /tmp/skill-src/skills/designer-mcp "$DEST/"
 | OpenCode | register the extracted folder under `"skills"` in `opencode.json` |
 | Pi | `~/.pi/skills/` or `~/.agents/skills/` |
 | Hermes | `~/.hermes/skills/` |
+| ZCode | `~/.zcode/skills/` |
 
-A checkout can install itself with the same CLI:
+A checkout can install itself with the same CLI, which offers the four
+skills:
 
 ```bash
-npx -y skills add ./skills/designer-mcp
+npx -y skills add .
 ```
 
 ### Skill quality
@@ -768,12 +834,11 @@ The bundle is audited with
 [`rabbit-skills-audit`](https://github.com/whit3rabbit/rabbit-skills). The
 latest audit (2026-11-20) ends **PASS WITH WARNINGS**: 0 errors and two
 accepted vendor constraints in the vendored ui-sdk docs. The cross-model
-eval evidence it tracked is now recorded in
-`skills/designer-mcp/evals/evals.json`.
+eval evidence it tracked is recorded in the two skills' `evals/evals.json`
+files.
 
 The one error the audit found (a SKILL.md over the 500-line limit) was
-fixed by moving detail into `references/catalog-tools.md`,
-`references/mcp-tools.md`, and `references/research-playbook.md`, and the
+fixed by moving detail into the catalog and tool references, and the
 one broken link it surfaced in the vendored ui-sdk docs is fixed too.
 
 Remaining, all deliberate:
@@ -786,11 +851,27 @@ Remaining, all deliberate:
   phrases are acceptable, and `designer-mcp` matches the container image and
   MCP server names.
 
+The plugin and marketplace also pass
+[`rabbit-plugin-audit`](https://github.com/whit3rabbit/rabbit-skills)
+(2026-11-22, PASS with zero findings, clean under `--strict`). Skill
+descriptions are tightened to about 148 always-on tokens for the whole
+plugin. The fuller routing detail lives in the skill bodies and the
+skill-directory reference where it costs nothing at trigger time. Evals run
+in two layers: plugin-root `evals/` holds four cross-skill routing cases
+with prompt and grader rubrics, and each core skill keeps its
+guide-structured `evals/evals.json` suite. The 2026-11-22 skills re-audit
+ends 0 errors on all 12 skills.
+
+Audit the marketplace from the repo root,
+not the `marketplace.json` path, so plugin sources resolve correctly.
+
 Re-run the audit with:
 
 ```bash
 python3 <path-to>/rabbit-skills-audit/scripts/audit_static.py \
-  skills/designer-mcp --format text
+  plugins/designer-mcp/skills/design-system --format text
+python3 <path-to>/rabbit-skills-audit/scripts/audit_static.py \
+  plugins/designer-mcp/skills/designer-mcp --format text
 ```
 
 ---
@@ -812,11 +893,22 @@ designer-mcp-docker/
 │   ├── build-static.mjs        # build the self-contained static site
 │   ├── static-serve.mjs        # serve a static build over HTTP
 │   ├── package-skill.mjs       # build the skill zip
-│   └── selftest.mjs            # 88 checks across all surfaces
-├── skills/designer-mcp/
-│   ├── SKILL.md            # agent skill
-│   ├── references/         # 13 craft reference files
-│   └── agents/openai.yaml
+│   └── selftest.mjs            # end-to-end checks across all surfaces
+├── .claude-plugin/marketplace.json   # Claude Code & ZCode marketplace
+├── .agents/plugins/marketplace.json  # Codex marketplace (+ Antigravity workspace plugin)
+├── .cursor-plugin/marketplace.json   # Cursor marketplace
+├── plugins/designer-mcp/       # the marketplace plugin
+│   ├── .zcode-plugin/plugin.json
+│   ├── .claude-plugin/plugin.json
+│   ├── .codex-plugin/plugin.json
+│   ├── .cursor-plugin/plugin.json
+│   ├── .mcp.json               # auto-registered Docker MCP server
+│   ├── requirements.txt, package.json
+│   └── skills/                 # four skills
+│       ├── design-system/      # methodology, capture workflow, craft refs
+│       ├── designer-mcp/       # catalog tools, MCP setup, install snippets
+│       ├── designer-documents/ # bundles docx/ pptx/ xlsx/ pdf/ pdf-reading/
+│       └── designer-ui/        # bundles frontend-design/ ui-sdk/
 ├── docs/
 │   ├── DATA-SOURCE.md      # what's permitted and why
 │   └── ARCHITECTURE.md     # how the pieces fit

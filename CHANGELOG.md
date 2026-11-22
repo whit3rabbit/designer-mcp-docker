@@ -1,5 +1,50 @@
 # Changelog
 
+## v1.8.0 (2026-11-22)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.8.0`
+
+- Plugin: the repo is now its own marketplace. `plugins/designer-mcp/` holds
+  four sibling skills, and `.claude-plugin/marketplace.json` at the repo
+  root lists the plugin for both ZCode and Claude Code. The plugin manifests
+  (`.zcode-plugin/`, `.claude-plugin/`) declare the skills and register the
+  Docker `design_*` server through `.mcp.json` on install.
+- Split: the merged parent skill became four skills. `design-system` carries
+  the research-first methodology, the DESIGN.md capture workflow, the craft
+  references, the capture scripts, and the evals, and bundles the
+  `design-template-authoring` sub-skill. `designer-mcp` carries catalog tool
+  routing, MCP setup, the 24-harness install snippets (zcode.md is new), and
+  the tool evals. `designer-documents` bundles the document toolchains (docx,
+  pptx, xlsx, pdf, pdf-reading), and `designer-ui` bundles the craft and SDK
+  layers (frontend-design, ui-sdk).
+- Skill: the designer-mcp skill now doubles as the plugin's skill
+  concierge. `references/skill-directory.md` catalogs the four skills and
+  their eight bundled sub-skills with trigger phrases, an installed-check
+  (path test relative to the skill directory), and offer-to-install
+  commands (marketplace, skills CLI with `--skill`, checkout, zip). It
+  routes and recommends by name without bundling the others, and it refuses
+  to invent skills outside the plugin.
+- Audit: rabbit-plugin-audit ends a full PASS with zero findings on the
+  plugin and a clean marketplace report. Descriptions are tightened to
+  about 148 always-on tokens for the whole plugin, both manifests declare
+  the MIT license, and a plugin-root `evals/` suite joins the per-skill
+  evals: four cross-skill routing cases (design capture, document
+  deliverable, concierge install offer, library lookup), each with a
+  prompt and a grader rubric, shipped in the zip beside the skills.
+- Zip: `designer-mcp-skill.zip` now contains `skills/<four skills with their
+  bundled sub-skills>` plus the dependency manifests at the archive root, so
+  one unzip into a skills directory lands everything. `package-skill.mjs`
+  starts from a clean archive so stale entries from a previous layout cannot
+  survive, and its required-entry checks cover all four skills and every
+  licensed sub-skill.
+- Paths: the Dockerfile copies `plugins/designer-mcp/` instead of `skills/`,
+  and preview.mjs, build-static.mjs, and `scripts/lib/ui-sdk-docs.mjs`
+  resolve the skills root from `SKILLS_ROOT` (the legacy `SKILL_DIR` is
+  still honored). `/skill/SKILL.md` serves the design-system skill.
+- Docs: README, AGENTS.md, and the plugin README describe the marketplace
+  install paths (ZCode Plugin Marketplace, `claude plugin marketplace add`,
+  skills CLI, manual zip) and the new layout.
+
 ## v1.7.0 (2026-11-22)
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v1.7.0`

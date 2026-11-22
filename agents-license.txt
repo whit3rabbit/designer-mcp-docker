@@ -11,11 +11,12 @@ Third-party components bundled in this project
 2. Refero design skill craft references
    Upstream: https://github.com/referodesign/refero_skill
    License: MIT — Copyright (c) 2026 Refero
-   Files: skills/designer-mcp/references/{typography,color,motion,icons,
-          craft-details,copywriting,anti-ai-slop,visual-workflow,example-workflow}.md
+   Files: plugins/designer-mcp/skills/design-system/references/{typography,color,
+          motion,icons,craft-details,copywriting,anti-ai-slop,visual-workflow,
+          example-workflow}.md
    Adapted: the MCP tool names and the screens/flows scope were changed to
-   match this deployment. See skills/designer-mcp/references/mcp-tools.md
-   and the Provenance section of skills/designer-mcp/SKILL.md.
+   match this deployment. See plugins/designer-mcp/skills/designer-mcp/references/mcp-tools.md
+   and the Provenance section of plugins/designer-mcp/skills/design-system/SKILL.md.
 
 3. nexu-io/open-design (design-system packages)
    Upstream: https://github.com/nexu-io/open-design

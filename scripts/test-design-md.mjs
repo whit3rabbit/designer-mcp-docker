@@ -426,7 +426,7 @@ check(mismatch.coverage.fail === 1 && !mismatch.conforms, "a mismatch takes prec
 check(validateDesignObservations(stitch, partial, ["colors.primary"]).conforms, "a fully checked required scope conforms");
 
 const pkg = await mkdtemp(join(tmpdir(), "designer-package-"));
-const builder = fileURLToPath(new URL("../skills/designer-mcp/scripts/build-design-system.mjs", import.meta.url));
+const builder = fileURLToPath(new URL("../plugins/designer-mcp/skills/design-system/scripts/build-design-system.mjs", import.meta.url));
 const runBuilder = (...args) => spawnSync(process.execPath, [builder, pkg, ...args], { encoding: "utf8" });
 try {
   await mkdir(join(pkg, "templates", "landing"), { recursive: true });

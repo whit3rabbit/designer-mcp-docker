@@ -973,6 +973,21 @@ try {
     } else {
       console.log("  (no Claude Design packages cached — skipping the kit checks)");
     }
+
+    // Offline @ui-sdk/* documentation layer (moved to skills/designer-ui/ui-sdk).
+    const docsSearch = await call("design_docs_search", { query: "select", limit: 5 });
+    const docsIndex = data(docsSearch);
+    if (docsIndex.total > 0 && docsIndex.docs?.length > 0) {
+      ok(`design_docs_search returns ${docsIndex.total} matching ui-sdk docs`);
+      const firstDoc = docsIndex.docs[0].path;
+      const docRead = await call("design_docs_get", { path: firstDoc });
+      const docData = data(docRead);
+      docData?.path === firstDoc && (docData.content || "").length > 0
+        ? ok(`design_docs_get reads '${firstDoc}' (${docData.bytes} bytes)`)
+        : bad(`design_docs_get failed to read '${firstDoc}'`);
+    } else {
+      bad("design_docs_search returned 0 docs — check ui-sdk path in scripts/lib/ui-sdk-docs.mjs");
+    }
   }
 } catch (e) {
   bad(`generic MCP server failed: ${e.message}`);

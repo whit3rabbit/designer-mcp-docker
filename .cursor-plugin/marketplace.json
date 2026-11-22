@@ -1,0 +1,16 @@
+{
+  "name": "designer-mcp-docker",
+  "owner": {
+    "name": "whit3rabbit"
+  },
+  "metadata": {
+    "description": "Offline design catalog, research-first design methodology, and document toolchains as a multi-skill plugin"
+  },
+  "plugins": [
+    {
+      "name": "designer-mcp",
+      "source": "plugins/designer-mcp",
+      "description": "Research-first design methodology and offline design catalog for coding agents: capture DESIGN.md, research references, verify builds, plus document toolchains for docx, pptx, xlsx, pdf, and the offline design_catalog MCP tools."
+    }
+  ]
+}

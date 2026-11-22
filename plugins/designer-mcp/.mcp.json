@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "designer": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--network",
+        "none",
+        "ghcr.io/whit3rabbit/designer-mcp:latest",
+        "node",
+        "scripts/mcp-server.mjs"
+      ]
+    }
+  }
+}

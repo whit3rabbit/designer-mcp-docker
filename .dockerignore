@@ -64,5 +64,5 @@ $RECYCLE.BIN/
 
 # Scratch and test artifacts, never needed at runtime
 skills/tmp/
-skills/designer-mcp/tmp/
+plugins/designer-mcp/skills/tmp/
 CHANGELOG.md
