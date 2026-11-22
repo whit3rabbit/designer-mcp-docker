@@ -8,7 +8,7 @@ license: Apache-2.0. LICENSE.txt has complete terms. Rewritten to be agent/harne
 
 ## Overview
 
-This guide covers essential PDF reading operations using Python libraries and command-line tools. For advanced features (pypdfium2 rendering, pdfplumber table settings, OCR fallback, encrypted/corrupted PDF handling), see REFERENCE.md.
+This guide covers essential PDF reading operations using Python libraries and command-line tools. For advanced features (pypdfium2 rendering, pdfplumber table settings, OCR fallback, encrypted/corrupted PDF handling), see [REFERENCE.md](REFERENCE.md).
 
 This skill ships inside the `designer-mcp` skill (see [../SKILL.md](../SKILL.md)): read the user's reference material (brand guidelines, briefs, competitor decks) with it, and rasterize pages for the same render-and-inspect loop that designer-mcp's visual QA uses. This skill provides the reading mechanics; designer-mcp provides the design decisions.
 
@@ -317,9 +317,12 @@ even when the font is technically embedded.
 | Read form fields | pypdf | `reader.get_fields()` |
 | OCR scanned PDFs | pytesseract | Convert to image first |
 
+## Dependencies
+
+`pypdf`, `pdfplumber` (pip, the snippets above) · `pypdfium2`, `pytesseract` (pip, optional: rendering and OCR) · `pdfinfo`, `pdftotext`, `pdfimages`, `pdfdetach`, `pdftoppm` (Poppler CLI). Check what's available before relying on any of them (a failed import or `command -v` check is enough) and install only what's missing.
+
 ## PDF Form Filling, Creation, Merging, Splitting, and Other Operations
 
 This skill covers **reading and inspection** only. For filling forms,
 creating, merging, splitting, rotating, watermarking, encrypting, or
-other PDF manipulation tasks, use the `pdf` skill (from your skills
-directory).
+other PDF manipulation tasks, use the [pdf skill](../pdf/SKILL.md).

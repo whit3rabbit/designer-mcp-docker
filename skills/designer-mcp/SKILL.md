@@ -35,6 +35,11 @@ The research library has two layers, plus a component layer:
 3. **Components and presets** — 109 AI components with complete, typed TSX
    source (250 variants), and 159 background gradients/patterns and
    liquid-glass effects with real CSS.
+4. **Library catalog**: install manifests for the common frontend stack
+   (react, tailwind, shadcn, radix-ui, lucide, heroicons, motion, and the
+   google-fonts and fontsource sources). Each entry carries install steps and
+   the setup files with their contents, so "install shadcn" gets real files,
+   not from memory.
 
 Each design system also ships a **Claude Design package** — the files Claude
 itself uses — and a rendered preview. `design_claude_package` reads them, so
@@ -188,7 +193,7 @@ install everything for every job.
 |---|---|---|
 | pptx | `pptxgenjs`; `scripts/apply_theme.js` injects the theme | `python-pptx`, `Pillow`, `defusedxml`, `lxml`; LibreOffice via `scripts/office/soffice.py` |
 | docx | `docx` (docx-js) | `lxml`, `defusedxml`, `validators`; LibreOffice via `scripts/office/soffice.py` |
-| xlsx | none | `openpyxl`, `pandas`; `scripts/recalc.py` drives LibreOffice |
+| xlsx | none | `openpyxl`, `pandas`, `defusedxml`, `lxml`; `scripts/recalc.py` drives LibreOffice |
 | pdf | none required (`pdf-lib` is the named JS alternative) | `pypdf`, `pdfplumber`, `pdf2image`, `Pillow` |
 | pdf-reading | none | `pypdf`, `pdfplumber` (optional: `pypdfium2`, `pytesseract`) |
 | ui-sdk | none | none (offline docs via `design_docs_search` / `design_docs_get`) |
@@ -253,9 +258,18 @@ and templates are seven complete starting systems. Route by need:
 - A slide deck that must land on-brand: `design_template_get` for the
   slide-first template (loam) and its deck starter, then build the .pptx
   with the bundled `pptx/SKILL.md` mechanics.
+- Installing a library, font, or CDN path the user named:
+  `design_library_search`, then `design_library_get` for the install steps
+  and the setup files with their contents. Respect what the project already
+  has, and chain into `design_component_search` for the components on top.
+- A prototype that must make zero external requests, or "can the imports
+  load from the gallery?": `design_asset_importmap` for the offline module
+  CDN map (react, motion, gsap, lucide, phosphor, radix-ui, and the shadcn
+  components), `design_asset_list` for what else the asset server holds.
 
 When to use each layer, the workflows, and the manifest rules live in
-[references/catalog-tools.md](references/catalog-tools.md).
+[references/catalog-tools.md](references/catalog-tools.md). Library and font
+installs are covered in [references/library-setup.md](references/library-setup.md).
 
 ### For Product Patterns and Journeys
 

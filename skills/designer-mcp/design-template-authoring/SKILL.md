@@ -56,8 +56,9 @@ research workflow when the direction needs research beyond one source.
 If the user asks to **clone a named design**, honor its identity but do not
 copy its name, logo, or copyrighted photography into the template. Pick an
 original name (earth, material, or texture words work well for fresh
-palettes), note the photography licensing, and scrub the source's name from
-every authored file before registering.
+palettes), source a copyright-free replacement for any media instead (see
+Assets in the fill step), and scrub the source's name from every authored
+file before registering.
 
 ## 2. Scaffold the skeleton
 
@@ -130,6 +131,25 @@ Work in this order. Each step is a visible check against the reference.
 
    `thumbnail.webp` is committed but stays out of `files[]` (see anatomy).
 
+**Assets: images and fonts.** Both ship inside the template folder, so
+license and size are part of authoring, not cleanup.
+
+- **Images are copyright-free**: pull the reference photograph and any
+  other media from Unsplash or another free-license stock service,
+  generate them with a text-to-image tool when one is available, or use
+  files the user supplies. Never copy the cloned design's photography
+  (see the capture step).
+- **Images arrive compressed**: downscale before committing (Pillow or
+  sharp, the way the pptx skill preps deck photos). The reference
+  photograph lands at the 1280px class, and the thumbnail renders at
+  WebP quality 90 per step 6. A starter that shows the photo records
+  `credit` and `credit-href`, and the readme's Files section names the
+  source and license.
+- **Fonts are free-license**: system stacks are the default and need no
+  import. When the reference demands a distinctive face, pick a Google
+  Fonts or SIL OFL family. Import it with a Google Fonts URL in
+  styles.css, which the frontend build rewrites to local fonts.
+
 ## 4. Verify
 
 ```bash
@@ -144,6 +164,8 @@ unfilled markers, and (with `--forbid`) no occurrence of the reference's name.
 Fix everything it flags. Do not register a failing template.
 
 ## 5. Register and prove it
+
+Paths in this section are rooted at the designer-mcp-docker checkout, not this skill directory.
 
 1. Append the system entry to `data/design-systems/manifest.json`: copy the
    sibling entry shape, list **every file in the folder** with `binary: true`
@@ -173,8 +195,13 @@ deliverable is a build artifact, and build artifacts stay out of `data/`.
 
 ## Rules
 
-- The gallery must stay offline: no webfont imports, no CDN links, no remote
-  URLs in any authored file. System font stacks need no import.
+- The gallery must stay offline: no CDN links, no remote URLs in any authored
+  file. System font stacks need no import, and the frontend build rewrites a
+  Google Fonts import in styles.css to local fonts.
+- Bundle copyright-free media only: free-license stock, generated imagery,
+  or user-supplied files. Note the source in the readme's Files section.
+- Bundled images arrive compressed: downscaled to serving size before
+  commit, never pasted at camera resolution.
 - Keep the deliberate extremes that make a system itself (zero radius, mono
   scheme, one dark panel per page). Do not soften them toward generic.
 - Runtime JS is vendored, never edited. Registry tokens come from

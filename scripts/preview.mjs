@@ -53,6 +53,8 @@ import {
   readComponent,
   readPresetsIndex,
   readPresetCatalog,
+  readLibrariesIndex,
+  readLibraryEntry,
   readDesignSystemsIndex,
   readDesignSystem,
   readClaudePackage,
@@ -549,10 +551,32 @@ const server = createServer(async (req, res) => {
 
     if (p === "/" || p === "/index.html") return sendHtml(res, galleryHtml());
 
-    if (p === "/assets" || p === "/assets/") return sendHtml(res, assetsHtml(frontend.publicManifest));
+    if (p === "/assets" || p === "/assets/") {
+      const proto = String(req.headers["x-forwarded-proto"] || "http").split(",")[0].trim();
+      const origin = `${proto}://${req.headers.host || "127.0.0.1:8787"}`;
+      return sendHtml(res, assetsHtml(frontend.publicManifest, frontend.importMap(), origin));
+    }
     if (p === "/assets/manifest.json") {
       return frontend.publicManifest ? json(res, 200, frontend.publicManifest) :
         json(res, 404, { error: "frontend assets have not been built" });
+    }
+    // The offline CDN: bare specifiers resolved against this origin, so any
+    // page anywhere can import react/motion/radix/shadcn from the gallery
+    // with zero outbound network. CORS comes from the asset handler.
+    if (p === "/assets/importmap.json") {
+      const map = frontend.importMap();
+      if (!map) return json(res, 404, { error: "frontend assets have not been built" });
+      const proto = String(req.headers["x-forwarded-proto"] || "http").split(",")[0].trim();
+      const host = req.headers.host || "127.0.0.1:8787";
+      const origin = `${proto}://${host}`;
+      return json(res, 200, {
+        version: map.version,
+        origin,
+        base: `${origin}${map.base}`,
+        imports: Object.fromEntries(
+          Object.entries(map.imports).map(([specifier, path]) => [specifier, `${origin}${path}`]),
+        ),
+      });
     }
     if (p.startsWith("/assets/")) {
       if (await frontend.asset(req, res, p)) return;
@@ -793,6 +817,21 @@ const server = createServer(async (req, res) => {
       const catalog = await readPresetCatalog(kind);
       if (!catalog) return json(res, 404, { error: "preset catalog not in cache", kind });
       return json(res, 200, catalog);
+    }
+
+    // --------------------------------------------------- library catalog
+    // JSON only: the library layer is for agents picking install manifests,
+    // there is no gallery page. Serves from the cache like everything else.
+    if (p === "/api/libraries") {
+      return json(res, 200, await readLibrariesIndex());
+    }
+
+    const mLibraryApi = p.match(/^\/api\/library\/([^/]+)$/);
+    if (mLibraryApi) {
+      const id = decodeURIComponent(mLibraryApi[1]);
+      const entry = await readLibraryEntry(id);
+      if (!entry) return json(res, 404, { error: "library not in catalog", id });
+      return json(res, 200, entry);
     }
 
     // --------------------------------------------- design-system templates

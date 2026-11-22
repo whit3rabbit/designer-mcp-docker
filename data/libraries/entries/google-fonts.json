@@ -1,0 +1,49 @@
+{
+  "id": "google-fonts",
+  "name": "Google Fonts",
+  "category": "fonts",
+  "summary": "Hosted webfont service: the standard way to pull a typeface into a user project with two link tags, no npm dependency.",
+  "requires": [],
+  "keywords": ["google fonts", "fonts", "webfont", "typeface", "link tag", "preconnect", "display swap"],
+  "license": "Fonts carry their own licenses, mostly OFL; the service is free to use",
+  "install": {
+    "cli": [],
+    "npm": [],
+    "cdn": [
+      "https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap",
+      "https://fonts.gstatic.com"
+    ],
+    "steps": [
+      "Put two preconnect hints before the stylesheet link: one for fonts.googleapis.com, one crossorigin for fonts.gstatic.com (that is where the woff2 bytes live).",
+      "Then the css2 stylesheet link with the family and weight axis you need, and display=swap so text paints on a fallback rather than hiding.",
+      "Wire the family into Tailwind v4 with an @theme block: --font-sans: \"Inter\", ui-sans-serif, system-ui, sans-serif.",
+      "Self-hosted alternative with no runtime request to Google: the fontsource entry."
+    ]
+  },
+  "families": [
+    { "name": "Inter", "url": "https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap", "role": "neutral sans, the default UI face in most shadcn setups" },
+    { "name": "Manrope", "url": "https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap", "role": "geometric sans, pairs with Inter for product UI" },
+    { "name": "Space Grotesk", "url": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap", "role": "display sans with character for headings" },
+    { "name": "Playfair Display", "url": "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..900&display=swap", "role": "high-contrast serif for editorial headings" },
+    { "name": "Fraunces", "url": "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..900&display=swap", "role": "soft serif with optical size axis, warm editorial" },
+    { "name": "Source Serif 4", "url": "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,200..900&display=swap", "role": "workhorse serif for long-form body text" },
+    { "name": "IBM Plex Sans", "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap", "role": "engineered sans with a full superfamily" },
+    { "name": "JetBrains Mono", "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..800&display=swap", "role": "code face for snippets and terminals" }
+  ],
+  "files": [
+    {
+      "path": "index.html head snippet",
+      "role": "Preconnect plus stylesheet link, the complete Google Fonts wiring",
+      "language": "html",
+      "content": "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin />\n<link\n  href=\"https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap\"\n  rel=\"stylesheet\"\n/>\n"
+    },
+    {
+      "path": "src/app.css theme block",
+      "role": "Point Tailwind v4's font-sans at the loaded family",
+      "language": "css",
+      "content": "@theme {\n  --font-sans: \"Inter\", ui-sans-serif, system-ui, sans-serif;\n}\n"
+    }
+  ],
+  "notes": "Scope of the offline rule: this repo's gallery, templates, and authored files never reference Google Fonts (the design-template-authoring skill bans it and the frontend build rewrites such imports to local vendor copies). The user's project is different: when they want Google Fonts, this is the correct wiring. Typography pairing guidance lives in references/typography.md. Variable-axis URLs use the axis@range syntax shown here; non-variable families list discrete weights.",
+  "related": []
+}

@@ -29,6 +29,10 @@ include the server name in the displayed tool name.
   - [`design_component_code`](#design_component_code)
   - [`design_preset_search`](#design_preset_search)
   - [`design_preset_get`](#design_preset_get)
+  - [`design_library_search`](#design_library_search)
+  - [`design_library_get`](#design_library_get)
+  - [`design_asset_list`](#design_asset_list)
+  - [`design_asset_importmap`](#design_asset_importmap)
   - [`design_markdown_parse`](#design_markdown_parse)
   - [`design_manifest_from`](#design_manifest_from)
   - [`design_markdown_render`](#design_markdown_render)
@@ -425,6 +429,66 @@ One preset catalog in full. Each preset has `id`, `name`, `category`,
 | Argument | Type | Notes |
 |---|---|---|
 | `kind` | string | **required** — e.g. `patterns` |
+
+### `design_library_search`
+
+Search the **library catalog**, the vendored install manifests for the
+common frontend stack: react, tailwind, shadcn, radix-ui, lucide, heroicons,
+motion, and the google-fonts and fontsource sources. Categories: framework,
+css, components, primitives, icons, animation, fonts.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `query` | string | optional: matches name, id, category, summary, keywords |
+| `category` | string | optional: e.g. `components`, `fonts`, `icons` |
+| `limit` | number | default 20, max 50 |
+
+### `design_library_get`
+
+One library entry in full. This answers "what files would I need to install
+X": `install.cli` / `install.npm` / `install.cdn` plus ordered steps, and
+`files[]` with complete setup-file contents (`components.json`, the `cn`
+helper, the neutral theme CSS, font wiring). `requires` names the entries to
+install first.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `id` | string | **required**, e.g. `shadcn`, `tailwind` |
+
+Workflow and worked examples live in
+[library-setup.md](library-setup.md).
+
+### `design_asset_list`
+
+Inventory the **built frontend assets** the gallery serves as a local CDN.
+Returns the content-hash `version`, per-group `groups` counts (previews,
+starter, tailwind, templates, thumbnails, fonts), the starter page and zip,
+the vendored packages with licenses, and whether the import map is
+published. Reads `DESIGN_FRONTEND_DIR` (`/app/frontend-cache` in the image),
+not the style cache.
+
+| Argument | Type | Notes |
+|---|---|---|
+| (none) | | |
+
+### `design_asset_importmap`
+
+The **offline module CDN map**: bare specifiers resolved to
+content-addressed module URLs. Specifiers: `react`, `react-dom`,
+`react-dom/client`, `react/jsx-runtime`, `motion`, `motion/react`, `gsap`,
+`@gsap/react`, `lucide-react`, `@phosphor-icons/react`, `radix-ui`, `cn`,
+`class-variance-authority`, and `shadcn/*`. Embed the returned map as
+`<script type="importmap">` and those imports load from the running gallery
+instead of a public CDN, with zero outbound network. Modules carry CORS `*`.
+
+| Argument | Type | Notes |
+|---|---|---|
+| `origin` | string | optional: compose absolute URLs against it, e.g. `http://127.0.0.1:8787` |
+
+Without `origin` the URLs stay origin-relative under `base` (composed
+against `DESIGN_REMOTE_URL` when that is set). The same map is served at
+`/assets/importmap.json` with URLs already absolute against the serving
+origin.
 
 ### `design_template_list`
 

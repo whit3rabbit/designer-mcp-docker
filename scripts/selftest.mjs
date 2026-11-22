@@ -106,6 +106,39 @@ if (!existsSync(catalogPath)) {
   }
 }
 
+// The vendored library catalog layer (hand-authored in data/libraries/).
+const libsIndexPath = join(CACHE_DIR, "libraries.json");
+if (!existsSync(libsIndexPath)) {
+  bad(`no libraries index at ${libsIndexPath} — run: npm run bake`);
+} else {
+  const libs = JSON.parse(readFileSync(libsIndexPath, "utf8"));
+  libs.total >= 9 && (libs.libraries?.length || 0) === libs.total
+    ? ok(`libraries index has ${libs.total} entries`)
+    : bad(`libraries index has ${libs.total} entries, expected 9+`);
+  let libsOk = true;
+  for (const entry of libs.libraries || []) {
+    let record;
+    try {
+      record = JSON.parse(readFileSync(join(CACHE_DIR, "libraries", `${entry.id}.json`), "utf8"));
+    } catch {
+      bad(`library entry file missing for ${entry.id}`);
+      libsOk = false;
+      continue;
+    }
+    if (!record.id || !record.name || !record.category || !record.install || !record.files?.length) {
+      bad(`library ${entry.id} is missing required fields (id/name/category/install/files)`);
+      libsOk = false;
+    }
+    for (const file of record.files || []) {
+      if (!file.path || !file.role || typeof file.content !== "string" || !file.content.trim()) {
+        bad(`library ${entry.id} file '${file.path}' is missing path, role, or content`);
+        libsOk = false;
+      }
+    }
+  }
+  libsOk && ok("all library entries carry install steps and non-empty setup files");
+}
+
 // ------------------------------------------------------- 2. renderer
 section("2. DESIGN.md renderer");
 try {
@@ -196,6 +229,27 @@ try {
 
   const html = await fetch(`http://127.0.0.1:${PORT}/`).then((r) => r.text());
   html.includes("Design Systems") ? ok("gallery HTML served") : bad("gallery HTML wrong");
+
+  // ------------------------------------- asset CDN: import map and revalidation
+  const importmap = await fetch(`http://127.0.0.1:${PORT}/assets/importmap.json`).then((r) => r.json());
+  importmap.imports?.react?.includes("/assets/") && importmap.imports["react-dom/client"]
+    ? ok(`importmap serves ${Object.keys(importmap.imports).length} specifiers against the request origin`)
+    : bad("importmap route wrong or missing");
+
+  const assetPage = await fetch(`http://127.0.0.1:${PORT}/assets`).then((r) => r.text());
+  assetPage.includes("The offline import map") ? ok("assets page renders the import map section") : bad("assets page missing import map");
+
+  // Immutable assets must revalidate: If-None-Match with the manifest sha256
+  // etag answers 304 before any disk read.
+  const assetUrl = `http://127.0.0.1:${PORT}/assets/${importmap.version}/starter/import-map.json`;
+  const firstAsset = await fetch(assetUrl);
+  const etag = firstAsset.headers.get("etag");
+  if (etag) {
+    const revalidated = await fetch(assetUrl, { headers: { "if-none-match": etag } });
+    revalidated.status === 304 ? ok("asset revalidation answers 304 on If-None-Match") : bad(`asset revalidation returned ${revalidated.status}, expected 304`);
+  } else {
+    bad("asset response carries no etag");
+  }
 
   // The thumbnail must be served as local bytes, NOT redirected to a CDN —
   // that redirect is what made the gallery need the internet.
@@ -620,6 +674,48 @@ try {
   } else {
     bad("no design-system templates in the cache — run: npm run templates");
   }
+
+  // The library catalog: search, keyword match, and a full entry.
+  const ls = await dcall("tools/call", { name: "design_library_search", arguments: {} });
+  const lsr = JSON.parse(ls.result.content[0].text);
+  if (lsr.total > 0) {
+    ok(`design_library_search reports ${lsr.total} libraries`);
+    const lq = await dcall("tools/call", {
+      name: "design_library_search",
+      arguments: { query: "shadcn" },
+    });
+    const lqr = JSON.parse(lq.result.content[0].text);
+    lqr.libraries?.some((l) => l.id === "shadcn")
+      ? ok("design_library_search matches 'shadcn'")
+      : bad("design_library_search query 'shadcn' missed");
+
+    const lg = await dcall("tools/call", {
+      name: "design_library_get",
+      arguments: { id: "shadcn" },
+    });
+    const lgr = JSON.parse(lg.result.content[0].text);
+    lgr.install?.cli?.length && lgr.files?.length && lgr.files.every((f) => typeof f.content === "string" && f.content.trim())
+      ? ok(`design_library_get returns '${lgr.id}' with ${lgr.files.length} setup files`)
+      : bad("design_library_get returned no install steps or empty file contents");
+  } else {
+    bad("no libraries in the cache — run: npm run bake");
+  }
+
+  // The asset CDN tools: inventory plus an origin-composed import map.
+  const al = await dcall("tools/call", { name: "design_asset_list", arguments: {} });
+  const alr = JSON.parse(al.result.content[0].text);
+  alr.available && alr.groups?.previews
+    ? ok(`design_asset_list reports version ${alr.version} across ${Object.keys(alr.groups).length} groups`)
+    : bad("design_asset_list did not report the built frontend assets");
+
+  const ai = await dcall("tools/call", {
+    name: "design_asset_importmap",
+    arguments: { origin: "http://127.0.0.1:8787" },
+  });
+  const air = JSON.parse(ai.result.content[0].text);
+  air.imports?.react?.startsWith("http://127.0.0.1:8787/assets/")
+    ? ok(`design_asset_importmap resolves ${Object.keys(air.imports).length} specifiers against the origin`)
+    : bad("design_asset_importmap did not compose absolute URLs");
 
   // DESIGN.md parsing and manifest seeding, on both sources.
   const referoDoc = designs.find((d) => (d.source || "refero") === "refero");

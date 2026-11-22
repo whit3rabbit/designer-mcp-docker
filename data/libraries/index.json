@@ -1,0 +1,69 @@
+{
+  "updatedAt": "2026-11-22",
+  "total": 9,
+  "libraries": [
+    {
+      "id": "react",
+      "name": "React",
+      "category": "framework",
+      "summary": "The UI runtime every component layer here assumes: the 109 AI components, the shadcn-style records, and the dashboards all emit React TSX.",
+      "requires": []
+    },
+    {
+      "id": "tailwind",
+      "name": "Tailwind CSS",
+      "category": "css",
+      "summary": "The styling layer the component and dashboard layers assume: every AI component and shadcn-style record emits Tailwind class strings, and the presets speak Tailwind color scales.",
+      "requires": []
+    },
+    {
+      "id": "shadcn",
+      "name": "shadcn/ui",
+      "category": "components",
+      "summary": "Copy-in components wired on Radix primitives and Tailwind: the component layer here is shadcn-style, and the two dashboard starters are built on it.",
+      "requires": ["tailwind", "react"]
+    },
+    {
+      "id": "radix-ui",
+      "name": "Radix UI",
+      "category": "primitives",
+      "summary": "Unstyled accessible primitives (dialog, dropdown, tabs, tooltip): the behavior layer underneath shadcn and most of the 109 AI components.",
+      "requires": ["react"]
+    },
+    {
+      "id": "lucide",
+      "name": "Lucide icons",
+      "category": "icons",
+      "summary": "The default icon set for shadcn and for most of the 109 AI components here (components.json sets iconLibrary to lucide).",
+      "requires": ["react"]
+    },
+    {
+      "id": "heroicons",
+      "name": "Heroicons",
+      "category": "icons",
+      "summary": "Tailwind Labs' icon set, made by the Tailwind team and a natural fit in Tailwind projects (the icons craft reference recommends it for Tailwind work).",
+      "requires": ["react"]
+    },
+    {
+      "id": "motion",
+      "name": "Motion",
+      "category": "animation",
+      "summary": "The animation library for React UIs (the package formerly published as framer-motion). The motion craft reference and several AI components assume it.",
+      "requires": ["react"]
+    },
+    {
+      "id": "google-fonts",
+      "name": "Google Fonts",
+      "category": "fonts",
+      "summary": "Hosted webfont service: the standard way to pull a typeface into a user project with two link tags, no npm dependency.",
+      "requires": []
+    },
+    {
+      "id": "fontsource",
+      "name": "Fontsource",
+      "category": "fonts",
+      "summary": "Self-hosted webfonts as npm packages: the same open-source families Google Fonts serves, installed as a build-time dependency with no runtime request to Google.",
+      "requires": []
+    }
+  ]
+}

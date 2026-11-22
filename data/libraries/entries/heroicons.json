@@ -1,0 +1,29 @@
+{
+  "id": "heroicons",
+  "name": "Heroicons",
+  "category": "icons",
+  "summary": "Tailwind Labs' icon set, made by the Tailwind team and a natural fit in Tailwind projects (the icons craft reference recommends it for Tailwind work).",
+  "requires": ["react"],
+  "keywords": ["heroicons", "icons", "svg", "tailwind labs", "icon library"],
+  "license": "MIT",
+  "install": {
+    "cli": [],
+    "npm": ["@heroicons/react"],
+    "cdn": [],
+    "steps": [
+      "npm install @heroicons/react.",
+      "Import per size and weight path: 24/outline (default UI stroke), 24/solid (filled), 20/solid (compact UI), 16/solid (tiny UI).",
+      "Example: import { BeakerIcon } from \"@heroicons/react/24/solid\"."
+    ]
+  },
+  "files": [
+    {
+      "path": "usage example (tsx)",
+      "role": "Heroicon in a Tailwind button with size and color driven by classes",
+      "language": "tsx",
+      "content": "import { ArrowRightIcon } from \"@heroicons/react/24/outline\"\n\nexport function CtaButton() {\n  return (\n    <button className=\"inline-flex items-center gap-2 rounded-md bg-neutral-900 px-4 py-2 text-neutral-50\">\n      Continue\n      <ArrowRightIcon className=\"size-4\" aria-hidden=\"true\" />\n    </button>\n  )\n}\n"
+    }
+  ],
+  "notes": "Unlike lucide, Heroicons has no stroke-width prop: the weight comes from which outline or solid path you import. When a project already uses lucide, stay on lucide rather than mixing sets.",
+  "related": []
+}

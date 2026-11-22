@@ -77,6 +77,30 @@ export function previewHtml(module, css, rootClass = "") {
 </html>`;
 }
 
+/** Parse If-None-Match into a set of etags, weak prefixes stripped. */
+function ifNoneMatch(req) {
+  const raw = req.headers["if-none-match"];
+  if (!raw) return new Set();
+  const etags = new Set();
+  for (const part of String(raw).split(",")) {
+    const value = part.trim();
+    if (!value) continue;
+    etags.add(value);
+    if (value.startsWith("W/")) etags.add(value.slice(2));
+  }
+  return etags;
+}
+
+/** File counts per top-level group of the build manifest. */
+function groupCounts(files) {
+  const counts = {};
+  for (const file of Object.keys(files)) {
+    const group = file.startsWith("starter.zip") ? "starter" : file.split("/")[0] || "other";
+    counts[group] = (counts[group] || 0) + 1;
+  }
+  return counts;
+}
+
 export async function loadFrontend(directory) {
   let manifest = null;
   try {
@@ -94,6 +118,10 @@ export async function loadFrontend(directory) {
     archive: { url: "/assets/starter.zip", ...files["starter.zip"] },
     packages: manifest.packages,
     vendorSnapshot: manifest.vendorSnapshot,
+    // Raw bare-specifier map (asset-base-relative paths), published by the
+    // build when it bundles the browser modules. null in older builds.
+    importMap: manifest.importMap ?? null,
+    groups: groupCounts(files),
     files: Object.entries(files).filter(([file]) => file.startsWith("starter/"))
       .map(([path, info]) => ({ path: path.slice("starter/".length), url: assetUrl(path), ...info })),
   } : null;
@@ -121,6 +149,23 @@ export async function loadFrontend(directory) {
       return true;
     }
 
+    const extension = extname(file);
+    const cacheHeader = cacheControl ?? (pathname === "/assets/starter.zip" || extension === ".html" ?
+      "no-cache" : "public, max-age=31536000, immutable");
+    const etag = `"${files[file].sha256}"`;
+
+    // The manifest carries each file's sha256, so a revalidation answer is
+    // known before any disk read. 304 shares the cache headers, never the body.
+    if (req.method === "GET" && ifNoneMatch(req).has(etag)) {
+      res.writeHead(304, {
+        "cache-control": cacheHeader,
+        etag,
+        "access-control-allow-origin": "*",
+      });
+      res.end();
+      return true;
+    }
+
     let bytes;
     try {
       bytes = await readFile(join(directory, "public", file));
@@ -128,7 +173,6 @@ export async function loadFrontend(directory) {
       if (error.code === "ENOENT") return false;
       throw error;
     }
-    const extension = extname(file);
     const [, slug, entry] = /^templates\/([a-z0-9-]+)\/(.+)$/.exec(file) ?? [];
     const kind = file.startsWith("tailwind/") ? "tailwind" : manifest.templates[slug]?.[entry]?.kind;
     const headers = {
@@ -138,8 +182,8 @@ export async function loadFrontend(directory) {
       "x-content-type-options": "nosniff",
       // Sandboxed documents have opaque origins. Only these public, built assets need CORS.
       "access-control-allow-origin": "*",
-      "cache-control": cacheControl ?? (pathname === "/assets/starter.zip" || extension === ".html" ? "no-cache" : "public, max-age=31536000, immutable"),
-      etag: `"${files[file].sha256}"`,
+      "cache-control": cacheHeader,
+      etag,
       ...(file === "starter.zip" ? { "content-disposition": 'attachment; filename="designer-frontend-starter.zip"' } : {}),
     };
     res.writeHead(200, headers);
@@ -147,8 +191,24 @@ export async function loadFrontend(directory) {
     return true;
   }
 
+  /**
+   * The bare-specifier import map with origin-relative absolute paths, or
+   * null when the build predates it. Serving origin gets composed from the
+   * request by the /assets/importmap.json route.
+   */
+  function importMap() {
+    if (!manifest?.importMap) return null;
+    return {
+      version: manifest.version,
+      base,
+      imports: Object.fromEntries(
+        Object.entries(manifest.importMap).map(([specifier, file]) => [specifier, `${base}/${file}`]),
+      ),
+    };
+  }
+
   return {
-    publicManifest, asset, templateLinks,
+    publicManifest, asset, importMap, templateLinks,
     tailwindGroups(source) {
       return (manifest?.tailwindGallery?.[source] ?? []).map((group) => ({
         ...group, thumbnail: group.thumbnail && assetUrl(group.thumbnail),

@@ -48,6 +48,8 @@ import {
   readComponent,
   readPresetsIndex,
   readPresetCatalog,
+  readLibrariesIndex,
+  readLibraryEntry,
   readDesignSystemsIndex,
   readDesignSystem,
 } from "./lib/cache.mjs";
@@ -60,6 +62,7 @@ import { resolveDesign } from "./lib/resolve.mjs";
 import { isPackagePath, legacyPackageFiles } from "./lib/opendesign-package.mjs";
 import { score, searchText } from "./lib/score.mjs";
 import { readUiSdkDoc, searchUiSdkDocs } from "./lib/ui-sdk-docs.mjs";
+import { loadFrontend } from "./lib/frontend.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -336,6 +339,69 @@ const TOOLS = [
         kind: { type: "string", description: "Catalog kind, e.g. patterns." },
       },
       required: ["kind"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_library_search",
+    description:
+      "Search the vendored library catalog: common frontend libraries (react, tailwind, shadcn, " +
+      "radix-ui, lucide, heroicons, motion) and font sources (google-fonts, fontsource) with the " +
+      "exact files and steps needed to install each. Use design_library_get for the full entry " +
+      "with file contents.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Free-text match on name, id, category, summary, keywords." },
+        category: { type: "string", description: "Filter by category, e.g. framework, css, components, fonts, icons." },
+        limit: { type: "number", description: "Max results (default 20, max 50)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_library_get",
+    description:
+      "One library entry in full: install steps (cli, npm, cdn), the files the setup needs with " +
+      "their contents (components.json, cn helper, theme css, font wiring), and what depends on " +
+      "what. This answers 'what files would I need to install X'.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Library id from design_library_search, e.g. shadcn, tailwind." },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_asset_list",
+    description:
+      "Inventory the built frontend assets the gallery serves as a local CDN: the offline starter " +
+      "(page plus zip), bundled browser modules for react/motion/gsap/lucide/phosphor/radix, Tailwind " +
+      "example sources, template files, and thumbnails. Returns the content-hash version, per-group " +
+      "file counts, and the vendored packages with licenses.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_asset_importmap",
+    description:
+      "The import map that turns a running gallery into an offline module CDN: bare specifiers " +
+      "(react, react-dom/client, motion/react, gsap, lucide-react, @phosphor-icons/react, radix-ui, cn, " +
+      "class-variance-authority, shadcn/*) resolved to content-addressed asset URLs. Pass origin for " +
+      "absolute URLs, or omit for origin-relative paths under base.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        origin: {
+          type: "string",
+          description: "Gallery origin to compose absolute URLs against, e.g. http://127.0.0.1:8787. Omit for origin-relative paths under base.",
+        },
+      },
       additionalProperties: false,
     },
   },
@@ -889,6 +955,120 @@ async function handlePresetGet(args) {
   return catalog;
 }
 
+// ------------------------------------------------------------------ assets
+/**
+ * The built frontend assets (browser modules, starter, tailwind examples)
+ * are a separate cache from /cache: DESIGN_FRONTEND_DIR in the image,
+ * dist/frontend in a checkout. Missing build degrades to a note.
+ */
+let frontendPromise = null;
+function loadFrontendOnce() {
+  if (!frontendPromise) {
+    const dir = process.env.DESIGN_FRONTEND_DIR || join(HERE, "..", "dist", "frontend");
+    frontendPromise = loadFrontend(dir).catch(() => null);
+  }
+  return frontendPromise;
+}
+
+/** The asset CDN inventory: version, groups, vendored packages, starter. */
+async function handleAssetList() {
+  const frontend = await loadFrontendOnce();
+  const pub = frontend?.publicManifest;
+  if (!pub) {
+    return {
+      available: false,
+      note: "frontend assets have not been built. The gallery image ships them; in a checkout run npm run frontend:build.",
+    };
+  }
+  const map = frontend.importMap();
+  return {
+    available: true,
+    version: pub.version,
+    servedAt: "/assets/<version>/<file>",
+    groups: pub.groups,
+    starter: { url: pub.starter, archive: pub.archive },
+    packages: (pub.packages || []).map((p) => ({ name: p.name, version: p.version, license: p.license })),
+    importMap: map ? { specifiers: Object.keys(map.imports).length, route: "/assets/importmap.json" } : null,
+  };
+}
+
+/**
+ * The bare-specifier import map that turns a running gallery into an
+ * offline module CDN. origin (or the configured DESIGN_REMOTE_URL) makes
+ * the URLs absolute; without one they stay origin-relative under `base`.
+ */
+async function handleAssetImportmap(args) {
+  const frontend = await loadFrontendOnce();
+  const map = frontend?.importMap();
+  if (!map) {
+    throw new Error(
+      "No frontend assets in this deployment. The gallery image ships them at /app/frontend-cache; " +
+        "in a checkout run npm run frontend:build.",
+    );
+  }
+  const origin = (optionalString(args.origin).trim().replace(/\/+$/, "") || getRemoteUrl());
+  const imports = Object.fromEntries(
+    Object.entries(map.imports).map(([specifier, path]) => [specifier, origin ? `${origin}${path}` : path]),
+  );
+  return {
+    version: map.version,
+    origin: origin || null,
+    base: origin ? `${origin}${map.base}` : map.base,
+    imports,
+    usage: origin
+      ? "Embed as <script type=\"importmap\"> with the imports object. Modules carry CORS *, so any page on any origin can import them."
+      : "No origin available: URLs are origin-relative under `base`. Pass origin (e.g. http://127.0.0.1:8787) for absolute URLs.",
+  };
+}
+
+// ---------------------------------------------------------------- libraries
+/** Search the vendored library catalog (install manifests for common libraries). */
+async function handleLibrarySearch(args) {
+  const index = await readLibrariesIndex();
+  // `query` is optional — listing every cached library is valid.
+  const q = optionalString(args.query ?? args.q).trim().toLowerCase();
+  const category = optionalString(args.category).trim().toLowerCase();
+
+  const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50);
+  let libs = index.libraries || [];
+  if (category) {
+    libs = libs.filter((l) => String(l.category || "").toLowerCase() === category);
+  }
+  if (q) {
+    // Match against the full entries too: keywords live only there, and the
+    // catalog is small enough that reading all of it stays cheap.
+    const matched = [];
+    for (const l of libs) {
+      const entry = await readLibraryEntry(l.id);
+      const keywords = entry ? (entry.keywords || []).join(" ") : "";
+      const hay = `${l.id} ${l.name} ${l.category} ${l.summary || ""} ${keywords}`;
+      if (hay.toLowerCase().includes(q)) matched.push(l);
+    }
+    libs = matched;
+  }
+
+  return {
+    total: (index.libraries || []).length,
+    returned: Math.min(libs.length, limit),
+    categories: [...new Set((index.libraries || []).map((l) => l.category).filter(Boolean))],
+    libraries: libs.slice(0, limit),
+  };
+}
+
+/** One library entry, with install steps and setup file contents. */
+async function handleLibraryGet(args) {
+  const id = asString(args.id, "id");
+  const entry = (await readLibraryEntry(id)) || (await readLibraryEntry(id.toLowerCase()));
+  if (!entry) {
+    throw new Error(
+      `No library "${id}" in the catalog. ` +
+        `Run design_library_search to see what is cached. ` +
+        `If the library the user wants is not cached, say so plainly and answer from knowledge.`,
+    );
+  }
+  return entry;
+}
+
 // ------------------------------------------------------------- templates
 async function handleTemplateList(args) {
   const query = optionalString(args.query).trim().toLowerCase();
@@ -1140,6 +1320,14 @@ async function dispatch(name, args) {
       return handlePresetSearch(args);
     case "design_preset_get":
       return handlePresetGet(args);
+    case "design_library_search":
+      return handleLibrarySearch(args);
+    case "design_library_get":
+      return handleLibraryGet(args);
+    case "design_asset_list":
+      return handleAssetList(args);
+    case "design_asset_importmap":
+      return handleAssetImportmap(args);
     case "design_template_list":
       return handleTemplateList(args);
     case "design_template_get":

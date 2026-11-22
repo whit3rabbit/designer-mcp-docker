@@ -110,4 +110,4 @@ When the workbook carries design data — token matrices, content inventories, c
 
 ## Dependencies
 
-`openpyxl`, `pandas`, `markitdown`, `defusedxml` (pip) · LibreOffice (`soffice`, via `scripts/office/soffice.py`). Check what's available before relying on any of them (a failed import or `command -v` check is enough) and install only what's missing.
+`openpyxl`, `pandas`, `markitdown`, `defusedxml`, `lxml` (pip) · LibreOffice (`soffice`, via `scripts/office/soffice.py`). Check what's available before relying on any of them (a failed import or `command -v` check is enough) and install only what's missing.

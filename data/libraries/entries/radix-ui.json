@@ -1,0 +1,30 @@
+{
+  "id": "radix-ui",
+  "name": "Radix UI",
+  "category": "primitives",
+  "summary": "Unstyled accessible primitives (dialog, dropdown, tabs, tooltip): the behavior layer underneath shadcn and most of the 109 AI components.",
+  "requires": ["react"],
+  "keywords": ["radix", "radix-ui", "primitives", "dialog", "dropdown", "tabs", "tooltip", "accordion", "a11y"],
+  "license": "MIT",
+  "install": {
+    "cli": [],
+    "npm": ["radix-ui"],
+    "cdn": [],
+    "steps": [
+      "Preferred shape today is the consolidated package: npm install radix-ui, then import namespaced parts (import { Dialog } from \"radix-ui\").",
+      "Older per-primitive packages (@radix-ui/react-dialog and friends) still work and are what most tutorials show. Pick one convention per project and stay on it.",
+      "Primitives ship unstyled on purpose: bring your own classes, or wrap them with shadcn (see the shadcn entry) for a complete styled layer.",
+      "The ReUI layer in the gallery (1,264 components, Radix plus Base UI TSX) is gallery-only, no MCP tools: point the user at /reui when they need more primitives already styled."
+    ]
+  },
+  "files": [
+    {
+      "path": "example dialog (tsx)",
+      "role": "Minimal styled Radix dialog using the consolidated package",
+      "language": "tsx",
+      "content": "import { Dialog } from \"radix-ui\"\n\nexport function ExampleDialog() {\n  return (\n    <Dialog.Root>\n      <Dialog.Trigger className=\"rounded-md bg-neutral-900 px-4 py-2 text-neutral-50\">\n        Open\n      </Dialog.Trigger>\n      <Dialog.Portal>\n        <Dialog.Overlay className=\"fixed inset-0 bg-black/50\" />\n        <Dialog.Content className=\"fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6\">\n          <Dialog.Title>Example</Dialog.Title>\n          <Dialog.Description>Accessible primitives, your styling.</Dialog.Description>\n          <Dialog.Close asChild>\n            <button className=\"mt-4 rounded border px-3 py-1\">Close</button>\n          </Dialog.Close>\n        </Dialog.Content>\n      </Dialog.Portal>\n    </Dialog.Root>\n  )\n}\n"
+    }
+  ],
+  "notes": "The vendored radix-vega style record in frontend/vendor/ declares the consolidated radix-ui package as its dependency, which is why this entry teaches that shape. The gallery also serves the compiled radix-ui browser module: design_asset_importmap resolves the radix-ui specifier on a running gallery, so prototypes can import primitives offline.",
+  "related": ["design_component_search", "design_component_code"]
+}

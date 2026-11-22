@@ -1,0 +1,30 @@
+{
+  "id": "motion",
+  "name": "Motion",
+  "category": "animation",
+  "summary": "The animation library for React UIs (the package formerly published as framer-motion). The motion craft reference and several AI components assume it.",
+  "requires": ["react"],
+  "keywords": ["motion", "framer-motion", "animation", "transition", "spring", "react"],
+  "license": "MIT",
+  "install": {
+    "cli": [],
+    "npm": ["motion"],
+    "cdn": [],
+    "steps": [
+      "npm install motion (the framer-motion package is the predecessor; new projects should use motion).",
+      "Import from the React entry: import { motion } from \"motion/react\".",
+      "Existing projects on framer-motion: keep it, the import is import { motion } from \"framer-motion\" and the API is the same lineage.",
+      "Motion principles and restraint guidance live in the motion craft reference (references/motion.md); several of the 109 AI components import motion, and their records list it in dependencies."
+    ]
+  },
+  "files": [
+    {
+      "path": "usage example (tsx)",
+      "role": "Entrance animation with spring physics, the default motion recipe",
+      "language": "tsx",
+      "content": "import { motion } from \"motion/react\"\n\nexport function Reveal({ children }: { children: React.ReactNode }) {\n  return (\n    <motion.div\n      initial={{ opacity: 0, y: 12 }}\n      animate={{ opacity: 1, y: 0 }}\n      transition={{ type: \"spring\", stiffness: 260, damping: 24 }}\n    >\n      {children}\n    </motion.div>\n  )\n}\n"
+    }
+  ],
+  "notes": "Respect prefers-reduced-motion: wrap entrances in useReducedMotion and skip the animation when it is true. The motion craft reference carries the timing and easing guidance, keep animation purposeful.",
+  "related": []
+}

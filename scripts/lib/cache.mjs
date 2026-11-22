@@ -366,6 +366,38 @@ export async function readPresetCatalog(kind) {
 }
 
 /**
+ * The vendored library catalog index (which libraries exist).
+ *
+ * Hand-authored in `data/libraries/` and copied into the cache by `npm run
+ * bake`. Returns an empty index when the cache has none, so the server
+ * still starts.
+ */
+export async function readLibrariesIndex() {
+  const empty = { updatedAt: null, total: 0, libraries: [] };
+  if (REMOTE_URL) return (await fetchRemoteJson("api/libraries.json")) ?? empty;
+  const path = join(CACHE_DIR, "libraries.json");
+  if (!existsSync(path)) return empty;
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return empty;
+  }
+}
+
+/** One library entry, including the setup files it carries. */
+export async function readLibraryEntry(id) {
+  if (!/^[a-z0-9-]+$/i.test(id)) return null;
+  if (REMOTE_URL) return fetchRemoteJson(`api/library/${encodeURIComponent(id)}.json`);
+  const path = join(CACHE_DIR, "libraries", `${id}.json`);
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The vendored design-system template index.
  *
  * Written by scripts/stage-design-systems.mjs (live cache) and by

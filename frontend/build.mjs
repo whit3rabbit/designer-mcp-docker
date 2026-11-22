@@ -409,7 +409,7 @@ async function buildStarter(scratch, out, shadcnFiles) {
   for await (const file of listFiles(join(modules, "@ui-sdk", "web", "browser", "web"))) {
     await copy(file, join(out, "vendor", "ui-sdk", "web", relative(join(modules, "@ui-sdk", "web", "browser", "web"), file)));
   }
-  return packages;
+  return { packages, importMap: imports };
 }
 
 async function stageLicenses(out, packages, deckPackages, bundlePackages, vendorFiles) {
@@ -476,7 +476,13 @@ try {
   await stageFonts(pack, packages);
   await copy(join(here, "starter.tsx"), join(pack, "starter.tsx"));
   await copy(join(here, "shadcn-gallery.tsx"), join(pack, "shadcn-gallery.tsx"));
-  const starterPackages = await buildStarter(scratch, pack, shadcn);
+  const { packages: starterPackages, importMap: starterImports } = await buildStarter(scratch, pack, shadcn);
+  // The starter's map is relative to the starter root (`./modules/...`); the
+  // manifest form is relative to the assets base (`starter/modules/...`), so
+  // the /assets/importmap.json route can compose absolute URLs from it.
+  const starterImportMap = Object.fromEntries(
+    Object.entries(starterImports).map(([specifier, file]) => [specifier, file.replace(/^\.\//, "starter/")]),
+  );
   const templates = await stageTemplates(cache, out, deckModules);
   // Templates reference the same font faces and binaries as the downloadable starter.
   const templateFontImport = '@import "../starter/fonts/fonts.css";\n';
@@ -510,7 +516,7 @@ for self-hosted font faces. Package versions and licenses are in packages.json.
   });
   const files = await inspectFiles(out);
   const version = sha256(JSON.stringify(files)).slice(0, 20);
-  const manifest = { version, files, previews, reuiPreviews, templates, tailwindGallery, packages: licenses, vendorSnapshot: vendorFiles };
+  const manifest = { version, files, previews, reuiPreviews, templates, tailwindGallery, packages: licenses, vendorSnapshot: vendorFiles, importMap: starterImportMap };
   await writeJson(join(scratch, "output", "manifest.json"), manifest);
 
   // Copy completely before replacing an existing cache, and never replace unrelated files.

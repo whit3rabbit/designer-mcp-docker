@@ -82,5 +82,5 @@ EXPOSE 8787
 
 # Default: the preview gallery on 8787.
 #   node scripts/mcp-entry.mjs     the upstream Refero MCP server (7 tools)
-#   node scripts/mcp-server.mjs    the generic design MCP server (20 tools)
+#   node scripts/mcp-server.mjs    the generic design MCP server (26 tools)
 CMD ["node", "scripts/preview.mjs"]

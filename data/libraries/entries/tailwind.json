@@ -1,0 +1,42 @@
+{
+  "id": "tailwind",
+  "name": "Tailwind CSS",
+  "category": "css",
+  "summary": "The styling layer the component and dashboard layers assume: every AI component and shadcn-style record emits Tailwind class strings, and the presets speak Tailwind color scales.",
+  "requires": [],
+  "keywords": ["tailwind", "tailwindcss", "postcss", "@import", "utility css", "v4", "browser cdn"],
+  "license": "MIT",
+  "install": {
+    "cli": [],
+    "npm": ["tailwindcss", "@tailwindcss/postcss"],
+    "cdn": ["https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"],
+    "steps": [
+      "V4 with a build step (recommended): npm install tailwindcss @tailwindcss/postcss, add postcss.config.mjs, and put @import \"tailwindcss\" at the top of your CSS entry. No tailwind.config.js is needed in v4; theme customization lives in CSS via @theme blocks.",
+      "No-build prototype: add the install.cdn script tag to the page head and use Tailwind classes directly in markup. The browser build compiles on the fly and is meant for prototypes only.",
+      "V3 projects: tailwind.config.js plus content globs and a PostCSS setup are still the shape. Prefer v4 for anything new.",
+      "Then wire a component library on top: the shadcn entry builds directly on this one."
+    ]
+  },
+  "files": [
+    {
+      "path": "postcss.config.mjs",
+      "role": "PostCSS wiring for the Tailwind v4 build",
+      "language": "js",
+      "content": "export default {\n  plugins: {\n    \"@tailwindcss/postcss\": {},\n  },\n}\n"
+    },
+    {
+      "path": "src/app.css",
+      "role": "CSS entry: Tailwind v4 needs exactly one @import, no config file",
+      "language": "css",
+      "content": "@import \"tailwindcss\";\n"
+    },
+    {
+      "path": "index.html (no-build prototype)",
+      "role": "Browser-build Tailwind page the user can open directly, no install at all",
+      "language": "html",
+      "content": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <title>Tailwind prototype</title>\n    <script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script>\n  </head>\n  <body class=\"grid min-h-screen place-items-center bg-neutral-950 text-neutral-100\">\n    <h1 class=\"text-3xl font-semibold tracking-tight\">Hello from Tailwind over CDN</h1>\n  </body>\n</html>\n"
+    }
+  ],
+  "notes": "The CDN path is for prototypes the user asked for, never for this repo's own pages: the gallery bans remote URLs. The preset layer (design_preset_search) emits raw CSS properties and Tailwind class snippets that drop straight into either setup. For the shadcn theme variables that ride on top of v4, see the shadcn entry's globals.css.",
+  "related": ["design_preset_search", "design_preset_get"]
+}

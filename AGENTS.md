@@ -56,6 +56,9 @@ these routes, all served from the local cache:
 | `/presets` and `/presets/:kind` | gradients, patterns, glass effects with real CSS |
 | `/templates` and `/template/:slug` | 7 vendored design-system templates: tokens, theme knobs, manifest, files (loam ships the slide-first deck starter) |
 | `/api/designs`, `/api/search?q=`, `/api/facets` | JSON for programmatic picking |
+| `/api/libraries` and `/api/library/:id` | install manifests for the common frontend stack: react, tailwind, shadcn, fonts, icons (JSON only, no HTML page) |
+| `/assets` | built frontend assets as a local CDN: offline starter (zip + page), browser modules, tailwind examples, template files, thumbnails, import map |
+| `/assets/importmap.json` | the offline import map: bare specifiers (react, motion, radix-ui, shadcn/*) resolved to content-addressed module URLs on this origin |
 | `/thumb/:id` | local WebP thumbnail bytes (jpg/png also accepted) |
 | `/skill` | the skill zip for offline download |
 
@@ -68,9 +71,12 @@ these routes, all served from the local cache:
 - Both MCP servers read the same cache and speak stdio JSON-RPC. Neither
   listens on a port. Register with an agent via a `docker run -i` command.
 - Prefer the `design_*` server for new work: it covers both sources plus the
-  component and preset layers and works fully offline. Two upstream tools
-  need network and are the documented exceptions: `refero_similar`,
-  `refero_refresh`.
+  component, preset, library, and asset layers and works fully offline. Two
+  upstream tools need network and are the documented exceptions:
+  `refero_similar`, `refero_refresh`.
+- The `design_asset_*` tools read the built frontend (`DESIGN_FRONTEND_DIR`,
+  `/app/frontend-cache` in the image), not `/cache`. A checkout without
+  `npm run frontend:build` degrades to a graceful note, not an error.
 - The ReUI and dashboard layers are gallery-only: no MCP tools cover them.
   Route those asks to the gallery routes or the static `api/reui.json` /
   `api/dashboards.json` endpoints.
@@ -78,20 +84,39 @@ these routes, all served from the local cache:
   `node_modules/fidgetcoding-refero-mcp`. Adapt in `scripts/` so upstream
   updates drop in cleanly.
 - The skill (`skills/designer-mcp/`) ships inside the image, is zipped at
-  build time (`scripts/package-skill.mjs`) and served at `/skill`.
+  build time (`scripts/package-skill.mjs`) and served at `/skill`. The
+  Dockerfile runs the packager itself, so the zip always matches the
+  tagged checkout.
+- `build-static.mjs` copies the image's zip into the Pages output and
+  never packages one.
+- The skill installs remotely with the skills CLI
+  (`npx skills add whit3rabbit/designer-mcp-docker`). Discovery offers
+  exactly one skill: a shallower `SKILL.md` shadows any nested one, so
+  the eight bundled sub-skills ride along inside the parent directory.
+- Do not publish deeper `SKILL.md` files expecting separate listings.
+- Remote installs serve the last-pushed commit on main. A skill change is
+  not live for installers until it lands there.
+- `skills/designer-mcp/install/` holds MCP registration snippets for 23
+  coding agents, each with a Docker and a local-checkout variant. Route
+  "install the MCP server" asks to `<harness>.md` in that folder. The
+  files are plain Markdown: edit by hand.
+- The snippets are adapted from the whit3rabbit/agent-config repo's
+  harness docs (`docs/agents/` there, not in this repo). Keep paths in
+  sync when those docs change.
 - Keep the skill's tool names (`design_*`, `refero_*`) in sync with the
   actual servers and its scope honest: no screens/flows layer exists. Route
   those asks to the craft references. Never invent precedent.
 - The skill bundles eight sub-skills: `docx/`, `pptx/`, `xlsx/`, `pdf/`,
   `pdf-reading/`, `frontend-design/`, `ui-sdk/`, and
-  `design-template-authoring/`. Each ships dependency manifests
-  (`requirements.txt`, `package.json`). The five adapted from
-  upstream (`anthropics/skills`) carry a per-directory Apache-2.0
-  `LICENSE.txt` copied verbatim, and `pdf-reading/` reuses that license
-  text. `ui-sdk/` is the ui-sdk package's own docs bundle under its
-  Apache-2.0 `LICENSE.txt`. `design-template-authoring/` is original work
-  under its own Apache-2.0 `LICENSE.txt` and carries no dependency
-  manifests: its scripts are plain Node.
+  `design-template-authoring/`.
+- Dependency manifests live at the parent skill level
+  (`requirements.txt`, `package.json` there), not per sub-skill. They
+  cover the sub-skills' core Node and Python needs.
+- Each sub-skill carries an Apache-2.0 `LICENSE.txt`. The five adapted
+  from upstream (`anthropics/skills`) have it copied verbatim,
+  `pdf-reading/` reuses that text, and `ui-sdk/` ships the ui-sdk
+  package's own bundle. `design-template-authoring/` is original work
+  with plain Node scripts.
 - The image serves those files but installs none of their dependencies. The
   consuming agent runs the scripts and installs what its task needs
   (check-then-install).
@@ -114,14 +139,47 @@ these routes, all served from the local cache:
 | `cache/` | working cache: gitignored, mounted read-only at runtime, **overrides** the baked catalog |
 | `bake/` | build output copied into the image: gitignored but kept in the Docker build context |
 | `data/design-systems/` | vendored source of the 7 design-system templates, copied into `bake/design-systems/` by `npm run bake` and staged into a live cache by `npm run templates` |
+| `data/libraries/` | hand-authored library install manifests (no fetcher, no network), copied into `bake/libraries.json` + `bake/libraries/` by `npm run bake` |
 | `dist/` | built skill zip |
 
 - Changing cache format or fetchers: run `npm run bake`, then `npm test`
   (self-test across cache, renderer, preview, and MCP). Keep it green.
+- `selftest.mjs` hard-asserts the template count (`7`) and 48+ tokens per
+  record: bump both when adding an eighth design-system template. It also
+  hard-asserts the library catalog (`9+` entries with install steps and
+  non-empty setup files): bump when growing the library set deliberately.
+- `npm test` runs `test-design-md.mjs` and `selftest.mjs` only. The
+  Playwright browser suite (`npm run frontend:test`) only runs in
+  publish.yml's verify step. Run it locally before pushing template,
+  preview, or frontend changes.
 - Local dev against a live cache: run `npm run templates` once to stage the
   design-system layer (additive, idempotent).
 - The cache TTL is deliberately huge (`REFERO_CACHE_TTL_MS=315360000000`):
   refresh by re-running fetchers, never by letting the package hit the live
   API on expiry.
+- The wrapper (`scripts/mcp-entry.mjs`) applies this default itself, so a
+  bare-host run without env keeps the offline behavior.
 - Search without `OPENAI_API_KEY` falls back to a keyword scorer: expected,
   not a bug.
+
+## Release flow
+
+A release pushes main and a tag, and two workflows race for the same image
+reference.
+
+- `publish.yml` fires on the tag: fetch, bake, frontend build, the
+  Playwright browser check, then push `ghcr.io/whit3rabbit/designer-mcp:<tag>`
+  and `:latest`.
+- `pages.yml` rebuilds the static site from `:latest`. It fires on pushes
+  to main and again after publish completes successfully.
+- Pushing main and a tag together once shipped a stale site (previous
+  bake, old skill zip), so never treat the first pages run of a release
+  as final. Confirm the post-publish rerun instead.
+- Order: push main, push the tag, wait for publish green, then confirm
+  pages re-ran green, then verify the live site serves the release.
+- Verification checks `api/templates.json` for the expected systems and
+  `/skill/designer-mcp-skill.zip` for the current generation (look for
+  `install/` and the newest sub-skill inside).
+- A tag can be re-pointed only before its image exists (the first v1.6.0
+  run died before "Build and push" and its tag was moved). Never move a
+  tag whose image already shipped. Publish a new version instead.

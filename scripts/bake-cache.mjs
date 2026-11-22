@@ -210,6 +210,27 @@ async function main() {
   await copyFile("presets.json");
   await copyDir("presets");
 
+  // ------------------------------------------------- vendored library catalog
+  // Like the design systems, this comes from the repo (data/libraries/), not
+  // the fetch cache. The index lands at the cache root as libraries.json and
+  // the entries beside it as libraries/<id>.json, matching how the readers
+  // in scripts/lib/cache.mjs resolve them.
+  const libsIndex = join(ROOT, "data", "libraries", "index.json");
+  if (existsSync(libsIndex)) {
+    const index = JSON.parse(await readFile(libsIndex, "utf8"));
+    await writeFile(join(OUT, "libraries.json"), JSON.stringify(index));
+    await rm(join(OUT, "libraries"), { recursive: true, force: true });
+    await mkdir(join(OUT, "libraries"), { recursive: true });
+    for (const lib of index.libraries || []) {
+      const src = join(ROOT, "data", "libraries", "entries", `${lib.id}.json`);
+      await writeFile(join(OUT, "libraries", `${lib.id}.json`), await readFile(src, "utf8"));
+    }
+    const libBytes = await dirBytes(join(OUT, "libraries"));
+    console.log(`  libraries       ${index.total} entries  ${fmt(libBytes)}`);
+  } else {
+    console.log("  libraries       skipped (no data/libraries/index.json)");
+  }
+
   // ------------------------------------- vendored design-system templates
   // These come from the repo (data/design-systems/), not the fetch cache —
   // they are static source assets, so a missing tree is a real error.

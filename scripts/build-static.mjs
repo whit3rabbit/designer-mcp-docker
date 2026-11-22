@@ -17,6 +17,10 @@ import { homedir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Must stay the first import: cache.mjs resolves its cache dir at import
+// time, and ESM hoisting would make a later env assignment run too late.
+import "./lib/cache-env.mjs";
+
 import {
   mergeDesign,
   readCatalog,
@@ -32,6 +36,8 @@ import {
   readOpenDesignPackage,
   readPresetCatalog,
   readPresetsIndex,
+  readLibrariesIndex,
+  readLibraryEntry,
   readReuiIndex,
   readReuiCategory,
   readReuiScreenshot,
@@ -83,9 +89,6 @@ const FRONTEND_DIR = resolve(
 );
 const SKILL_DIR = resolve(arg("--skill", process.env.SKILL_DIR || join(ROOT, "skills", "designer-mcp")));
 const OUT_DIR = resolve(arg("--out", join(ROOT, "dist", "static")));
-
-// Ensure cache.mjs reads from CACHE_DIR if not set in env
-process.env.DESIGN_CACHE_DIR = CACHE_DIR;
 
 async function loadRenderer() {
   const candidates = [];
@@ -439,8 +442,15 @@ async function main() {
       }
     }
     await writeJson("assets/manifest.json", frontend.publicManifest);
+    // The offline import map for the static site: paths are site-root
+    // relative, so pages served from the Pages root resolve them directly.
+    // An agent fetching it rebases `base` against whatever origin hosts
+    // the site (preview serves this same map with absolute URLs instead).
+    const map = frontend.importMap();
+    if (map) await writeJson("assets/importmap.json", map);
   }
-  await writeOut("assets/index.html", relativizeHtml(assetsHtml(frontend.publicManifest), 1, { assetBase }));
+  // No origin for the static site: the import map renders site-root relative.
+  await writeOut("assets/index.html", relativizeHtml(assetsHtml(frontend.publicManifest, frontend.importMap()), 1, { assetBase }));
 
   // 2. Copy skill zip & SKILL.md
   if (existsSync(SKILL_DIR)) {
@@ -824,7 +834,16 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
     await writeOut(`presets/${kind}/index.html`, relativizeHtml(presetDetailHtml(pCat), 2, { assetBase }));
   }
 
-  // 10. System templates
+  // 10. Library catalog (JSON only, no HTML: agents pick install manifests here)
+  const libsIndex = await readLibrariesIndex();
+  await writeJson("api/libraries.json", libsIndex);
+  for (const lib of libsIndex.libraries || []) {
+    const entry = await readLibraryEntry(lib.id);
+    if (!entry) continue;
+    await writeJson(`api/library/${lib.id}.json`, entry);
+  }
+
+  // 11. System templates
   const dsIndex = await readDesignSystemsIndex();
   await writeJson("api/templates.json", dsIndex);
   const templateThumbMap = new Map();

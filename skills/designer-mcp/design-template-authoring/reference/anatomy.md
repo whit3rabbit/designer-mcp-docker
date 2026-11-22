@@ -12,7 +12,7 @@ the MCP tools read generated records. Reference implementations: `modernist`
 | File | Required | Role |
 |---|---|---|
 | `theme.json` | yes | Generation knobs: `name`, `palette` (`hue`, `band`, `scheme`, `sat`, `bg`, `surface`, `text`, `accent`, `accent2`), `fonts` (heading/body with `family`, `class`, `weights`), `density`, `radius`, `layoutStyle`, `dividers`, `buttonAlign`, `imageTreatment`, `photo`. Free extra keys are recorded verbatim (loam adds `motifs` and `canvas`). |
-| `styles.css` | yes | The token sheet: one `:root` block with the color roles, three 100–900 tonal ramps (neutral, accent, accent-2), font and weight tokens, `--space-*`, `--radius-*`, `--shadow-*`, then a plain-CSS component layer. No webfont import needed (a system stack needs none, and the frontend build rewrites Google Fonts imports to local fonts). |
+| `styles.css` | yes | The token sheet: one `:root` block with the color roles, three 100–900 tonal ramps (neutral, accent, accent-2), font and weight tokens, `--space-*`, `--radius-*`, `--shadow-*`, then a plain-CSS component layer. No webfont import needed (a system stack needs none, and the frontend build rewrites Google Fonts imports to local fonts). Any imported face must be free-license (Google Fonts, SIL OFL). |
 | `readme.md` | yes | The written guide. First `# ` line is the title, text before the first `## ` is the intro, and these H2s are parsed: **How to use this**, **Direction**, **Color**, **Type**, **Icons**, **Interaction states**, **Components**, **Do**, **Don't**, **Files**. The Components section must hold a `| Class | What it is | Shown in |` table. |
 | `_ds_manifest.json` | yes | The registry: `namespace`, `hasThumbnailHtml`, `globalCssPaths: ["styles.css"]`, `cards[]` (`path`, `group`, `name`, `subtitle`, `viewport`), `templates[]` (`name`, `folder`, `entryPath`, `description`), `tokens[]` (every token with `value`, `kind`, `definedIn`), `brandFonts[]`, `source: "spa"`. The record's `tokens[]` come from here, not from parsing styles.css. |
 | `_adherence.oxlintrc.json` | yes | Lint contract for generated code: warn on raw hex, raw px, and fonts outside the system; `x-omelette.tokens` lists every token with `tokenKinds`. |
@@ -25,11 +25,11 @@ the MCP tools read generated records. Reference implementations: `modernist`
 | `templates/deck/Deck.dc.html` | deck | The `<x-dc>` deck starter: `<helmet>` links `../../styles.css` plus `./ds-base.js` and `./image-slot.js`, an inline `<style>` holds the deck CSS, and an `<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080">` mounts plain `<section class="slide variant" data-label>` children. Six to eight layouts minimum. |
 | `templates/deck/deck-stage.js`, `support.js`, `image-slot.js`, `ds-base.js` | deck | The vendored runtime, copied verbatim from any existing system (modernist, loam). `support.js` carries unpkg URLs with SRI hashes that the frontend build rewrites to local vendor copies. Never edit these files. |
 | `templates/landing/index.html` | landing | The page starter with `./ds-base.js` + `./image-slot.js` and the landing laws in its style header. |
-| `assets/photo.jpg` | yes | One reference photograph (free license, 1280px class) treated by the image foundation and both starters. |
+| `assets/photo.jpg` | yes | One reference photograph treated by the image foundation and both starters. Copyright-free: free-license stock, generated, or user-supplied. 1280px class, downscaled before commit. |
 
 ## The manifest entry
 
-`data/design-systems/manifest.json` holds one entry per system: `slug`, `name`,
+The repo checkout's `data/design-systems/manifest.json` (not this skill directory) holds one entry per system: `slug`, `name`,
 `description`, `path` (`<slug>/`), `ground`, `text`, `accent`, `headingFont`,
 `thumbnail` (`<slug>/thumbnail.html`), `thumbnailImage` (`<slug>/thumbnail.webp`),
 `readme`, `theme`, and `files[]` listing **every file in the folder** with
@@ -50,7 +50,7 @@ The `$comment` names the system count, so bump it when it changes.
   sidecars, rewrites Google Fonts imports to local fonts, and rewrites
   `support.js`'s unpkg URLs to local vendor copies (the runtime files must
   carry exactly those URLs and hashes, so copy them verbatim).
-- `scripts/selftest.mjs` asserts the system count and 48+ tokens per record.
+- The checkout's `scripts/selftest.mjs` asserts the system count and 48+ tokens per record.
 - The gallery serves `/templates` and `/template/:slug` (detail page, thumb
   route), `build-static` emits the pages, and the MCP `design_template_*`
   tools read the generated records. None of this needs changes for a new

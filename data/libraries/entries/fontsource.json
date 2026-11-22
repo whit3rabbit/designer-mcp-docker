@@ -1,0 +1,36 @@
+{
+  "id": "fontsource",
+  "name": "Fontsource",
+  "category": "fonts",
+  "summary": "Self-hosted webfonts as npm packages: the same open-source families Google Fonts serves, installed as a build-time dependency with no runtime request to Google.",
+  "requires": [],
+  "keywords": ["fontsource", "fonts", "self-host", "webfont", "@fontsource", "@fontsource-variable", "woff2"],
+  "license": "Packages carry each font's own license (mostly OFL); the registry is MIT",
+  "install": {
+    "cli": [],
+    "npm": ["@fontsource-variable/inter", "@fontsource-variable/manrope"],
+    "cdn": [],
+    "steps": [
+      "Install the family as a package: npm install @fontsource-variable/inter (variable families) or @fontsource/roboto (static families, one package per weight).",
+      "Import it once in the JS entry: import \"@fontsource-variable/inter\". That registers the @font-face and emits the woff2 through your bundler.",
+      "Wire the family name into Tailwind v4 with an @theme block: --font-sans: \"Inter Variable\", ui-sans-serif, system-ui, sans-serif. Variable family display names take the Variable suffix.",
+      "This is exactly how the dashboard layer does it: the two dashboard starters ship their fonts as offline fonts.zip bundles built from @fontsource-variable packages (inter, manrope), with the Google Fonts link tags stripped out."
+    ]
+  },
+  "files": [
+    {
+      "path": "src/main.jsx import",
+      "role": "One import registers the @font-face rules through the bundler",
+      "language": "jsx",
+      "content": "import \"@fontsource-variable/inter\"\nimport \"@fontsource-variable/manrope\"\n"
+    },
+    {
+      "path": "src/app.css theme block",
+      "role": "Point Tailwind v4's font stack at the self-hosted variable families",
+      "language": "css",
+      "content": "@theme {\n  --font-sans: \"Inter Variable\", ui-sans-serif, system-ui, sans-serif;\n  --font-display: \"Manrope Variable\", ui-sans-serif, system-ui, sans-serif;\n}\n"
+    }
+  ],
+  "notes": "Choose fontsource over the google-fonts entry whenever the user wants offline-capable builds, GDPR-safe hosting, or version-pinned fonts. The woff2 ships from your own origin, so nothing loads from a third-party CDN at runtime. Family coverage is broad but not every Google family is published; check the registry name before promising one.",
+  "related": []
+}

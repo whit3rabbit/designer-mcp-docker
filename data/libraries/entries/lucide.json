@@ -1,0 +1,29 @@
+{
+  "id": "lucide",
+  "name": "Lucide icons",
+  "category": "icons",
+  "summary": "The default icon set for shadcn and for most of the 109 AI components here (components.json sets iconLibrary to lucide).",
+  "requires": ["react"],
+  "keywords": ["lucide", "lucide-react", "icons", "svg", "icon library"],
+  "license": "ISC",
+  "install": {
+    "cli": [],
+    "npm": ["lucide-react"],
+    "cdn": [],
+    "steps": [
+      "npm install lucide-react.",
+      "Import icons individually so tree-shaking keeps the bundle small: import { Camera, ChevronRight } from \"lucide-react\".",
+      "Icon naming guidance for design work lives in the icons craft reference (references/icons.md)."
+    ]
+  },
+  "files": [
+    {
+      "path": "usage example (tsx)",
+      "role": "Typical lucide-react usage inside a button",
+      "language": "tsx",
+      "content": "import { ArrowRight } from \"lucide-react\"\n\nexport function CtaButton() {\n  return (\n    <button className=\"inline-flex items-center gap-2 rounded-md bg-neutral-900 px-4 py-2 text-neutral-50\">\n      Continue\n      <ArrowRight className=\"size-4\" aria-hidden=\"true\" />\n    </button>\n  )\n}\n"
+    }
+  ],
+  "notes": "All icons accept className for Tailwind sizing (size-4) and stroke-width for weight. Mark decorative icons aria-hidden=\"true\".",
+  "related": []
+}

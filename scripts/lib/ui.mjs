@@ -77,7 +77,7 @@ const SHARED_CSS = `
   h1 span { color:var(--muted); font-weight:400; }
 `;
 
-export function assetsHtml(manifest) {
+export function assetsHtml(manifest, importMap = null, origin = "") {
   const packages = manifest?.packages ?? [];
   const packageRows = packages.filter(({ group }) => group !== "dependency").map(({ name, version, license, notices, group }) => `<li>
     <strong>${esc(name)}</strong> ${esc(version)} <span>${esc(license)}</span>
@@ -91,6 +91,28 @@ export function assetsHtml(manifest) {
     .map(({ path, url, bytes }) =>
       `<li><a href="${esc(url)}" download>${esc(path)}</a> <span>(${(bytes / 1024).toFixed(1)} KB)</span></li>`)
     .join("");
+  const groups = manifest?.groups ?? {};
+  const groupRows = [
+    ["previews", "Bundled browser modules behind every live component preview", "/components and /reui"],
+    ["starter", "The offline starter: page, sources, compiled modules", manifest?.archive?.url ?? "/assets/starter.zip"],
+    ["tailwind", "HyperUI and shadcn example sources, offline", "/tailwind"],
+    ["templates", "Vendored design-system template files", "/templates"],
+    ["thumbnails", "Per-variant preview thumbnails", ""],
+    ["fonts", "Shared webfont binaries (woff2)", ""],
+  ].map(([key, what, href]) => {
+    const count = groups[key];
+    if (count === undefined) return "";
+    const body = href ? `<a href="${esc(href)}">${esc(what)}</a>` : esc(what);
+    return `<tr><td><strong>${count}</strong></td><td>${body}</td><td class="muted">${esc(key)}</td></tr>`;
+  }).join("");
+  // The import map, as text the user can copy. Compose absolute URLs when
+  // the serving origin is known; otherwise show site-root relative paths.
+  const mapImports = importMap?.imports ?? {};
+  const mapJson = importMap ? JSON.stringify(
+    Object.fromEntries(Object.entries(mapImports).map(([specifier, path]) => [specifier, `${origin}${path}`])),
+    null, 1,
+  ) : "";
+  const mapCount = Object.keys(mapImports).length;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -108,6 +130,13 @@ ul { padding-left:20px; overflow-wrap:anywhere; }
 li { padding:3px 0; }
 li span { color:var(--muted); margin:0 4px; }
 summary { cursor:pointer; }
+table { border-collapse:collapse; width:100%; }
+th { text-align:left; padding:0 10px 6px 0; color:var(--muted); font-weight:normal; }
+td { padding:5px 10px 5px 0; border-top:1px solid var(--line); vertical-align:top; }
+td:first-child { white-space:nowrap; }
+.muted, p.muted { color:var(--muted); }
+pre { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:12px; overflow-x:auto; overflow-wrap:normal; font-size:12px; line-height:1.5; margin:8px 0; }
+code { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; }
 </style>
 </head>
 <body>
@@ -119,7 +148,28 @@ ${manifest ? `
   <a class="dl" href="${esc(manifest.archive.url)}" download>Download starter ZIP</a>
   <a class="dl" href="${esc(manifest.starter)}">Open starter example</a>
   <a class="dl" href="/assets/manifest.json">Asset manifest</a>
+  <a class="dl" href="/assets/importmap.json">Import map (JSON)</a>
 </div>
+<p class="muted">Build version <code>${esc(manifest.version)}</code>, content-addressed: every file is served under
+<code>/assets/${esc(manifest.version)}/</code> with immutable caching, sha256 ETags, and conditional-request revalidation.</p>
+
+<h2>What is served</h2>
+<table>
+  <tr><th scope="col">Files</th><th scope="col">Group</th><th scope="col">Key</th></tr>
+  ${groupRows}
+</table>
+
+<h2>The offline import map</h2>
+<p>${mapCount} bare specifiers resolve to bundled browser modules on this server: react, motion,
+gsap, lucide-react, phosphor, radix-ui, cn, class-variance-authority, and the shadcn components.
+Embed the map below in any page and those imports load from here instead of a public CDN, with
+zero outbound network. Modules carry CORS <code>*</code>, so the page does not have to live here.</p>
+${importMap ? `<pre><code>&lt;script type="importmap"&gt;
+${esc(mapJson)}
+&lt;/script&gt;</code></pre>
+<p class="muted">${origin ? `URLs are absolute against <code>${esc(origin)}</code>. The JSON form is at <a href="/assets/importmap.json">/assets/importmap.json</a>.` : "Paths are site-root relative. A running gallery also serves this map with absolute URLs at <code>/assets/importmap.json</code>."}</p>
+` : "<p class=\"muted\">This build predates the import map. Rebuild the frontend to publish it.</p>"}
+
 <h2>Dashboard &amp; Visualization JS / CSS</h2>
 <ul>${vendorFiles}</ul>
 <h2>Packages</h2>
