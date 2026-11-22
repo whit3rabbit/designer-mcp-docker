@@ -1,6 +1,6 @@
 {
   "name": "designer-mcp-docker",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "type": "module",
   "description": "Containerised design-system MCP server with a live offline thumbnail gallery",

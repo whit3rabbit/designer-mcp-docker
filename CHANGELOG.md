@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.7.0 (2026-11-22)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.7.0`
+- Library catalog: `data/libraries/` holds nine hand-authored install
+  manifests (react, tailwind, shadcn, radix-ui, lucide, heroicons, motion,
+  and the google-fonts and fontsource font sources). No fetcher and no
+  network: the entries are stable public facts. `design_library_search` and
+  `design_library_get` serve them (24 `design_*` tools), the gallery and
+  the static build expose `/api/libraries` and `/api/library/:id` as
+  JSON-only routes, and `references/library-setup.md` carries the workflow.
+- Asset CDN: `/assets` serves the built frontend as an offline module CDN.
+  The new import map resolves 26 bare specifiers (react, motion, gsap,
+  lucide, phosphor, radix-ui, and the shadcn components) to
+  content-addressed module URLs on the gallery origin, so a prototype can
+  import with zero external requests. `design_asset_list` and
+  `design_asset_importmap` join the tool set (26 tools), and
+  revalidation answers 304 from the manifest hash before touching disk.
+- Skill: `design-template-authoring/` states the asset policy for authored
+  templates (copyright-free media, compressed before commit, free-license
+  fonts, credit recorded in the readme).
+- Skill: audit fixes across the bundle. The xlsx dependencies gain `lxml`,
+  pdf and pdf-reading gain the family Dependencies section with real links
+  to REFERENCE.md and FORMS.md, frontend-design gains concrete trigger
+  keywords and an explicit critique loop, and the design-template-authoring
+  register step names the repo checkout as the root for its paths.
+- Build: `scripts/lib/cache-env.mjs` fixes build-static silently reading
+  the wrong cache directory locally when `DESIGN_CACHE_DIR` was set after
+  the cache module had already evaluated.
+
 ## v1.6.0 (2026-11-21)
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v1.6.0`
