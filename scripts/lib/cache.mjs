@@ -34,7 +34,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile, rename } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 /** Cache root. `DESIGN_CACHE_DIR` is the generic name; `REFERO_CACHE_DIR` is
  *  still honoured so existing installs and the upstream package keep working. */
@@ -43,8 +43,55 @@ export const CACHE_DIR =
   process.env.REFERO_CACHE_DIR ||
   join(homedir(), ".design-cache");
 
-let REMOTE_URL = (process.env.DESIGN_REMOTE_URL || "").replace(/\/+$/, "");
+// ------------------------------------------------------------ remote mode
+//
+// Opt-in: DESIGN_REMOTE_URL / --url points the readers at a hosted static
+// copy of this cache. Everything else in this file is local disk. Rule 1
+// asks a runtime network feature to degrade to cached data and say so, so a
+// reader never throws because the host is unreachable: it gets REMOTE_DOWN,
+// falls back to disk, and `remoteStatus()` lets the caller tell the user.
+
+const REMOTE_TIMEOUT_MS = 15_000;
+// After the host fails to answer it is skipped for this long, so a dead host
+// costs one timeout, not one per file a tool happens to read.
+const REMOTE_RETRY_MS = 30_000;
+const REMOTE_CACHE_LIMIT = 400;
+
+/** The host could not be reached or answered badly. Distinct from a 404, which is an answer (null). */
+export const REMOTE_DOWN = Symbol("remote-down");
+
+let REMOTE_URL = "";
+let remoteConfigNote = "";
+let remoteDownUntil = 0;
+let remoteLastError = "";
+let remoteFailures = 0;
 const remoteCache = new Map();
+
+applyRemoteUrl(process.env.DESIGN_REMOTE_URL);
+
+function applyRemoteUrl(raw) {
+  remoteCache.clear();
+  remoteDownUntil = 0;
+  remoteLastError = "";
+  remoteConfigNote = "";
+  REMOTE_URL = "";
+  const text = String(raw || "").trim().replace(/\/+$/, "");
+  if (!text) return;
+  let valid = false;
+  try {
+    const { protocol } = new URL(text);
+    valid = protocol === "http:" || protocol === "https:";
+  } catch {
+    valid = false;
+  }
+  if (!valid) {
+    // A typo here must not turn into requests to an unintended scheme, and
+    // must not stop the server either: use the local cache and say so.
+    remoteConfigNote = "The configured remote URL is not an http(s) URL. It was ignored; replies come from the local cache.";
+    return;
+  }
+  REMOTE_URL = text;
+}
 
 /** Base URL when reading from a hosted static site (e.g. GitLab Pages), or "". */
 export function getRemoteUrl() {
@@ -53,22 +100,109 @@ export function getRemoteUrl() {
 
 /** Point cache reads at a hosted static site (or "" for local disk). */
 export function setRemoteUrl(url) {
-  REMOTE_URL = String(url || "").replace(/\/+$/, "");
-  remoteCache.clear();
+  applyRemoteUrl(url);
 }
 
-async function fetchRemoteJson(rel) {
-  if (!REMOTE_URL) return null;
-  if (remoteCache.has(rel)) return remoteCache.get(rel);
-  const res = await fetch(`${REMOTE_URL}/${rel}`, { signal: AbortSignal.timeout(15000) });
-  if (res.status === 404) {
-    remoteCache.set(rel, null);
-    return null;
+/**
+ * What a caller needs to tell the user about remote mode.
+ *
+ * `failures` counts requests that fell back to disk since start; compare it
+ * before and after a piece of work to know whether that work was affected.
+ */
+export function remoteStatus() {
+  return {
+    configured: Boolean(REMOTE_URL),
+    down: Date.now() < remoteDownUntil,
+    failures: remoteFailures,
+    lastError: remoteLastError,
+    configNote: remoteConfigNote,
+  };
+}
+
+/**
+ * A path under the remote host that is safe to request.
+ *
+ * Parts of these paths come from tool arguments. The URL parser resolves dot
+ * segments (written plainly or as %2e), so without this check "../x" would
+ * leave the api/ tree and "?" or "#" would rewrite the request.
+ */
+function isSafeRemotePath(rel) {
+  if (typeof rel !== "string" || !/^[\w.%/-]+$/.test(rel) || rel.startsWith("/")) return false;
+  return !rel.split("/").some((segment) => /^(?:\.|%2e){1,2}$/i.test(segment));
+}
+
+function describeRemoteError(err) {
+  if (err?.name === "TimeoutError") return "timed out";
+  // Node reports a refused or unresolvable host on `cause`, and wraps it in an
+  // AggregateError when it tried more than one address.
+  const code = err?.cause?.code || err?.cause?.errors?.[0]?.code || err?.code;
+  if (typeof code === "string") return code;
+  return err instanceof Error && /^HTTP \d+$/.test(err.message) ? err.message : "request failed";
+}
+
+/**
+ * One GET against the remote host. Never throws.
+ *
+ * Returns the parsed body, null for a 404 or an unsafe path (which is never
+ * sent), or REMOTE_DOWN when the host could not be reached or sent an
+ * unusable reply.
+ */
+async function remoteGet(rel, kind) {
+  if (!REMOTE_URL || !isSafeRemotePath(rel)) return null;
+  const key = `${kind}:${rel}`;
+  if (remoteCache.has(key)) return remoteCache.get(key);
+  if (Date.now() < remoteDownUntil) {
+    remoteFailures++;
+    return REMOTE_DOWN;
   }
-  if (!res.ok) throw new Error(`Remote fetch ${rel} failed: HTTP ${res.status}`);
-  const data = await res.json();
-  remoteCache.set(rel, data);
-  return data;
+  let value;
+  try {
+    const res = await fetch(`${REMOTE_URL}/${rel}`, { signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS) });
+    if (res.status === 404) value = null;
+    else if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    else value = kind === "json" ? await res.json() : await res.text();
+  } catch (err) {
+    remoteFailures++;
+    remoteLastError = describeRemoteError(err);
+    // Only a host that did not answer at all is skipped for a while. One bad
+    // file (a 500, a truncated body) says nothing about the next request.
+    if (!/^HTTP \d+$/.test(remoteLastError) && !(err instanceof SyntaxError)) {
+      remoteDownUntil = Date.now() + REMOTE_RETRY_MS;
+    }
+    return REMOTE_DOWN;
+  }
+  if (remoteCache.size >= REMOTE_CACHE_LIMIT) remoteCache.delete(remoteCache.keys().next().value);
+  remoteCache.set(key, value);
+  return value;
+}
+
+/** Remote JSON at `rel`: the value, null (404), or REMOTE_DOWN. */
+export function remoteJson(rel) {
+  return remoteGet(rel, "json");
+}
+
+/** Remote text at `rel`: the text, null (404), or REMOTE_DOWN. */
+export function remoteText(rel) {
+  return remoteGet(rel, "text");
+}
+
+/**
+ * Remote first when a host is configured; the local reader when none is, or
+ * when the host cannot be reached. A 404 is the host's answer and is kept
+ * (null), so one session never mixes a remote catalog with items from disk.
+ * An unparseable JSON body counts as unreachable, which `remoteStatus`
+ * reports. `kind` is "json" or "text".
+ */
+export async function remoteOr(kind, rel, local) {
+  if (REMOTE_URL) {
+    const remote = await remoteGet(rel, kind);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
+  return local();
+}
+
+function remoteJsonOr(rel, local) {
+  return remoteOr("json", rel, local);
 }
 
 export const CATALOG_PATH = join(CACHE_DIR, "catalog.json");
@@ -78,6 +212,10 @@ export const STYLES_DIR = join(CACHE_DIR, "styles");
 export const SYSTEMS_DIR = join(CACHE_DIR, "systems");
 export const REUI_DIR = join(CACHE_DIR, "reui");
 export const DASHBOARDS_DIR = join(CACHE_DIR, "dashboards");
+export const HEROUI_DIR = join(CACHE_DIR, "heroui");
+export const MANTINE_DIR = join(CACHE_DIR, "mantine");
+export const DAISYUI_DIR = join(CACHE_DIR, "daisyui");
+export const BASEUI_DIR = join(CACHE_DIR, "baseui");
 
 /**
  * The Claude Design layer, one directory per system.
@@ -129,9 +267,7 @@ export async function readJson(path) {
  * have to guess.
  */
 export async function readCatalog() {
-  const raw = REMOTE_URL
-    ? await fetchRemoteJson("api/catalog.json")
-    : await readJson(CATALOG_PATH);
+  const raw = await remoteJsonOr("api/catalog.json", () => readJson(CATALOG_PATH));
   if (!raw) return { updatedAt: 0, designs: [] };
   const list = raw.designs || raw.styles || [];
   const designs = list.map((d) =>
@@ -158,7 +294,8 @@ export async function writeCatalog(designs) {
 /** Full detail for one design, across sources. */
 export async function readDesign(id, source) {
   if (REMOTE_URL) {
-    return fetchRemoteJson(`api/designs/${encodeURIComponent(id)}.json`);
+    const remote = await remoteJson(`api/designs/${encodeURIComponent(id)}.json`);
+    if (remote !== REMOTE_DOWN) return remote;
   }
   if (source === SOURCE.OPENDESIGN) {
     const raw = await readJson(join(SYSTEMS_DIR, `${id}.json`));
@@ -208,7 +345,10 @@ export async function writeDesign(id, source, payload) {
 }
 
 export async function readOpenDesignPackage(id) {
-  if (REMOTE_URL) return fetchRemoteJson(`api/packages/${encodeURIComponent(id)}.json`);
+  if (REMOTE_URL) {
+    const remote = await remoteJson(`api/packages/${encodeURIComponent(id)}.json`);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
   return readJson(join(SYSTEMS_DIR, "packages", `${id}.json`));
 }
 
@@ -229,7 +369,10 @@ export async function writeOpenDesignPackage(id, files) {
  */
 export async function readClaudePackage(id) {
   if (!/^[a-z0-9-]+$/i.test(id)) return null;
-  if (REMOTE_URL) return fetchRemoteJson(`api/claude/${encodeURIComponent(id)}.json`);
+  if (REMOTE_URL) {
+    const remote = await remoteJson(`api/claude/${encodeURIComponent(id)}.json`);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
   return readJson(join(CLAUDE_DIR, `${id}.json`));
 }
 
@@ -251,9 +394,7 @@ export const DESCRIPTORS_PATH = join(CACHE_DIR, "descriptors.json");
 
 /** The descriptors for every catalogued design system, or an empty map. */
 export async function readDescriptors() {
-  const raw = REMOTE_URL
-    ? await fetchRemoteJson("api/descriptors.json")
-    : await readJson(DESCRIPTORS_PATH);
+  const raw = await remoteJsonOr("api/descriptors.json", () => readJson(DESCRIPTORS_PATH));
   return raw?.systems ?? {};
 }
 
@@ -314,7 +455,8 @@ export async function cachedThumbIds() {
  */
 export async function readComponentsIndex() {
   if (REMOTE_URL) {
-    return (await fetchRemoteJson("api/components.json")) ?? { updatedAt: null, total: 0, variants: 0, components: [] };
+    const remote = await remoteJson("api/components.json");
+    if (remote !== REMOTE_DOWN) return remote ?? { updatedAt: null, total: 0, variants: 0, components: [] };
   }
   const path = join(CACHE_DIR, "components.json");
   if (!existsSync(path)) return { updatedAt: null, total: 0, variants: 0, components: [] };
@@ -328,7 +470,10 @@ export async function readComponentsIndex() {
 /** One component's full record, including every variant's source code. */
 export async function readComponent(slug) {
   if (!/^[a-z0-9-]+$/i.test(slug)) return null;
-  if (REMOTE_URL) return fetchRemoteJson(`api/component/${encodeURIComponent(slug)}.json`);
+  if (REMOTE_URL) {
+    const remote = await remoteJson(`api/component/${encodeURIComponent(slug)}.json`);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
   const path = join(CACHE_DIR, "components", `${slug}.json`);
   if (!existsSync(path)) return null;
   try {
@@ -341,7 +486,8 @@ export async function readComponent(slug) {
 /** The preset catalog index (which catalogs exist). */
 export async function readPresetsIndex() {
   if (REMOTE_URL) {
-    return (await fetchRemoteJson("api/presets.json")) ?? { updatedAt: null, total: 0, catalogs: [] };
+    const remote = await remoteJson("api/presets.json");
+    if (remote !== REMOTE_DOWN) return remote ?? { updatedAt: null, total: 0, catalogs: [] };
   }
   const path = join(CACHE_DIR, "presets.json");
   if (!existsSync(path)) return { updatedAt: null, total: 0, catalogs: [] };
@@ -355,7 +501,10 @@ export async function readPresetsIndex() {
 /** One preset catalog, with every preset record. */
 export async function readPresetCatalog(kind) {
   if (!/^[a-z0-9-]+$/i.test(kind)) return null;
-  if (REMOTE_URL) return fetchRemoteJson(`api/presets/${encodeURIComponent(kind)}.json`);
+  if (REMOTE_URL) {
+    const remote = await remoteJson(`api/presets/${encodeURIComponent(kind)}.json`);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
   const path = join(CACHE_DIR, "presets", `${kind}.json`);
   if (!existsSync(path)) return null;
   try {
@@ -374,7 +523,10 @@ export async function readPresetCatalog(kind) {
  */
 export async function readLibrariesIndex() {
   const empty = { updatedAt: null, total: 0, libraries: [] };
-  if (REMOTE_URL) return (await fetchRemoteJson("api/libraries.json")) ?? empty;
+  if (REMOTE_URL) {
+    const remote = await remoteJson("api/libraries.json");
+    if (remote !== REMOTE_DOWN) return remote ?? empty;
+  }
   const path = join(CACHE_DIR, "libraries.json");
   if (!existsSync(path)) return empty;
   try {
@@ -387,7 +539,10 @@ export async function readLibrariesIndex() {
 /** One library entry, including the setup files it carries. */
 export async function readLibraryEntry(id) {
   if (!/^[a-z0-9-]+$/i.test(id)) return null;
-  if (REMOTE_URL) return fetchRemoteJson(`api/library/${encodeURIComponent(id)}.json`);
+  if (REMOTE_URL) {
+    const remote = await remoteJson(`api/library/${encodeURIComponent(id)}.json`);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
   const path = join(CACHE_DIR, "libraries", `${id}.json`);
   if (!existsSync(path)) return null;
   try {
@@ -406,7 +561,10 @@ export async function readLibraryEntry(id) {
  */
 export async function readDesignSystemsIndex() {
   const empty = { updatedAt: null, total: 0, systems: [] };
-  if (REMOTE_URL) return (await fetchRemoteJson("api/templates.json")) ?? empty;
+  if (REMOTE_URL) {
+    const remote = await remoteJson("api/templates.json");
+    if (remote !== REMOTE_DOWN) return remote ?? empty;
+  }
   const path = join(CACHE_DIR, "design-systems.json");
   if (!existsSync(path)) return empty;
   try {
@@ -423,7 +581,10 @@ export async function readDesignSystemsIndex() {
  */
 export async function readDesignSystem(slug) {
   if (!/^[a-z0-9-]+$/i.test(slug)) return null;
-  if (REMOTE_URL) return fetchRemoteJson(`api/template/${encodeURIComponent(slug)}.json`);
+  if (REMOTE_URL) {
+    const remote = await remoteJson(`api/template/${encodeURIComponent(slug)}.json`);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
   const path = join(CACHE_DIR, "design-systems", `${slug}.json`);
   if (!existsSync(path)) return null;
   try {
@@ -431,6 +592,24 @@ export async function readDesignSystem(slug) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Safe text file read inside a design-system template's directory, with
+ * DESIGN_REMOTE_URL fallback to `api/template/<slug>/<path>`.
+ */
+export async function readDesignSystemFile(slug, relPath) {
+  if (!/^[a-z0-9-]+$/i.test(slug)) return null;
+  const clean = String(relPath || "").replace(/^\/+/, "");
+  if (!clean || clean.includes("..") || clean.includes("\\")) return null;
+  if (REMOTE_URL) {
+    const remote = await remoteText(`api/template/${encodeURIComponent(slug)}/${clean}`);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
+  const base = resolve(join(CACHE_DIR, "design-systems", slug));
+  const full = resolve(join(base, clean));
+  if (!full.startsWith(base + "/") || !existsSync(full)) return null;
+  return readFile(full, "utf8");
 }
 
 /** Aggregate counts for the health endpoint and the index file. */
@@ -458,14 +637,20 @@ export async function readIndex() {
 /** ReUI component library index: { updatedAt, total, categories[] }. */
 export async function readReuiIndex() {
   const empty = { updatedAt: null, total: 0, categories: [] };
-  if (REMOTE_URL) return (await fetchRemoteJson("api/reui.json")) ?? empty;
+  if (REMOTE_URL) {
+    const remote = await remoteJson("api/reui.json");
+    if (remote !== REMOTE_DOWN) return remote ?? empty;
+  }
   return (await readJson(join(REUI_DIR, "index.json"))) ?? empty;
 }
 
 /** One ReUI category with all its component items (Radix UI & Base UI TSX). */
 export async function readReuiCategory(slug) {
   if (!/^[a-z0-9-]+$/i.test(slug)) return null;
-  if (REMOTE_URL) return fetchRemoteJson(`api/reui/${encodeURIComponent(slug)}.json`);
+  if (REMOTE_URL) {
+    const remote = await remoteJson(`api/reui/${encodeURIComponent(slug)}.json`);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
   return readJson(join(REUI_DIR, "categories", `${slug}.json`));
 }
 
@@ -480,14 +665,20 @@ export async function readReuiScreenshot(filename) {
 /** Dashboard starter templates index: { updatedAt, total, dashboards[] }. */
 export async function readDashboardsIndex() {
   const empty = { updatedAt: null, total: 0, dashboards: [] };
-  if (REMOTE_URL) return (await fetchRemoteJson("api/dashboards.json")) ?? empty;
+  if (REMOTE_URL) {
+    const remote = await remoteJson("api/dashboards.json");
+    if (remote !== REMOTE_DOWN) return remote ?? empty;
+  }
   return (await readJson(join(DASHBOARDS_DIR, "index.json"))) ?? empty;
 }
 
 /** Full dashboard template record, including files[], dependencies[], pages[]. */
 export async function readDashboard(slug) {
   if (!/^[a-z0-9-]+$/i.test(slug)) return null;
-  if (REMOTE_URL) return fetchRemoteJson(`api/dashboard/${encodeURIComponent(slug)}.json`);
+  if (REMOTE_URL) {
+    const remote = await remoteJson(`api/dashboard/${encodeURIComponent(slug)}.json`);
+    if (remote !== REMOTE_DOWN) return remote;
+  }
   return readJson(join(DASHBOARDS_DIR, slug, "dashboard.json"));
 }
 

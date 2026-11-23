@@ -50,7 +50,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.design-cache
-          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-reui.mjs', 'scripts/fetch-dashboards.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-thumbs.mjs') }}
+          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-reui.mjs', 'scripts/fetch-dashboards.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-heroui.mjs', 'scripts/fetch-mantine.mjs', 'scripts/fetch-daisyui.mjs', 'scripts/fetch-baseui.mjs', 'scripts/fetch-thumbs.mjs', 'data/mantine/pin.json', 'data/daisyui/pin.json', 'data/baseui/pin.json') }}
           restore-keys: |
             catalog-${{ runner.os }}-
 
@@ -66,6 +66,10 @@ jobs:
           node scripts/fetch-reui.mjs || echo "reui fetch incomplete"
           node scripts/fetch-dashboards.mjs || echo "dashboards fetch incomplete"
           node scripts/fetch-presets.mjs || echo "preset fetch incomplete"
+          node scripts/fetch-heroui.mjs || echo "heroui fetch incomplete"
+          node scripts/fetch-mantine.mjs || echo "mantine fetch incomplete"
+          node scripts/fetch-daisyui.mjs || echo "daisyui fetch incomplete"
+          node scripts/fetch-baseui.mjs || echo "baseui fetch incomplete"
           node scripts/fetch-thumbs.mjs --compress || echo "thumb fetch incomplete"
           node scripts/bake-cache.mjs --cache "$HOME/.design-cache" --out bake
           ls -la bake/
@@ -155,7 +159,7 @@ jobs:
           sleep 12
           docker exec designer-mcp-verify node -e "
             const base = 'http://127.0.0.1:8787';
-            const checks = ['/healthz', '/components', '/presets', '/api/designs'];
+            const checks = ['/healthz', '/components', '/presets', '/api/designs', '/heroui', '/api/heroui', '/mantine', '/api/mantine', '/daisyui', '/api/daisyui'];
             let bad = 0;
             for (const p of checks) {
               try {

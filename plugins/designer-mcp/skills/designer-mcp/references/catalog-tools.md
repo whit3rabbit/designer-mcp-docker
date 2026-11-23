@@ -1,13 +1,16 @@
 # Catalog Layers: Components, Presets, and Templates
 
-Usage guidance for the three non-style catalog layers. Tool parameters and
-return shapes live in [mcp-tools.md](mcp-tools.md).
+Usage guidance for the catalog layers beyond styles: components, presets,
+templates, and the UI library docs. Tool parameters and return shapes live in
+[mcp-tools.md](mcp-tools.md), which covers every tool.
 
 ## Contents
 
 - [Components](#components)
 - [Presets](#presets)
 - [Templates](#templates)
+- [HeroUI component docs](#heroui-component-docs)
+- [Mantine, daisyUI, and Base UI](#mantine-daisyui-and-base-ui)
 
 ## Components
 
@@ -28,12 +31,44 @@ Use components for:
 Workflow:
 
 - `design_component_search` with a `query` or `category` to find candidates
-- `design_component_get` for the full record: variants, FAQ, dependencies
+- `design_component_get` for the record: variants (id, file, dependencies,
+  code size), FAQ, install command
 - `design_component_code` to pull the source for a specific variant
 
 These are third-party MIT-licensed components, not your design system. Treat
 them as reference implementations: adapt them to the visual direction you
 locked from styles, rather than dropping them in unchanged.
+
+## HeroUI component docs
+
+A fourth reference layer: the official docs of the HeroUI v3 React library,
+73 components and 16 guides baked offline from the pinned npm packages. The
+`design_heroui_*` tools serve them (see
+[mcp-tools.md](mcp-tools.md#heroui-v3-tools--design_heroui_) for the table),
+and the gallery browses the same pages at `/heroui`. Use HeroUI when the task
+is to build UI in that specific library: `design_heroui_get_docs` before
+writing any component, `design_heroui_get_theme_variables` plus the
+`heroui-theming` sub-skill when the ask is to theme or restyle it, and
+`design_heroui_migration_guide` when the project is still on HeroUI v2.
+
+## Mantine, daisyUI, and Base UI
+
+Three more library layers, each baked offline with its own tools (tables in
+[mcp-tools.md](mcp-tools.md)) and a gallery tab:
+
+- **Mantine UI** (`design_mantine_*`, `/mantine`): 123 ready-made components
+  from ui.mantine.dev with their full TSX and CSS module source. Read a
+  component with `design_mantine_get_component` before writing Mantine code.
+- **daisyUI 5** (`design_daisyui_*`, `/daisyui`): 68 plain-HTML components
+  and 35 themes. No React or Tailwind install: the example HTML works with
+  the vendored css. `design_daisyui_search` matches class names.
+- **Base UI** (`design_baseui_*`, `/baseui`): docs and guides for the
+  headless `@base-ui/react` primitives. The docs are long, so page through
+  them (see "Reply sizes and paging" in mcp-tools.md). For a styled version
+  of a Base UI component, the ReUI gallery (`/reui`) has Base UI variants.
+
+Pick the layer the project already uses. Do not mix two component libraries
+in one build because both happen to be available.
 
 ## Presets
 
@@ -41,6 +76,10 @@ locked from styles, rather than dropping them in unchanged.
 gradients and patterns plus 20 liquid-glass effects. Each carries real CSS
 and a React template. Use them for hero and section backgrounds, ambient
 gradients, and glass surfaces.
+
+Search first, then fetch what you picked: `design_preset_search` returns ids,
+and `design_preset_get` with `kind` and `ids` returns those presets' CSS and
+code. Without `ids` it pages through the catalog 20 at a time.
 
 ## Templates
 
@@ -54,7 +93,7 @@ rather than from scratch.
 
 Workflow:
 
-- `design_template_list` to see all six (swatches, fonts, token counts)
+- `design_template_list` to see all seven (swatches, fonts, token counts)
 - `design_manifest_template` with a `slug` to get the design-system manifest:
   a manifest JSON with sections for overview/principles, colors, typography,
   spacing, corner radius, shadows, components, and assets, already filled
@@ -63,7 +102,9 @@ Workflow:
 - `design_template_get` for the full record: theme parameters, every token,
   the component class table, the file listing
 - `design_template_file` to copy an individual file (the token sheet, a
-  starter page, the guide). Binary assets are refused.
+  starter page, the guide). Binary assets are refused. A file over 100 KB
+  (the deck stage script) comes back with `nextOffset`: fetch every part and
+  join them before writing it.
 
 Rules:
 

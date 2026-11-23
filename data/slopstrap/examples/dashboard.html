@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!-- Slopstrap example: dashboard card. Unzip slopstrap.zip and place this file
+     next to its dist/ folder, then open it in a browser. -->
+<html lang="en" data-slop-level="2">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PulseBoard — Real-time Synergy Metrics</title>
+  <link rel="stylesheet" href="./dist/slopstrap.css">
+</head>
+<body class="slop-body slop-grid-bg">
+  <div class="slop-orb-layer" aria-hidden="true">
+    <div class="slop-orb slop-orb-purple"></div>
+    <div class="slop-orb slop-orb-cyan"></div>
+  </div>
+
+  <div class="slop-content-layer">
+    <main class="slop-container slop-section">
+      <div class="slop-row slop-row-between">
+        <div>
+          <span class="slop-pill slop-pill-shimmer"><span class="slop-dot slop-dot-green"></span> LIVE</span>
+          <h1 class="slop-h2 slop-mt-2">
+            <span class="slop-text-gradient">PulseBoard</span>
+            <span class="slop-serif-emphasis">analytics</span>
+          </h1>
+        </div>
+        <div class="slop-status">
+          <span class="slop-dot slop-dot-green"></span> connected to nothing
+        </div>
+      </div>
+
+      <div class="slop-grid-3 slop-mt-4">
+        <div class="slop-stat-card slop-card-beam">
+          <div class="slop-stat-label">Monthly recurring vibes</div>
+          <div class="slop-stat-value" data-slop-count="84.2k">0</div>
+          <div class="slop-stat-delta">▲ +312% vs last month</div>
+        </div>
+        <div class="slop-stat-card">
+          <div class="slop-stat-label">Active agents</div>
+          <div class="slop-stat-value" data-slop-count="1337">0</div>
+          <div class="slop-stat-delta">▲ all of them autonomous</div>
+        </div>
+        <div class="slop-stat-card">
+          <div class="slop-stat-label">Hallucination rate</div>
+          <div class="slop-stat-value" data-slop-count="0.1%">0%</div>
+          <div class="slop-stat-delta">▼ within acceptable fiction</div>
+        </div>
+      </div>
+
+      <div class="slop-grid-2 slop-mt-4">
+        <div class="slop-card">
+          <div class="slop-row slop-row-between">
+            <h3 class="slop-h3">AI workload</h3>
+            <span class="slop-badge slop-badge-ai">AI-POWERED</span>
+          </div>
+          <div class="slop-ai-bar slop-mt-2"><div class="slop-progress-bar" style="width:87%"></div></div>
+          <p class="slop-muted slop-mt-2">87% of compute is thinking about synergy. The rest is rendering gradients.</p>
+          <div class="slop-alert slop-mt-3">
+            <span class="slop-dot slop-dot-cyan"></span>
+            Tip: wrap one random word in italics for instant sophistication.
+          </div>
+        </div>
+        <div class="slop-card slop-card-beam">
+          <h3 class="slop-h3">Deploy log</h3>
+          <div class="slop-terminal slop-mt-2">
+            <div class="slop-terminal-header"><span class="slop-traffic-lights"></span> production</div>
+            <pre class="slop-code">$ slop deploy --prod
+✔ building with 4 concurrent agents
+✔ tests passed (11 skipped, 0 read)
+✔ shipped to 190 edge regions
+⚠ warning: gradient budget exceeded</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="slop-card slop-mt-4 slop-border-l-purple">
+        <div class="slop-row slop-row-between">
+          <div>
+            <h3 class="slop-h3">Quarterly synergy report</h3>
+            <p class="slop-muted">Prepared by the insights team, meaning one intern and a prompt.</p>
+          </div>
+          <button class="slop-btn slop-btn-primary" data-slop-copy="Synergy up, specifics down">Copy summary</button>
+        </div>
+        <div class="slop-progress slop-mt-3"><div class="slop-progress-bar" style="width:64%"></div></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="./dist/slopstrap.js" defer></script>
+</body>
+</html>

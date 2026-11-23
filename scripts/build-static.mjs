@@ -48,6 +48,32 @@ import {
 } from "./lib/cache.mjs";
 import { reuiCatalogHtml, reuiCategoryHtml } from "./lib/reui-ui.mjs";
 import { dashboardsHtml, dashboardDetailHtml } from "./lib/dashboards-ui.mjs";
+import {
+  readHeroUiCatalog,
+  readHeroUiDoc,
+  readHeroUiMigrationDoc,
+  readHeroUiMigrationIndex,
+  readHeroUiSource,
+  readHeroUiStyles,
+  readHeroUiTheme,
+} from "./lib/heroui-docs.mjs";
+import { herouiCatalogHtml, herouiDocHtml } from "./lib/heroui-ui.mjs";
+import { readBaseUiCatalog, readBaseUiDoc } from "./lib/baseui-docs.mjs";
+import { baseUiCatalogHtml, baseUiDocHtml } from "./lib/baseui-ui.mjs";
+import {
+  readMantineCatalog,
+  readMantineComponent,
+  readMantineProvenance,
+  readMantineAsset,
+} from "./lib/mantine-docs.mjs";
+import { mantineCatalogHtml, mantineCategoryHtml, mantineComponentHtml } from "./lib/mantine-ui.mjs";
+import {
+  readDaisyuiCatalog,
+  readDaisyuiComponent,
+  readDaisyuiCss,
+  readDaisyuiProvenance,
+} from "./lib/daisyui-docs.mjs";
+import { daisyuiCatalogHtml, daisyuiComponentHtml } from "./lib/daisyui-ui.mjs";
 import { loadFrontend, previewHtml } from "./lib/frontend.mjs";
 import {
   KIT_CSS,
@@ -65,6 +91,7 @@ import {
   nav,
   presetDetailHtml,
   presetsHtml,
+  slopstrapHtml,
   tailwindCatalogHtml,
   tailwindExampleHtml,
   templateDetailHtml,
@@ -150,6 +177,10 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
     ['href="/presets"', `href="${p}presets/index.html"`],
     ['href="/templates"', `href="${p}templates/index.html"`],
     ['href="/dashboards"', `href="${p}dashboards/index.html"`],
+    ['href="/mantine"', `href="${p}mantine/index.html"`],
+    ['href="/daisyui"', `href="${p}daisyui/index.html"`],
+    ['href="/baseui"', `href="${p}baseui/index.html"`],
+    ['href="/slopstrap"', `href="${p}slopstrap/index.html"`],
     ['href="/docs"', `href="${p}docs/index.html"`],
     ['href="/assets"', `href="${p}assets/index.html"`],
     ['href="/skill"', `href="${p}skill/designer-mcp-skill.zip"`],
@@ -177,6 +208,14 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
   out = out.replace(/href="\/dashboard\/([a-z0-9-]+)\/download"/g, (_, slug) => `href="${p}dashboard/${slug}/${slug}-offline.zip"`);
   out = out.replace(/href="\/dashboard\/([a-z0-9-]+)\/fonts\.zip"/g, (_, slug) => `href="${p}dashboard/${slug}/fonts.zip"`);
   out = out.replace(/href="\/tailwind\/(hyperui|shadcn)\/([^"?#]+)"/g, (_, src, slug) => `href="${p}tailwind/${src}/${slug}/index.html"`);
+  out = out.replace(/href="\/mantine\/category\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}mantine/category/${slug}/index.html"`);
+  out = out.replace(/href="\/mantine\/component\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}mantine/component/${slug}/index.html"`);
+  out = out.replace(/src="\/mantine\/asset\/([\w.-]+)"/g, (_, file) => `src="${p}mantine/asset/${file}"`);
+  out = out.replace(/(href|src)="\/mantine\/preview\/([a-z0-9-]+)"/g, (_, attr, slug) => `${attr}="${p}mantine/preview/${slug}.html"`);
+  out = out.replace(/href="\/daisyui\/component\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}daisyui/component/${slug}/index.html"`);
+  out = out.replace(/(href|src)="\/daisyui\/preview\/([a-z0-9-]+)"/g, (_, attr, slug) => `${attr}="${p}daisyui/preview/${slug}.html"`);
+  out = out.replace(/href="\/baseui\/doc\/(components|overview|handbook|utils)\/([a-z0-9-]+)"/g, (_, section, slug) => `href="${p}baseui/doc/${section}/${slug}/index.html"`);
+  out = out.replace(/(href|src)="\/daisyui\/css\/([a-z0-9-]+)\.css"/g, (_, attr, name) => `${attr}="${p}daisyui/preview/${name}.css"`);
 
   // Rewrite template thumbs
   if (templateThumbMap) {
@@ -458,19 +497,24 @@ async function main() {
   }
   // No origin for the static site: the import map renders site-root relative.
   await writeOut("assets/index.html", relativizeHtml(assetsHtml(frontend.publicManifest, frontend.importMap()), 1, { assetBase }));
+  // The Slopstrap examples page: same builder as the gallery, with the
+  // /assets hrefs rewritten to the depth-relative form by relativizeHtml.
+  await writeOut("slopstrap/index.html", relativizeHtml(slopstrapHtml(frontend.publicManifest), 1, { assetBase }));
 
-  // 2. Copy skill zip & the primary SKILL.md
+  // 2. Copy the skill zip, the marketplace zip & the primary SKILL.md
   if (existsSync(SKILLS_ROOT)) {
-    const zipCandidates = [
-      join(SKILLS_ROOT, "designer-mcp-skill.zip"),
-      join(dirname(SKILLS_ROOT), "designer-mcp-skill.zip"),
-      join(ROOT, "dist", "designer-mcp-skill.zip"),
-    ];
-    for (const z of zipCandidates) {
-      if (existsSync(z)) {
-        await mkdir(join(OUT_DIR, "skill"), { recursive: true });
-        await cp(z, join(OUT_DIR, "skill", "designer-mcp-skill.zip"));
-        break;
+    for (const name of ["designer-mcp-skill.zip", "designer-mcp-marketplace.zip"]) {
+      const zipCandidates = [
+        join(SKILLS_ROOT, name),
+        join(dirname(SKILLS_ROOT), name),
+        join(ROOT, "dist", name),
+      ];
+      for (const z of zipCandidates) {
+        if (existsSync(z)) {
+          await mkdir(join(OUT_DIR, "skill"), { recursive: true });
+          await cp(z, join(OUT_DIR, "skill", name));
+          break;
+        }
       }
     }
     const primarySkillMd = join(SKILLS_ROOT, "design-system", "SKILL.md");
@@ -754,10 +798,14 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
     for (const item of comp.variants || []) {
       const entry = manifest?.previews?.[slug]?.[item.id];
       if (!entry) continue;
-      // Preview sits at component/<slug>/preview/<id>.html (depth 3)
+      // Preview sits at component/<slug>/preview/<id>.html (depth 3).
+      // Module previews compose asset-base URLs; native previews are
+      // self-contained documents served as built.
       const p3 = prefixFor(3);
-      const doc = previewHtml(`${p3}assets/${manifest.version}/${entry.module}`, `${p3}assets/${manifest.version}/previews/preview.css`);
-      await writeOut(`component/${slug}/preview/${item.id}.html`, doc);
+      const doc = entry.native
+        ? frontend.previewDocument(slug, item)
+        : previewHtml(`${p3}assets/${manifest.version}/${entry.module}`, `${p3}assets/${manifest.version}/previews/preview.css`);
+      if (doc) await writeOut(`component/${slug}/preview/${item.id}.html`, doc);
     }
     await writeOut(`component/${slug}/index.html`, relativizeHtml(componentDetailHtml(comp, previewPaths), 2, { assetBase }));
   }
@@ -787,7 +835,72 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
     }
   }
 
-  // 7c. Dashboards
+  // 7c. HeroUI v3 docs (catalog, rendered pages, and the raw endpoints the
+  // DESIGN_REMOTE_URL MCP mode reads through scripts/lib/heroui-docs.mjs)
+  const heroUiCatalog = await readHeroUiCatalog();
+  if (heroUiCatalog.components?.length) {
+    await writeJson("api/heroui.json", heroUiCatalog);
+    await writeOut("heroui/index.html", relativizeHtml(herouiCatalogHtml(heroUiCatalog), 1, { assetBase }));
+    for (const entry of heroUiCatalog.components) {
+      const content = await readHeroUiDoc(entry.path);
+      if (content === null) continue;
+      await writeOut(`api/heroui/doc/${entry.path}`, content);
+      await writeOut(
+        `heroui/component/${entry.slug}/index.html`,
+        relativizeHtml(herouiDocHtml(heroUiCatalog, entry, "component", content), 2, { assetBase }),
+      );
+      if (heroUiCatalog.hasSource) {
+        const src = await readHeroUiSource(entry.name);
+        if (src) await writeJson(`api/heroui/source/${entry.slug}.json`, src);
+      }
+      if (heroUiCatalog.hasStyles) {
+        const css = await readHeroUiStyles(entry.name);
+        if (css !== null) await writeOut(`api/heroui/styles/${entry.slug}.css`, css);
+      }
+    }
+    for (const guide of heroUiCatalog.guides) {
+      const content = await readHeroUiDoc(guide.path);
+      if (content === null) continue;
+      await writeOut(`api/heroui/doc/${guide.path}`, content);
+      await writeOut(
+        `heroui/guide/${guide.slug}/index.html`,
+        relativizeHtml(herouiDocHtml(heroUiCatalog, guide, "guide", content), 2, { assetBase }),
+      );
+    }
+    const theme = await readHeroUiTheme();
+    if (theme) await writeJson("api/heroui/theme.json", theme);
+    const migIndex = await readHeroUiMigrationIndex();
+    if (migIndex) {
+      await writeJson("api/heroui/migration/index.json", migIndex);
+      for (const file of migIndex.files || []) {
+        const content = await readHeroUiMigrationDoc(file.name);
+        if (content !== null) await writeOut(`api/heroui/migration/${file.name}`, content);
+      }
+    }
+  }
+
+  // 7d. Base UI docs (catalog, rendered pages, and the raw endpoints the
+  // DESIGN_REMOTE_URL MCP mode reads through scripts/lib/baseui-docs.mjs).
+  // Base UI is headless: docs only, cross-linked to the ReUI pages above.
+  const baseUiCatalog = await readBaseUiCatalog();
+  if (baseUiCatalog.components?.length) {
+    const baseUiReuiSlugs = new Set(((await readReuiIndex()).categories || []).map((c) => c.slug));
+    await writeJson("api/baseui.json", baseUiCatalog);
+    await writeOut("baseui/index.html", relativizeHtml(baseUiCatalogHtml(baseUiCatalog, { reuiSlugs: baseUiReuiSlugs }), 1, { assetBase }));
+    const baseUiEntries = [...baseUiCatalog.components, ...(baseUiCatalog.guides || [])];
+    for (const entry of baseUiEntries) {
+      const content = await readBaseUiDoc(entry.path);
+      if (content === null) continue;
+      await writeOut(`api/baseui/doc/${entry.path}`, content);
+      await writeOut(
+        `baseui/doc/${entry.path.replace(/\.md$/, "")}/index.html`,
+        // Doc pages sit at baseui/doc/<section>/<slug>/ (depth 4).
+        relativizeHtml(baseUiDocHtml(baseUiCatalog, entry, content, { reuiSlugs: baseUiReuiSlugs }), 4, { assetBase }),
+      );
+    }
+  }
+
+  // 7e. Dashboards
   const dashIndex = await readDashboardsIndex();
   if (dashIndex.dashboards?.length) {
     await writeJson("api/dashboards.json", dashIndex);
@@ -803,6 +916,131 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
       const fontsZip = await readDashboardArchive(slug, "fonts");
       if (fontsZip) await writeOut(`dashboard/${slug}/fonts.zip`, fontsZip);
       await writeOut(`dashboard/${slug}/index.html`, relativizeHtml(dashboardDetailHtml(rec), 2, { assetBase }));
+    }
+  }
+
+  // 7f. Mantine UI catalog (rendered pages, the preview documents the
+  // frontend build produced, and the raw endpoints the DESIGN_REMOTE_URL
+  // MCP mode reads through scripts/lib/mantine-docs.mjs)
+  const mantineCatalog = await readMantineCatalog();
+  if (mantineCatalog.components?.length) {
+    const mantineHelpers = {
+      previewPath: (slug) => frontend.mantinePreviewPath(slug),
+      thumbnailPath: (slug) => frontend.mantineThumbnailPath(slug),
+    };
+    const provenance = await readMantineProvenance();
+    if (provenance) await writeJson("api/mantine/provenance.json", provenance);
+    await writeJson("api/mantine.json", {
+      ...mantineCatalog,
+      vendor: provenance?.packages
+        ? Object.fromEntries(Object.entries(provenance.packages).map(([name, rec]) => [name, rec.version]))
+        : {},
+    });
+    await writeOut("mantine/index.html", relativizeHtml(mantineCatalogHtml(mantineCatalog, mantineHelpers), 1, { assetBase }));
+    const categories = (mantineCatalog.groups || []).flatMap((g) =>
+      g.categories.map((c) => ({ ...c, group: g.name })));
+    for (const category of categories) {
+      await writeOut(
+        `mantine/category/${category.slug}/index.html`,
+        // Category and component pages sit at mantine/<what>/<slug>/ (depth 3).
+        relativizeHtml(mantineCategoryHtml(mantineCatalog, category, mantineHelpers), 3, { assetBase }),
+      );
+      // The category illustrations the index and sidebar reference. They sit
+      // at mantine/asset/<file> for the rewritten HTML, and at their cache
+      // path mantine/images/<file> for the DESIGN_REMOTE_URL readers.
+      for (const theme of ["light", "dark"]) {
+        const file = category.image?.[theme];
+        if (!file) continue;
+        const buf = await readMantineAsset(file);
+        if (!buf) continue;
+        await writeOut(`mantine/asset/${file.split("/").pop()}`, buf);
+        await writeOut(`mantine/${file}`, buf);
+      }
+    }
+    // The preview documents: module demos with the import map rewritten to
+    // the site-relative asset base (module, css, and the react/@mantine
+    // specifiers alike).
+    const layer = manifest?.mantinePreviews;
+    if (layer) {
+      // Preview sits at mantine/preview/<slug>.html (depth 3); the import
+      // map and the css link need the same site-relative base as the module.
+      const p3 = prefixFor(3);
+      const mantineImports = () => {
+        const imports = {};
+        for (const specifier of ["react", "react-dom", "react-dom/client", "react/jsx-runtime"]) {
+          const file = manifest.importMap?.[specifier];
+          if (file) imports[specifier] = `${p3}${assetBase}/${file}`;
+        }
+        for (const [specifier, file] of Object.entries(layer.vendor)) {
+          imports[specifier] = `${p3}${assetBase}/${file}`;
+        }
+        return { imports };
+      };
+      for (const [slug, entry] of Object.entries(layer.previews || {})) {
+        await writeOut(
+          `mantine/preview/${slug}.html`,
+          previewHtml(`${p3}${assetBase}/${entry.module}`, `${p3}${assetBase}/${layer.css}`, "", mantineImports()),
+        );
+      }
+    }
+    for (const { slug } of mantineCatalog.components) {
+      const detail = await readMantineComponent(slug);
+      if (!detail) continue;
+      await writeJson(`api/mantine/component/${slug}.json`, detail);
+      const category = categories.find((c) => c.slug === detail.category);
+      await writeOut(
+        `mantine/component/${slug}/index.html`,
+        relativizeHtml(mantineComponentHtml(mantineCatalog, detail, { ...mantineHelpers, category }), 3, { assetBase }),
+      );
+    }
+  }
+
+  // 7g. daisyUI catalog (rendered pages, the preview documents the frontend
+  // build produced, and the raw endpoints the DESIGN_REMOTE_URL MCP mode
+  // reads through scripts/lib/daisyui-docs.mjs)
+  const daisyuiCatalog = await readDaisyuiCatalog();
+  if (daisyuiCatalog.components?.length) {
+    const daisyuiHelpers = {
+      previewPath: (slug) => frontend.daisyuiPreviewPath(slug),
+      thumbnailPath: (slug) => frontend.daisyuiThumbnailPath(slug),
+    };
+    const daisyuiProvenance = await readDaisyuiProvenance();
+    if (daisyuiProvenance) await writeJson("api/daisyui/provenance.json", daisyuiProvenance);
+    await writeJson("api/daisyui/themes.json", { total: daisyuiCatalog.themes?.length || 0, themes: daisyuiCatalog.themes || [] });
+    await writeJson("api/daisyui.json", daisyuiCatalog);
+    await writeOut("daisyui/index.html", relativizeHtml(daisyuiCatalogHtml(daisyuiCatalog, daisyuiHelpers), 1, { assetBase }));
+    // The compiled css: at daisyui/preview/daisyui.css for the built preview
+    // documents (their stylesheet link is directory-relative), and under api/
+    // for the DESIGN_REMOTE_URL readers.
+    for (const name of ["daisyui", "themes", "compat"]) {
+      const css = await readDaisyuiCss(name);
+      if (css !== null) {
+        // The two stylesheets the preview documents link sit beside them; the
+        // variables-only sheet just rides the api/ path for remote readers.
+        if (name === "daisyui" || name === "compat") await writeOut(`daisyui/preview/${name}.css`, css);
+        await writeOut(`api/daisyui/css/${name}.css`, css);
+      }
+    }
+    // The preview documents: the frontend build wrote them with the shared
+    // stylesheet beside them and a client-side ?theme= handler, so the bytes
+    // are copied verbatim.
+    const daisyuiLayer = manifest?.daisyuiPreviews;
+    if (daisyuiLayer) {
+      for (const [slug, entry] of Object.entries(daisyuiLayer.previews || {})) {
+        if (!Object.hasOwn(manifest.files, entry.file)) continue;
+        try {
+          await writeOut(`daisyui/preview/${slug}.html`, await readFile(join(FRONTEND_DIR, "public", entry.file), "utf8"));
+        } catch { /* a missing preview document just loses one iframe */ }
+      }
+    }
+    for (const { slug } of daisyuiCatalog.components) {
+      const detail = await readDaisyuiComponent(slug);
+      if (!detail) continue;
+      await writeJson(`api/daisyui/component/${slug}.json`, detail);
+      await writeOut(
+        `daisyui/component/${slug}/index.html`,
+        relativizeHtml(daisyuiComponentHtml(daisyuiCatalog, detail, daisyuiHelpers), 3, { assetBase }),
+      );
     }
   }
 
@@ -859,6 +1097,13 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
     const rec = await readDesignSystem(sys.slug);
     if (!rec) continue;
     await writeJson(`api/template/${sys.slug}.json`, rec);
+    for (const file of rec.files || []) {
+      if (file.binary || !file.path || file.path.includes("..") || file.path.includes("\\")) continue;
+      const srcPath = join(CACHE_DIR, "design-systems", sys.slug, file.path);
+      if (existsSync(srcPath)) {
+        await writeOut(`api/template/${sys.slug}/${file.path}`, await readFile(srcPath, "utf8"));
+      }
+    }
     if (rec.thumbnailImage && !rec.thumbnailImage.includes("..")) {
       const imgPath = join(CACHE_DIR, "design-systems", rec.thumbnailImage);
       if (existsSync(imgPath)) {

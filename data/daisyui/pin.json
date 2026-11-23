@@ -1,0 +1,8 @@
+{
+  "comment": "daisyUI bake pin. scripts/fetch-daisyui.mjs reads this to fetch the npm tarball (compiled CSS: every component class and every theme, zero dependencies) and the GitHub tag that carries the official per-component agent docs (skills/daisyui/). Bump versions here and re-run npm run daisyui to refresh the layer.",
+  "version": "5.8.2",
+  "source": {
+    "repo": "saadeghi/daisyui",
+    "tag": "v5.8.2"
+  }
+}

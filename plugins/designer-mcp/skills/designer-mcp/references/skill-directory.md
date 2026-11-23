@@ -30,6 +30,14 @@ script paths elsewhere in the plugin.
 | pdf-reading | designer-documents | Reading and extracting content from PDFs on disk (text, tables, images, page rasterization) | [../../designer-documents/pdf-reading/SKILL.md](../../designer-documents/pdf-reading/SKILL.md) |
 | frontend-design | designer-ui | Distinctive UI implementation craft: aesthetic direction, typography, color, layout, motion restraint, avoiding templated AI defaults | [../../designer-ui/frontend-design/SKILL.md](../../designer-ui/frontend-design/SKILL.md) |
 | ui-sdk | designer-ui | Headless behavior and accessibility for @ui-sdk/core, @ui-sdk/react, @ui-sdk/web, with offline docs via design_docs_search / design_docs_get | [../../designer-ui/ui-sdk/SKILL.md](../../designer-ui/ui-sdk/SKILL.md) |
+| heroui-react | designer-ui | HeroUI v3 (@heroui/react) UI building: component usage, offline docs, project setup, oklch dark/light basics, via design_heroui_* tools | [../../designer-ui/heroui/heroui-react/SKILL.md](../../designer-ui/heroui/heroui-react/SKILL.md) |
+| heroui-theming | designer-ui | HeroUI theming: custom themes, design tokens, BEM class overrides, @heroui/styles on plain HTML and non-React stacks | [../../designer-ui/heroui/heroui-theming/SKILL.md](../../designer-ui/heroui/heroui-theming/SKILL.md) |
+| heroui-native | designer-ui | HeroUI Native for React Native (Uniwind): mobile components, install, dark/light themes | [../../designer-ui/heroui/heroui-native/SKILL.md](../../designer-ui/heroui/heroui-native/SKILL.md) |
+| heroui-migration | designer-ui | HeroUI v2-to-v3 migration: provider removal, compound components, styling, hooks, per-component changes | [../../designer-ui/heroui/heroui-migration/SKILL.md](../../designer-ui/heroui/heroui-migration/SKILL.md) |
+
+The Mantine, daisyUI, and Base UI catalog layers have MCP tools
+(`design_mantine_*`, `design_daisyui_*`, `design_baseui_*`) but no sub-skill.
+Route those asks to designer-ui, which names the tools to start with.
 
 ## How to tell what is installed
 
@@ -41,6 +49,19 @@ copied out), and the sibling needs an install.
 
 Whether a harness auto-triggers an installed skill varies by harness.
 Reading and following the SKILL.md works everywhere.
+
+### Leftovers from before v1.8.0
+
+Up to v1.7.0 the plugin was one skill, also named `designer-mcp`, with the
+document and UI sub-skills (`docx/`, `pptx/`, `pdf/`, `frontend-design/`, ...)
+directly inside it. v1.8.0 split it into the four skills above. An install
+made from the old zip is not replaced by installing the new ones: the old
+folder keeps the name and can shadow this skill.
+
+To check, look inside the installed `designer-mcp` folder. If it contains
+`docx/` or `pptx/` at its top level, it is the old layout. Tell the user,
+and on their go-ahead remove that folder and install the current skills.
+Do not delete it without asking.
 
 ## Recommend and offer install
 
@@ -93,5 +114,7 @@ Rules:
   then designer-ui's frontend-design for execution craft.
 - "Install shadcn / tailwind / react" → this skill's `design_library_search`
   and `design_library_get`.
+- "Build this in Mantine / daisyUI / Base UI" → designer-ui, which routes to
+  the `design_mantine_*`, `design_daisyui_*`, or `design_baseui_*` tools.
 - "What skills do I have for documents?" → walk the directory above and
   report the four skills and their sub-skills with install status.

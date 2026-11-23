@@ -41,6 +41,15 @@ product feature, not an extraction loophole.
 - **2 sitemap XML files**, for the canonical id list.
 - **198 OpenDesign design systems**, from two public git repositories under
   permissive licences — see the table below.
+- **73 HeroUI components and 16 guides**, from pinned npm registry tarballs
+  and the matching GitHub tag — first-party Apache-2.0/MIT packages, no
+  scraping involved (see below).
+- **123 Mantine UI components**, from a clone of the MIT-licensed
+  `mantinedev/ui.mantine.dev` repository, and **68 daisyUI components**,
+  from the pinned `daisyui` npm tarball and `saadeghi/daisyui` GitHub tag
+  (MIT). No pages are scraped for either.
+- **79 Base UI doc pages** (37 components, 42 guides), from the first-party
+  `base-ui.com/llms.txt` index and the markdown pages it links (see below).
 
 Completeness was verified by comparing the sitemap against every id found on
 all 52 collection pages: **0 style ids appear in collections that are missing
@@ -48,9 +57,9 @@ from the sitemap.** The sitemap is the complete universe.
 
 ## The non-Refero sources
 
-The other two sources are public git repositories, not scraped pages. The
-robots.txt reasoning above applies only to Refero; a git repository has no
-robots.txt and its licence is the permission.
+The other sources are public git repositories and package registries, not
+scraped pages. The robots.txt reasoning above applies only to Refero: a git
+repository has no robots.txt, and its licence is the permission.
 
 | Repository | Licence | What is taken |
 |---|---|---|
@@ -68,7 +77,50 @@ The gallery artifacts are published by the kit as static files on a public
 host and are fetched once into the cache. They are read, not scraped: a fixed
 set of known paths, no page traversal, no rate-limit circumvention.
 
+The HeroUI layer is in the same category: first-party open source, not
+Refero data, so the robots.txt reasoning above does not apply to it. The
+fetcher (`npm run heroui`) downloads the pinned `@heroui/react` and
+`@heroui/styles` tarballs from registry.npmjs.org and the matching
+`heroui-inc/heroui` GitHub tag (Apache-2.0/MIT), verifies their published
+digests, and bakes the docs, per-component CSS, theme variables, TSX source,
+and migration guides they ship. Nothing is scraped from heroui.com.
+
 Full attribution is in `agents-license.txt` at the repository root.
+
+### HeroUI
+
+The HeroUI layer takes no pages at all: it reads the official package
+distributions and the source repository at a pinned tag, all first-party
+releases of the Apache-2.0 monorepo. The npm registry tarballs carry their
+registry `dist.integrity` sha512, which the fetcher verifies, and every baked
+file's sha256 lands in `heroui/provenance.json`.
+
+| Source | Licence | What is taken |
+|---|---|---|
+| npm `@heroui/react` (pinned in `data/heroui/pin.json`) | Apache-2.0 | the agent-facing docs tree the package ships (`docs/`: 73 component pages, 16 guides, `llms.txt`) |
+| npm `@heroui/styles` | Apache-2.0 | per-component CSS, the oklch theme variables, and the prebuilt `heroui.min.css` |
+| GitHub `heroui-inc/heroui` at the pinned tag | Apache-2.0 | component TSX source (`packages/react/src`) and the v2-to-v3 migration guides (`apps/docs/content/docs/en/react/migration`) |
+
+The pinned HeroUI skills bundled under `plugins/designer-mcp/skills/designer-ui/heroui/`
+are likewise Apache-2.0, each shipping the upstream `LICENSE.txt` verbatim.
+
+### Base UI
+
+Base UI is the one non-Refero layer that reads web pages rather than a
+package or a repository, so the same care applies as for Refero. The fetcher
+(`npm run baseui`) reads `https://base-ui.com/robots.txt` first and stops if
+the doc paths are disallowed. It then reads `https://base-ui.com/llms.txt`,
+the index the project publishes for agents, and the plain markdown pages
+that index links under `/react/`, one at a time with a delay. `/api/` is
+never requested. Nothing outside the llms.txt index is crawled.
+
+| Source | Licence | What is taken |
+|---|---|---|
+| `base-ui.com/llms.txt` and the `/react/**.md` pages it lists | MIT (`mui/base-ui`) | the agent-facing docs: 37 component pages, the handbook, the utilities, and the overview and release notes |
+| GitHub `mui/base-ui` at the ref pinned in `data/baseui/pin.json` | MIT | the licence text, checksummed into `baseui/provenance.json` |
+
+A page that fails to fetch is recorded as a gap in `baseui/provenance.json`
+and the previous bake is left in place.
 
 ## What is not requested
 

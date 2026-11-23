@@ -112,8 +112,21 @@ The wrapper exists to fail loudly when the cache is missing: an MCP server
 that starts and serves an empty catalog looks like a working server with no
 data. The error goes to **stderr**, because stdout is the MCP transport.
 
-`scripts/mcp-server.mjs` is the generic server: 20 `design_*` tools across
+`scripts/mcp-server.mjs` is the generic server: 44 `design_*` tools across
 every source, fully offline. It is the recommended integration path.
+
+It keeps the same intent by a different route. It starts even when the
+catalog is missing, because the component, preset, template, and UI library
+tools do not need one, and because a server that exits shows up in the client
+as a bare "Connection closed". It never serves an empty catalog as if it were
+data: every tool that reads the catalog fails with the reason and the command
+to run, and looks again on the next call, so populating the cache needs no
+restart. The same text goes to stderr at startup.
+
+The wrapper resolves one cache directory and exports it to upstream as
+`REFERO_CACHE_DIR`: that variable if set, else `DESIGN_CACHE_DIR`, else
+`/cache` in the image or `~/.design-cache` on a bare host. Upstream reads only
+`REFERO_CACHE_DIR` and would otherwise default to its own `~/.refero-cache`.
 
 Both read the same cache. Neither listens on a port.
 
@@ -144,8 +157,9 @@ deployment can hand out the skill without the repo.
 `plugins/designer-mcp/skills/design-system/` — research-first design
 methodology plus reference files, adapted from Refero's MIT-licensed
 `refero_skill`. `plugins/designer-mcp/skills/designer-mcp/` — catalog tool
-routing, MCP setup, and install snippets. Eight delivery skills sit beside
-them at the plugin's `skills/` root.
+routing, MCP setup, and install snippets. Two more skills sit beside them
+at the plugin's `skills/` root, `designer-documents` and `designer-ui`, with
+the delivery sub-skills bundled inside them.
 
 Two adaptations matter:
 

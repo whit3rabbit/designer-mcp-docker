@@ -29,6 +29,7 @@
  *   GET /template/:slug        one template's tokens, theme, components, files
  *   GET /template/:slug/thumb  local cover image bytes (WebP)
  *   GET /skill                 downloadable skill archive
+ *   GET /skill/marketplace.zip the plugin as a local marketplace (offline install)
  *   GET /healthz               readiness probe
  *
  * `/api/styles` and `/style/:id` remain as aliases for the old paths.
@@ -74,9 +75,38 @@ import {
 import { reuiCatalogHtml, reuiCategoryHtml } from "./lib/reui-ui.mjs";
 import { dashboardsHtml, dashboardDetailHtml } from "./lib/dashboards-ui.mjs";
 import {
+  readHeroUiCatalog,
+  readHeroUiDoc,
+  readHeroUiMigrationDoc,
+  readHeroUiMigrationIndex,
+  readHeroUiSource,
+  readHeroUiStyles,
+  readHeroUiTheme,
+} from "./lib/heroui-docs.mjs";
+import { herouiCatalogHtml, herouiDocHtml } from "./lib/heroui-ui.mjs";
+import { readBaseUiCatalog, readBaseUiDoc, searchBaseUiDocs } from "./lib/baseui-docs.mjs";
+import { baseUiCatalogHtml, baseUiDocHtml } from "./lib/baseui-ui.mjs";
+import {
+  readMantineCatalog,
+  readMantineComponent,
+  readMantineProvenance,
+  readMantineAsset,
+  searchMantine,
+} from "./lib/mantine-docs.mjs";
+import { mantineCatalogHtml, mantineCategoryHtml, mantineComponentHtml } from "./lib/mantine-ui.mjs";
+import {
+  readDaisyuiCatalog,
+  readDaisyuiComponent,
+  readDaisyuiCss,
+  readDaisyuiProvenance,
+  searchDaisyui,
+} from "./lib/daisyui-docs.mjs";
+import { daisyuiCatalogHtml, daisyuiComponentHtml } from "./lib/daisyui-ui.mjs";
+import {
   assetsHtml,
   componentsHtml,
   componentDetailHtml,
+  slopstrapHtml,
   tailwindCatalogHtml,
   tailwindExampleHtml,
   presetsHtml,
@@ -555,6 +585,8 @@ const server = createServer(async (req, res) => {
 
     if (p === "/" || p === "/index.html") return sendHtml(res, galleryHtml());
 
+    if (p === "/slopstrap") return sendHtml(res, slopstrapHtml(frontend.publicManifest));
+
     if (p === "/assets" || p === "/assets/") {
       const proto = String(req.headers["x-forwarded-proto"] || "http").split(",")[0].trim();
       const origin = `${proto}://${req.headers.host || "127.0.0.1:8787"}`;
@@ -676,6 +708,237 @@ const server = createServer(async (req, res) => {
       return json(res, 200, category);
     }
 
+    // ---------------------------------------------------- HeroUI v3 docs
+    if (p === "/heroui" || p === "/heroui/") {
+      return sendHtml(res, herouiCatalogHtml(await readHeroUiCatalog()));
+    }
+    if (p === "/api/heroui") {
+      const catalog = await readHeroUiCatalog();
+      const q = (url.searchParams.get("q") || "").toLowerCase();
+      if (q && catalog.components?.length) {
+        const terms = q.split(/\s+/);
+        const match = (hay) => terms.every((t) => hay.includes(t));
+        catalog.components = catalog.components.filter((c) =>
+          match(`${c.name} ${c.slug} ${c.group} ${c.description}`.toLowerCase()),
+        );
+        catalog.guides = (catalog.guides || []).filter((g) =>
+          match(`${g.name} ${g.slug} ${g.group} ${g.description}`.toLowerCase()),
+        );
+        catalog.totals = { components: catalog.components.length, guides: catalog.guides.length };
+      }
+      return json(res, 200, catalog);
+    }
+    const mHeroDoc = p.match(/^\/api\/heroui\/doc\/([\w./-]+\.md|llms\.txt)$/);
+    if (mHeroDoc) {
+      const content = await readHeroUiDoc(decodeURIComponent(mHeroDoc[1]));
+      if (content === null) return json(res, 404, { error: "heroui doc not in cache" });
+      res.writeHead(200, { "content-type": "text/markdown; charset=utf-8" });
+      return res.end(content);
+    }
+    const mHeroSource = p.match(/^\/api\/heroui\/source\/([a-z0-9-]+)$/);
+    if (mHeroSource) {
+      const src = await readHeroUiSource(mHeroSource[1]);
+      if (!src) return json(res, 404, { error: "heroui source not in cache" });
+      return json(res, 200, src);
+    }
+    const mHeroStyles = p.match(/^\/api\/heroui\/styles\/([a-z0-9-]+)\.css$/);
+    if (mHeroStyles) {
+      const css = await readHeroUiStyles(mHeroStyles[1]);
+      if (css === null) return json(res, 404, { error: "heroui styles not in cache" });
+      res.writeHead(200, { "content-type": "text/css; charset=utf-8" });
+      return res.end(css);
+    }
+    if (p === "/api/heroui/theme.json") {
+      const theme = await readHeroUiTheme();
+      if (!theme) return json(res, 404, { error: "heroui theme not in cache" });
+      return json(res, 200, theme);
+    }
+    if (p === "/api/heroui/migration/index.json") {
+      const index = await readHeroUiMigrationIndex();
+      if (!index) return json(res, 404, { error: "heroui migration index not in cache" });
+      return json(res, 200, index);
+    }
+    const mHeroMig = p.match(/^\/api\/heroui\/migration\/([\w-]+)(?:\.mdx)?$/);
+    if (mHeroMig) {
+      const content = await readHeroUiMigrationDoc(mHeroMig[1]);
+      if (content === null) return json(res, 404, { error: "heroui migration guide not in cache" });
+      res.writeHead(200, { "content-type": "text/markdown; charset=utf-8" });
+      return res.end(content);
+    }
+    const mHeroComp = p.match(/^\/heroui\/component\/([a-z0-9-]+)$/);
+    if (mHeroComp) {
+      const catalog = await readHeroUiCatalog();
+      const entry = (catalog.components || []).find((c) => c.slug === mHeroComp[1]);
+      if (!entry) return json(res, 404, { error: "heroui component not in catalog", slug: mHeroComp[1] });
+      const content = await readHeroUiDoc(entry.path);
+      if (content === null) return json(res, 404, { error: "heroui doc not in cache", path: entry.path });
+      return sendHtml(res, herouiDocHtml(catalog, entry, "component", content));
+    }
+    const mHeroGuide = p.match(/^\/heroui\/guide\/([a-z0-9-]+)$/);
+    if (mHeroGuide) {
+      const catalog = await readHeroUiCatalog();
+      const entry = (catalog.guides || []).find((g) => g.slug === mHeroGuide[1]);
+      if (!entry) return json(res, 404, { error: "heroui guide not in catalog", slug: mHeroGuide[1] });
+      const content = await readHeroUiDoc(entry.path);
+      if (content === null) return json(res, 404, { error: "heroui doc not in cache", path: entry.path });
+      return sendHtml(res, herouiDocHtml(catalog, entry, "guide", content));
+    }
+
+    // ------------------------------------------------------ Base UI docs
+    // Base UI is headless, so this section is a docs browser with
+    // cross-links to the ReUI gallery, which renders Base UI variants live.
+    const baseUiReuiSlugs = () =>
+      readReuiIndex().then((idx) => new Set((idx.categories || []).map((c) => c.slug)));
+    if (p === "/baseui" || p === "/baseui/") {
+      const [catalog, reuiSlugs] = await Promise.all([readBaseUiCatalog(), baseUiReuiSlugs()]);
+      return sendHtml(res, baseUiCatalogHtml(catalog, { reuiSlugs }));
+    }
+    if (p === "/api/baseui") {
+      const q = (url.searchParams.get("q") || "").trim();
+      if (q) {
+        return json(
+          res,
+          200,
+          await searchBaseUiDocs({ query: q, kind: url.searchParams.get("kind") || "", limit: url.searchParams.get("limit") || 20 }),
+        );
+      }
+      return json(res, 200, await readBaseUiCatalog());
+    }
+    const mBaseApiDoc = p.match(/^\/api\/baseui\/doc\/([\w./-]+\.md)$/);
+    if (mBaseApiDoc) {
+      const content = await readBaseUiDoc(decodeURIComponent(mBaseApiDoc[1]));
+      if (content === null) return json(res, 404, { error: "baseui doc not in cache" });
+      res.writeHead(200, { "content-type": "text/markdown; charset=utf-8" });
+      return res.end(content);
+    }
+    const mBaseDoc = p.match(/^\/baseui\/doc\/(components|overview|handbook|utils)\/([a-z0-9-]+)$/);
+    if (mBaseDoc) {
+      const catalog = await readBaseUiCatalog();
+      const pool = mBaseDoc[1] === "components" ? catalog.components : catalog.guides;
+      const entry = pool.find((e) => e.section === mBaseDoc[1] && e.slug === mBaseDoc[2]);
+      if (!entry) {
+        return json(res, 404, { error: "baseui doc not in catalog", section: mBaseDoc[1], slug: mBaseDoc[2] });
+      }
+      const content = await readBaseUiDoc(entry.path);
+      if (content === null) return json(res, 404, { error: "baseui doc not in cache", path: entry.path });
+      const reuiSlugs = await baseUiReuiSlugs();
+      return sendHtml(res, baseUiDocHtml(catalog, entry, content, { reuiSlugs }));
+    }
+
+    // ---------------------------------------------------- Mantine UI catalog
+    const mantineHelpers = () => ({
+      previewPath: (slug) => frontend.mantinePreviewPath(slug),
+      thumbnailPath: (slug) => frontend.mantineThumbnailPath(slug),
+    });
+    if (p === "/mantine" || p === "/mantine/") {
+      const [catalog, provenance] = await Promise.all([readMantineCatalog(), readMantineProvenance()]);
+      return sendHtml(res, mantineCatalogHtml(catalog, { ...mantineHelpers(), provenance }));
+    }
+    const mMantineAsset = p.match(/^\/mantine\/asset\/([\w.-]+)$/);
+    if (mMantineAsset) {
+      const buf = await readMantineAsset(`images/${mMantineAsset[1]}`) ??
+        await readMantineAsset(`assets/${mMantineAsset[1]}`);
+      if (!buf) return json(res, 404, { error: "mantine asset not in cache", file: mMantineAsset[1] });
+      res.writeHead(200, {
+        "content-type": contentTypeFor(mMantineAsset[1]),
+        "content-length": buf.length,
+        "cache-control": "public, max-age=86400",
+      });
+      return res.end(buf);
+    }
+    const mMantinePreview = p.match(/^\/mantine\/preview\/([a-z0-9-]+)$/);
+    if (mMantinePreview) {
+      const doc = frontend.mantinePreviewDocument(mMantinePreview[1]);
+      return doc
+        ? sendHtml(res, doc, "mantine")
+        : json(res, 404, { error: "mantine preview not built", slug: mMantinePreview[1] });
+    }
+    const mMantineApi = p.match(/^\/api\/mantine\/component\/([a-z0-9-]+)$/);
+    if (mMantineApi) {
+      const detail = await readMantineComponent(mMantineApi[1]);
+      if (!detail) return json(res, 404, { error: "mantine component not in cache", slug: mMantineApi[1] });
+      return json(res, 200, detail);
+    }
+    if (p === "/api/mantine") {
+      const q = (url.searchParams.get("q") || "").trim();
+      if (q) return json(res, 200, await searchMantine({ query: q, category: url.searchParams.get("category"), limit: url.searchParams.get("limit") }));
+      const [catalog, provenance] = await Promise.all([readMantineCatalog(), readMantineProvenance()]);
+      return json(res, 200, {
+        ...catalog,
+        vendor: provenance?.packages
+          ? Object.fromEntries(Object.entries(provenance.packages).map(([name, rec]) => [name, rec.version]))
+          : {},
+      });
+    }
+    const mMantineCat = p.match(/^\/mantine\/category\/([a-z0-9-]+)$/);
+    if (mMantineCat) {
+      const catalog = await readMantineCatalog();
+      const category = (catalog.groups || []).flatMap((g) => g.categories).find((c) => c.slug === mMantineCat[1]);
+      if (!category) return json(res, 404, { error: "mantine category not in cache", category: mMantineCat[1] });
+      const group = (catalog.groups || []).find((g) => g.categories.some((c) => c.slug === category.slug));
+      return sendHtml(res, mantineCategoryHtml(catalog, { ...category, group: group?.name }, mantineHelpers()));
+    }
+    const mMantineComp = p.match(/^\/mantine\/component\/([a-z0-9-]+)$/);
+    if (mMantineComp) {
+      const [catalog, detail] = await Promise.all([readMantineCatalog(), readMantineComponent(mMantineComp[1])]);
+      if (!detail) return json(res, 404, { error: "mantine component not in cache", slug: mMantineComp[1] });
+      const category = (catalog.groups || []).flatMap((g) => g.categories).find((c) => c.slug === detail.category);
+      return sendHtml(res, mantineComponentHtml(catalog, detail, { ...mantineHelpers(), category }));
+    }
+
+    // ---------------------------------------------------- daisyUI catalog
+    // Native HTML previews keyed off the baked layer: the documents come from
+    // the frontend build (with the shared compiled css beside them), the ?theme=
+    // query swaps the data-theme attribute against the baked theme list.
+    const daisyuiHelpers = () => ({
+      previewPath: (slug) => frontend.daisyuiPreviewPath(slug),
+      thumbnailPath: (slug) => frontend.daisyuiThumbnailPath(slug),
+    });
+    if (p === "/daisyui" || p === "/daisyui/") {
+      const [catalog, provenance] = await Promise.all([readDaisyuiCatalog(), readDaisyuiProvenance()]);
+      return sendHtml(res, daisyuiCatalogHtml(catalog, { ...daisyuiHelpers(), provenance }));
+    }
+    const mDaisyPreview = p.match(/^\/daisyui\/preview\/([a-z0-9-]+)$/);
+    if (mDaisyPreview) {
+      const doc = frontend.daisyuiPreviewDocument(mDaisyPreview[1], url.searchParams.get("theme"));
+      return doc
+        ? sendHtml(res, doc, "native")
+        : json(res, 404, { error: "daisyui preview not built", slug: mDaisyPreview[1] });
+    }
+    const mDaisyCss = p.match(/^\/daisyui\/css\/([a-z0-9-]+)\.css$/);
+    if (mDaisyCss) {
+      const css = await readDaisyuiCss(mDaisyCss[1]);
+      if (css === null) return json(res, 404, { error: "daisyui css not in cache", name: mDaisyCss[1] });
+      res.writeHead(200, {
+        "content-type": "text/css; charset=utf-8",
+        "cache-control": "public, max-age=86400",
+      });
+      return res.end(css);
+    }
+    const mDaisyApi = p.match(/^\/api\/daisyui\/component\/([a-z0-9-]+)$/);
+    if (mDaisyApi) {
+      const detail = await readDaisyuiComponent(mDaisyApi[1]);
+      if (!detail) return json(res, 404, { error: "daisyui component not in cache", slug: mDaisyApi[1] });
+      return json(res, 200, detail);
+    }
+    if (p === "/api/daisyui") {
+      const q = (url.searchParams.get("q") || "").trim();
+      if (q) return json(res, 200, await searchDaisyui({ query: q, group: url.searchParams.get("group"), limit: url.searchParams.get("limit") }));
+      const [catalog, provenance] = await Promise.all([readDaisyuiCatalog(), readDaisyuiProvenance()]);
+      return json(res, 200, {
+        ...catalog,
+        records: provenance?.records
+          ? Object.fromEntries(Object.entries(provenance.records).map(([name, note]) => [name, note]))
+          : {},
+      });
+    }
+    const mDaisyComp = p.match(/^\/daisyui\/component\/([a-z0-9-]+)$/);
+    if (mDaisyComp) {
+      const [catalog, detail] = await Promise.all([readDaisyuiCatalog(), readDaisyuiComponent(mDaisyComp[1])]);
+      if (!detail) return json(res, 404, { error: "daisyui component not in cache", slug: mDaisyComp[1] });
+      return sendHtml(res, daisyuiComponentHtml(catalog, detail, daisyuiHelpers()));
+    }
+
     // ---------------------------------------------------- Dashboards
     if (p === "/dashboards" || p === "/dashboards/") {
       return sendHtml(res, dashboardsHtml(await readDashboardsIndex()));
@@ -778,8 +1041,9 @@ const server = createServer(async (req, res) => {
       const [, slug, id] = mPreview;
       const component = await readComponent(slug);
       const item = component?.variants?.find((variant) => variant.id === id);
-      const document = item && frontend.previewDocument(slug, item);
-      return document ? sendHtml(res, document, "demo") : json(res, 404, { error: "matching component preview not built" });
+      const kind = item && frontend.previewKind(slug, item);
+      const document = kind && frontend.previewDocument(slug, item);
+      return document ? sendHtml(res, document, kind) : json(res, 404, { error: "matching component preview not built" });
     }
 
     const mComponent = p.match(/^\/component\/([^/]+)$/);
@@ -1016,6 +1280,26 @@ const server = createServer(async (req, res) => {
         return res.end(svg);
       }
       return json(res, 404, { error: "no thumbnail", id });
+    }
+
+    // The plugin as a local marketplace: the offline `claude plugin
+    // marketplace add <dir>` path. Same three locations as the skill zip.
+    if (p === "/skill/marketplace.zip" || p === "/skill/designer-mcp-marketplace.zip") {
+      for (const zip of [
+        join(SKILLS_ROOT, "designer-mcp-marketplace.zip"),
+        join(dirname(SKILLS_ROOT), "designer-mcp-marketplace.zip"),
+        join(HERE, "..", "dist", "designer-mcp-marketplace.zip"),
+      ]) {
+        if (!existsSync(zip)) continue;
+        const buf = await readFile(zip);
+        res.writeHead(200, {
+          "content-type": "application/zip",
+          "content-length": buf.length,
+          "content-disposition": 'attachment; filename="designer-mcp-marketplace.zip"',
+        });
+        return res.end(buf);
+      }
+      return json(res, 404, { error: "marketplace zip not built", hint: "npm run package:skill" });
     }
 
     // The skills are served from the container so a container-only deployment

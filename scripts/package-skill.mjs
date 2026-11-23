@@ -10,6 +10,12 @@
  * name (designer-mcp-skill.zip): the gallery's /skill route and the
  * Dockerfile depend on it.
  *
+ * It also builds dist/designer-mcp-marketplace.zip: the same plugin laid out
+ * as a local marketplace (marketplace manifests at the root, the plugin under
+ * plugins/designer-mcp/ with its harness manifests and .mcp.json). That is
+ * the offline install path: `claude plugin marketplace add <unzipped dir>`
+ * needs no GitHub access.
+ *
  * Usage: node scripts/package-skill.mjs [--out <dir>]
  */
 
@@ -28,6 +34,21 @@ const outIdx = argv.indexOf("--out");
 const OUT_DIR = outIdx >= 0 && argv[outIdx + 1] ? resolve(argv[outIdx + 1]) : join(ROOT, "dist");
 
 const ZIP_NAME = "designer-mcp-skill.zip";
+const MARKETPLACE_ZIP_NAME = "designer-mcp-marketplace.zip";
+// Marketplace manifests per harness. Each one's plugin source is
+// ./plugins/designer-mcp, which resolves inside the marketplace zip.
+const MARKETPLACE_MANIFESTS = [
+  ".claude-plugin/marketplace.json",
+  ".cursor-plugin/marketplace.json",
+  ".agents/plugins/marketplace.json",
+];
+const PLUGIN_MANIFESTS = [
+  ".claude-plugin/plugin.json",
+  ".zcode-plugin/plugin.json",
+  ".codex-plugin/plugin.json",
+  ".cursor-plugin/plugin.json",
+  ".mcp.json",
+];
 
 if (!existsSync(join(SKILLS_ROOT, "design-system", "SKILL.md"))) {
   console.error(`expected plugins/designer-mcp/skills/design-system to exist - it anchors the /skill route`);
@@ -95,6 +116,20 @@ const required = [
   "skills/designer-mcp/references/skill-directory.md",
   "skills/designer-documents/SKILL.md",
   "skills/designer-ui/SKILL.md",
+  // The four HeroUI sub-skills nest one level deeper (under heroui/), so
+  // they are listed by hand instead of through the BUNDLED map above.
+  "skills/designer-ui/heroui/heroui-react/SKILL.md",
+  "skills/designer-ui/heroui/heroui-react/LICENSE.txt",
+  "skills/designer-ui/heroui/heroui-theming/SKILL.md",
+  "skills/designer-ui/heroui/heroui-theming/LICENSE.txt",
+  "skills/designer-ui/heroui/heroui-theming/references/any-framework.md",
+  "skills/designer-ui/heroui/heroui-theming/references/components.md",
+  "skills/designer-ui/heroui/heroui-theming/references/theme-recipe.md",
+  "skills/designer-ui/heroui/heroui-theming/references/tokens.md",
+  "skills/designer-ui/heroui/heroui-native/SKILL.md",
+  "skills/designer-ui/heroui/heroui-native/LICENSE.txt",
+  "skills/designer-ui/heroui/heroui-migration/SKILL.md",
+  "skills/designer-ui/heroui/heroui-migration/LICENSE.txt",
   "evals/route-design-capture/prompt.md",
   "evals/route-design-capture/graders/rubric.md",
   "evals/route-doc-deliverable/prompt.md",
@@ -119,17 +154,63 @@ if (missing.length) {
 const refs = entries.filter((e) => e.startsWith("skills/design-system/references/") || e.startsWith("skills/designer-mcp/references/"));
 console.log(`  ${entries.length} entries, ${refs.length} reference files`);
 
+// ---------------------------------------------------- marketplace zip
+const marketplaceZip = join(OUT_DIR, MARKETPLACE_ZIP_NAME);
+rmSync(marketplaceZip, { force: true });
+const absentManifests = [
+  ...MARKETPLACE_MANIFESTS.filter((m) => !existsSync(join(ROOT, m))),
+  ...PLUGIN_MANIFESTS.filter((m) => !existsSync(join(PLUGIN_ROOT, m))),
+];
+if (absentManifests.length) {
+  console.error(`marketplace zip: missing manifests: ${absentManifests.join(", ")}`);
+  process.exit(1);
+}
+const mres = spawnSync(
+  "zip",
+  [
+    "-r", "-q", "-X", marketplaceZip,
+    ...MARKETPLACE_MANIFESTS, "plugins/designer-mcp",
+    // The built zips may sit inside the plugin root (the Dockerfile copies
+    // the skill zip there); never nest an archive in the archive.
+    "-x", "*.DS_Store", "*__pycache__*", "*.pyc", "plugins/designer-mcp/skills/tmp/*", "plugins/designer-mcp/*.zip",
+  ],
+  { cwd: ROOT, stdio: "inherit" },
+);
+if (mres.status !== 0) {
+  console.error(`marketplace zip failed`);
+  process.exit(1);
+}
+const mentries = spawnSync("unzip", ["-Z1", marketplaceZip], { encoding: "utf8" }).stdout.trim().split("\n").filter(Boolean);
+const mrequired = [
+  ...MARKETPLACE_MANIFESTS,
+  ...PLUGIN_MANIFESTS.map((m) => `plugins/designer-mcp/${m}`),
+  ...required.map((r) => `plugins/designer-mcp/${r}`),
+];
+const mmissing = mrequired.filter((r) => !mentries.includes(r));
+if (mmissing.length) {
+  console.error(`  marketplace archive is missing: ${mmissing.join(", ")}`);
+  process.exit(1);
+}
+console.log(`built ${marketplaceZip} (${(statSync(marketplaceZip).size / 1024).toFixed(1)} KB, ${mentries.length} entries)`);
+
 // Print the install commands the user will need.
 console.log(`
 Install the plugin (four skills in one archive, sub-skills bundled inside):
 
-  # any client that takes a zip: unzip into your skills root
-  unzip designer-mcp-skill.zip -d ~/.claude/skills/
+  # any client that takes a zip: the archive keeps a skills/ prefix, so
+  # extract it aside and copy the four skill folders into your skills root
+  unzip -o designer-mcp-skill.zip -d /tmp/designer-mcp-skill
+  cp -R /tmp/designer-mcp-skill/skills/. ~/.claude/skills/
+
+  # Claude Code plugin, offline (no GitHub needed): a local marketplace
+  unzip -o designer-mcp-marketplace.zip -d ~/designer-mcp-marketplace
+  claude plugin marketplace add ~/designer-mcp-marketplace
+  claude plugin install designer-mcp@designer-mcp-docker
 
   # skills CLI: discovers the four skills
   npx -y skills add whit3rabbit/designer-mcp-docker
 
-  # Claude Code plugin install
+  # Claude Code plugin, online (from GitHub)
   claude plugin marketplace add whit3rabbit/designer-mcp-docker
   claude plugin install designer-mcp@designer-mcp-docker
 

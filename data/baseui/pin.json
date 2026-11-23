@@ -1,0 +1,12 @@
+{
+  "comment": "Base UI docs bake pin. scripts/fetch-baseui.mjs reads this to fetch the llms.txt agent docs from base-ui.com (public pages robots.txt permits; /api/ is never requested) and the MIT licence from the pinned mui/base-ui ref, whose sha256 is recorded in provenance.json. Base UI is headless, so this layer is docs-only: cross-links to the ReUI gallery cover the visuals. Bump license.ref here and re-run npm run baseui to refresh the layer.",
+  "docsSource": "https://base-ui.com/llms.txt",
+  "docsBaseUrl": "https://base-ui.com/react/",
+  "robotsUrl": "https://base-ui.com/robots.txt",
+  "license": {
+    "repo": "mui/base-ui",
+    "ref": "v1.9.0",
+    "file": "LICENSE",
+    "spdx": "MIT"
+  }
+}

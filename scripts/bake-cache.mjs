@@ -31,6 +31,7 @@
  *   components/      one file per component, with every variant's source
  *   presets.json     the preset catalog index
  *   presets/         one file per preset catalog
+ *   slopstrap/       the vendored Slopstrap framework (zip, css, js, examples)
  *   design-systems.json      the vendored design-system template index
  *   design-systems/          the six systems verbatim + one record per system
  *
@@ -48,6 +49,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { installDesignSystems } from "./lib/ds-manifest.mjs";
+import { readSlopstrapRecord, slopstrapIndexEntry } from "./lib/slopstrap.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
@@ -207,8 +209,43 @@ async function main() {
   await copyDir("components");
   await copyDir("reui");
   await copyDir("dashboards");
+  await copyDir("heroui");
+  await copyDir("mantine");
+  await copyDir("daisyui");
+  await copyDir("baseui");
   await copyFile("presets.json");
   await copyDir("presets");
+
+  // ---------------------------------------------------- vendored slopstrap
+  // Like the libraries, this comes from the repo (data/slopstrap/), not the
+  // fetch cache. The tree lands in slopstrap/ for the frontend build, and
+  // the catalog record is appended to the component index so the gallery
+  // and the MCP server serve it like any other component.
+  const slopRoot = join(ROOT, "data", "slopstrap");
+  if (existsSync(join(slopRoot, "component.json"))) {
+    await rm(join(OUT, "slopstrap"), { recursive: true, force: true });
+    await cp(slopRoot, join(OUT, "slopstrap"), { recursive: true });
+    const slopBytes = await dirBytes(join(OUT, "slopstrap"));
+    const record = await readSlopstrapRecord(slopRoot);
+    const componentsPath = join(OUT, "components.json");
+    if (existsSync(componentsPath)) {
+      const index = JSON.parse(await readFile(componentsPath, "utf8"));
+      // A staged live cache may already carry the record; replace it and
+      // keep the variant count exact rather than stacking a duplicate.
+      const prior = (index.components || []).find((c) => c.slug === record.slug);
+      index.components = (index.components || []).filter((c) => c.slug !== record.slug);
+      index.components.push(slopstrapIndexEntry(record));
+      index.total = index.components.length;
+      index.variants = (index.variants || 0) - (prior ? prior.variants.length : 0) + record.variants.length;
+      await writeFile(componentsPath, JSON.stringify(index));
+      await writeFile(join(OUT, "components", `${record.slug}.json`), JSON.stringify(record));
+      console.log(`  slopstrap       1 component  ${fmt(slopBytes)}`);
+    } else {
+      console.log("  slopstrap       files copied, no components.json to merge");
+    }
+  } else {
+    console.log("  slopstrap       skipped (no data/slopstrap/component.json)");
+  }
 
   // ------------------------------------------------- vendored library catalog
   // Like the design systems, this comes from the repo (data/libraries/), not

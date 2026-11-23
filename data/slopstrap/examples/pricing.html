@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!-- Slopstrap example: pricing section. Unzip slopstrap.zip and place this file
+     next to its dist/ folder, then open it in a browser. -->
+<html lang="en" data-slop-level="3">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SynergyFlow Pricing — Simple, Transparent, Vague</title>
+  <link rel="stylesheet" href="./dist/slopstrap.css">
+</head>
+<body class="slop-body slop-grid-bg">
+  <div class="slop-orb-layer" aria-hidden="true">
+    <div class="slop-orb slop-orb-purple"></div>
+    <div class="slop-orb slop-orb-pink"></div>
+  </div>
+
+  <div class="slop-content-layer">
+    <main class="slop-container slop-section slop-center">
+      <span class="slop-badge slop-badge-popular slop-mb-2">MOST POPULAR, PROBABLY</span>
+      <h1 class="slop-h1"><span class="slop-text-gradient">Pricing that scales with you</span></h1>
+      <p class="slop-lead">Start free, upgrade when the synergy becomes undeniable.</p>
+
+      <div class="slop-row slop-row-center slop-mt-3" data-slop-billing-toggle>
+        <span class="slop-muted">Monthly</span>
+        <button class="slop-switch" type="button" aria-label="Toggle billing period">
+          <span class="slop-switch-thumb"></span>
+        </button>
+        <span class="slop-muted">Yearly <span class="slop-badge slop-badge-emerald">save 20%</span></span>
+      </div>
+
+      <div class="slop-grid-3 slop-mt-4">
+        <div class="slop-pricing-card">
+          <h3 class="slop-h3">Hobby</h3>
+          <div class="slop-price" data-price-monthly="$0" data-price-yearly="$0">$0<span class="slop-muted">/mo</span></div>
+          <ul class="slop-feature-list">
+            <li>1 project</li>
+            <li>Community support, meaning a Discord</li>
+            <li>3 gradients per page</li>
+          </ul>
+          <button class="slop-btn slop-btn-ghost slop-w-full">Start free</button>
+        </div>
+
+        <div class="slop-pricing-card slop-pricing-popular">
+          <span class="slop-pricing-popular-tag">RECOMMENDED BY OUR LANDING PAGE</span>
+          <h3 class="slop-h3">Pro</h3>
+          <div class="slop-price" data-price-monthly="$29" data-price-yearly="$23">$29<span class="slop-muted">/mo</span></div>
+          <ul class="slop-feature-list">
+            <li>Unlimited projects</li>
+            <li>Unlimited gradients</li>
+            <li>Agentic workflows on toast</li>
+            <li>Priority access to the roadmap</li>
+          </ul>
+          <button class="slop-btn slop-btn-primary slop-btn-lg slop-w-full">Go Pro</button>
+        </div>
+
+        <div class="slop-pricing-card">
+          <h3 class="slop-h3">Enterprise</h3>
+          <div class="slop-price">Let's talk<span class="slop-muted">/quarter</span></div>
+          <ul class="slop-feature-list">
+            <li>SSO, SAML, and other acronyms</li>
+            <li>SOC2 Type ∞ report, self-authored</li>
+            <li>A dedicated success persona</li>
+            <li>On-prem, cloud, or spiritually</li>
+          </ul>
+          <button class="slop-btn slop-btn-ghost slop-w-full">Contact sales</button>
+        </div>
+      </div>
+
+      <div class="slop-alert slop-mt-4">
+        <span class="slop-dot slop-dot-pink"></span>
+        Prices shown in USD and confidence.
+      </div>
+
+      <div class="slop-mt-4" data-slop-prose="saas" data-slop-paragraphs="1"></div>
+    </main>
+  </div>
+
+  <script src="./dist/slopstrap.js" defer></script>
+</body>
+</html>

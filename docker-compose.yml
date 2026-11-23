@@ -210,14 +210,15 @@ services:
       # The upstream package refetches the catalog over the network when its
       # cache goes stale. The image ships a baked catalog and must work with
       # no network at all, so the TTL is effectively disabled here. The
-      # `refero_refresh` tool still refreshes on demand.
+      # `refero_refresh` tool needs the live API and fails offline by design;
+      # refresh by re-running the fetchers.
       REFERO_CACHE_TTL_MS: "315360000000"
     command: ["node", "scripts/mcp-entry.mjs"]
     # stdout is the MCP transport — diagnostics go to stderr.
     init: true
 
-  # The generic stdio MCP server: `design_search`, `design_get`,
-  # `design_list`, `design_facets`, `design_markdown` across both sources.
+  # The generic stdio MCP server: every `design_*` tool, across both sources
+  # and the component, preset, template, and UI library layers.
   design:
     <<: *image
     profiles: ["mcp"]

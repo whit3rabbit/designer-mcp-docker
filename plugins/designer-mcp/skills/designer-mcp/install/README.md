@@ -2,7 +2,8 @@
 
 Ready-made MCP registration for the designer-mcp servers. Pick your harness in
 the table, open its file, and paste the snippet. Every snippet registers the
-generic `design_*` server: 20 tools across both sources, fully offline.
+generic `design_*` server: 44 tools across both sources and the component,
+preset, template, and UI library layers, fully offline.
 
 The upstream `refero_*` server (`scripts/mcp-entry.mjs`) is an optional
 fallback for Refero-only reads. Swap the last script argument in any snippet to
@@ -32,7 +33,13 @@ cd designer-mcp-docker
 npm install
 npm run fetch && npm run opendesign && npm run components && npm run presets
 npm run templates
+# the UI library layers; skip any you do not need
+npm run heroui && npm run mantine && npm run daisyui && npm run baseui
 ```
+
+Without that last line the `design_heroui_*`, `design_mantine_*`,
+`design_daisyui_*`, and `design_baseui_*` tools still register, and answer
+`available: false` with the command to run.
 
 The fetchers and the server share one cache default (`~/.design-cache`), so no
 environment variables are needed. `npm run all` adds thumbnails and serves the
@@ -53,6 +60,25 @@ Local snippets replace it with:
 ```bash
 node /path/to/designer-mcp-docker/scripts/mcp-server.mjs
 ```
+
+### Keeping the image current
+
+The snippets use the `:latest` tag, and Docker keeps running a `:latest` it
+already has. Skills installed with the skills CLI update from `main`, so an
+old image can lack a tool a newer skill names. When a tool is missing, pull
+and restart the client:
+
+```bash
+docker pull ghcr.io/whit3rabbit/designer-mcp:latest
+```
+
+To stay on one release instead, replace `:latest` with a version tag such as
+`:v1.9.0`. The plugin install does that for you in its `.mcp.json`.
+
+On an air-gapped host Docker cannot pull, so the tag a snippet names must
+already be loaded (`docker save` elsewhere, `docker load` there). The
+running gallery serves the plugin as a local marketplace at
+`/skill/marketplace.zip` for `claude plugin marketplace add <unzipped dir>`.
 
 ## Harness table
 

@@ -32,7 +32,10 @@ RUN node scripts/fetch-tailwind.mjs
 COPY bake/components.json bake/design-systems.json ./bake/
 COPY bake/components/ ./bake/components/
 COPY bake/reui/ ./bake/reui/
+COPY bake/mantine/ ./bake/mantine/
+COPY bake/daisyui/ ./bake/daisyui/
 COPY bake/design-systems/ ./bake/design-systems/
+COPY bake/slopstrap/ ./bake/slopstrap/
 RUN --network=none node frontend/build.mjs --out /frontend-cache
 
 FROM node:22-alpine
@@ -57,6 +60,11 @@ COPY scripts/ ./scripts/
 # inside the image so a container-only deployment can serve it for download,
 # and so `docker run ... cat /app/plugins/...` works offline.
 COPY plugins/designer-mcp/ ./plugins/designer-mcp/
+# Marketplace manifests, so package-skill.mjs can build the offline
+# local-marketplace zip (claude plugin marketplace add <dir>).
+COPY .claude-plugin/marketplace.json ./.claude-plugin/
+COPY .cursor-plugin/marketplace.json ./.cursor-plugin/
+COPY .agents/plugins/marketplace.json ./.agents/plugins/
 
 # A catalog volume can hide /cache, so keep immutable browser assets alongside the skill.
 COPY --from=frontend-build /frontend-cache/ /app/frontend-cache/
@@ -68,7 +76,7 @@ COPY bake/ /cache/
 # Prebuilt zip so /skill serves a proper .zip rather than a tarball.
 # It lands beside the skills root, where the /skill route looks for it.
 RUN node scripts/package-skill.mjs --out /app/dist && \
-    cp /app/dist/designer-mcp-skill.zip /app/plugins/designer-mcp/ && \
+    cp /app/dist/designer-mcp-skill.zip /app/dist/designer-mcp-marketplace.zip /app/plugins/designer-mcp/ && \
     rm -rf /app/dist
 
 ENV DESIGN_CACHE_DIR=/cache \
@@ -84,5 +92,5 @@ EXPOSE 8787
 
 # Default: the preview gallery on 8787.
 #   node scripts/mcp-entry.mjs     the upstream Refero MCP server (7 tools)
-#   node scripts/mcp-server.mjs    the generic design MCP server (26 tools)
+#   node scripts/mcp-server.mjs    the generic design MCP server (design_* tools)
 CMD ["node", "scripts/preview.mjs"]

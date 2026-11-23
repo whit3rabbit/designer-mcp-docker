@@ -1,6 +1,6 @@
 {
   "name": "designer-mcp-docker",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "private": true,
   "type": "module",
   "description": "Containerised design-system MCP server with a live offline thumbnail gallery",
@@ -12,9 +12,14 @@
     "agentkit": "node scripts/fetch-agentkit.mjs",
     "components": "node scripts/fetch-gradientdeck.mjs",
     "reui": "node scripts/fetch-reui.mjs",
+    "mantine": "node scripts/fetch-mantine.mjs",
     "dashboards": "node scripts/fetch-dashboards.mjs",
+    "heroui": "node scripts/fetch-heroui.mjs",
+    "daisyui": "node scripts/fetch-daisyui.mjs",
+    "baseui": "node scripts/fetch-baseui.mjs",
     "presets": "node scripts/fetch-presets.mjs",
     "templates": "node scripts/stage-design-systems.mjs",
+    "slopstrap": "node scripts/stage-slopstrap.mjs",
     "thumbs": "node scripts/fetch-thumbs.mjs --compress",
     "thumbs:raw": "node scripts/fetch-thumbs.mjs",
     "compress": "node scripts/compress-thumbs.mjs",
@@ -39,6 +44,7 @@
     "test": "node scripts/test-design-md.mjs && node scripts/selftest.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "culori": "4.0.2",
     "fidgetcoding-refero-mcp": "^0.2.0",
     "markdown-it": "14.3.3",

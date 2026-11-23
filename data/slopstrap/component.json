@@ -1,0 +1,64 @@
+{
+  "slug": "slopstrap",
+  "source": "slopstrap",
+  "title": "Slopstrap AI slop framework",
+  "description": "Mike Lacher's satirical CSS and JS framework that makes any page look hastily vibecoded by an LLM. Ships purple gradients, blinking status dots, border beams, fake testimonials, and a logo marquee out of the box. Vendored for fun and served fully offline.",
+  "breadcrumb": "Slopstrap / Components / CSS framework / Slopstrap",
+  "category": "CSS framework",
+  "url": "https://slopstrap.mikelacher.com/",
+  "homepage": "https://slopstrap.mikelacher.com/",
+  "previewable": false,
+  "preview": {
+    "css": "slopstrap/dist/slopstrap.css",
+    "js": "slopstrap/dist/slopstrap.js"
+  },
+  "faq": [
+    {
+      "question": "Is this a serious framework?",
+      "answer": "No. Slopstrap is a parody by Mike Lacher. It bundles every certified AI design tell so a page can look like an LLM built it in one shot. Use it when a demo deserves a little irony."
+    },
+    {
+      "question": "How do I run these examples myself?",
+      "answer": "Download the zip from the assets page, unzip it, and place an example file next to the dist folder. Each example loads ./dist/slopstrap.css and ./dist/slopstrap.js with no build tools."
+    },
+    {
+      "question": "Why is the preview not a React component like the others?",
+      "answer": "Slopstrap is plain HTML, CSS, and JS, so each preview frame runs the real framework: the vendored CSS and JS are inlined into a self-contained document built from the example. What you see in the frame is exactly what the zip produces."
+    }
+  ],
+  "variants": [
+    {
+      "id": "slopstrap-landing",
+      "variantId": "landing",
+      "name": "Landing page",
+      "filename": "examples/landing.html",
+      "dependencies": [],
+      "registryDependencies": []
+    },
+    {
+      "id": "slopstrap-dashboard",
+      "variantId": "dashboard",
+      "name": "Dashboard card",
+      "filename": "examples/dashboard.html",
+      "dependencies": [],
+      "registryDependencies": []
+    },
+    {
+      "id": "slopstrap-pricing",
+      "variantId": "pricing",
+      "name": "Pricing section",
+      "filename": "examples/pricing.html",
+      "dependencies": [],
+      "registryDependencies": []
+    },
+    {
+      "id": "slopstrap-sampler",
+      "variantId": "sampler",
+      "name": "Component sampler",
+      "filename": "examples/sampler.html",
+      "dependencies": [],
+      "registryDependencies": []
+    }
+  ],
+  "updatedAt": "2026-11-23T00:00:00.000Z"
+}

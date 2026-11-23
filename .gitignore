@@ -13,6 +13,11 @@ bake/
 # Built skill archives
 dist/
 
+# Skill scratch space. Dockerignored too: the plugin folder is COPY'd into
+# the image, so scratch must stay out of both git and the build context.
+skills/tmp/
+plugins/designer-mcp/skills/tmp/
+
 # Local env / secrets
 .env
 .env.*

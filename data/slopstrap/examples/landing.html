@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!-- Slopstrap example: landing page. Unzip slopstrap.zip and place this file
+     next to its dist/ folder, then open it in a browser. -->
+<html lang="en" data-slop-level="3">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SynergyFlow — Ship 10x Faster</title>
+  <link rel="stylesheet" href="./dist/slopstrap.css">
+  <style>
+    /* Local example tweak: the vendored nav links never wrap, so on narrow
+       viewports the links and the Get started button slide off the right
+       edge. Collapse to the brand, like every Series B site does. */
+    .slop-nav-links { flex-wrap: wrap; }
+    @media (max-width: 860px) { .slop-nav-links { display: none; } }
+  </style>
+</head>
+<body class="slop-body slop-grid-bg">
+  <div class="slop-orb-layer" aria-hidden="true">
+    <div class="slop-orb slop-orb-purple"></div>
+    <div class="slop-orb slop-orb-cyan"></div>
+    <div class="slop-orb slop-orb-pink"></div>
+    <div class="slop-orb slop-orb-emerald"></div>
+  </div>
+
+  <div class="slop-content-layer">
+    <nav class="slop-navbar">
+      <div class="slop-container">
+        <div class="slop-navbar-inner">
+          <div class="slop-brand">
+            <span class="slop-brand-mark">◆</span> SynergyFlow
+            <span class="slop-status"><span class="slop-dot slop-dot-green"></span> v2.0 live</span>
+          </div>
+          <div class="slop-nav-links">
+            <a href="#features">Features</a>
+            <a href="#metrics">Metrics</a>
+            <a href="#pricing">Pricing</a>
+            <a class="slop-btn slop-btn-primary slop-btn-sm" href="#cta">Get started</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="slop-container slop-section slop-center">
+      <span class="slop-pill slop-pill-shimmer slop-mb-3">
+        <span class="slop-dot slop-dot-green"></span> Backed by people who replied once
+      </span>
+
+      <h1 class="slop-h1">
+        <span class="slop-text-gradient">Supercharge your</span>
+        <span class="slop-serif-emphasis slop-text-gradient-hot">synergy</span>
+      </h1>
+
+      <p class="slop-lead">
+        SynergyFlow is the AI-native platform that reimagines workflows end to end.
+        It has not just one paradigm, it has a complete shift.
+      </p>
+
+      <div class="slop-row slop-row-center slop-mb-4">
+        <a class="slop-btn slop-btn-primary slop-btn-lg" href="#cta">Start free trial</a>
+        <a class="slop-btn slop-btn-ghost slop-btn-lg" href="#features">Watch demo</a>
+      </div>
+
+      <div data-slop-marquee></div>
+    </main>
+
+    <section id="features" class="slop-container slop-section">
+      <h2 class="slop-h2 slop-center">
+        <span class="slop-text-gradient">Everything you need,</span>
+        <span class="slop-serif-emphasis">allegedly</span>
+      </h2>
+      <div class="slop-bento slop-mt-4">
+        <div class="slop-card slop-card-beam slop-bento-8">
+          <div class="slop-icon-box slop-icon-indigo">⚡</div>
+          <h3 class="slop-h3">Agentic by default</h3>
+          <p class="slop-muted">Autonomous agents collaborate across your stack while you sleep. Results may vary, enthusiasm does not.</p>
+          <div class="slop-border-l-gradient slop-mt-2" style="padding-left:12px">
+            <span class="slop-mono slop-muted">agents.run(query) // zero config</span>
+          </div>
+        </div>
+        <div class="slop-card slop-bento-4">
+          <div class="slop-icon-box slop-icon-cyan">🔒</div>
+          <h3 class="slop-h3">SOC2 Type ∞</h3>
+          <p class="slop-muted">Enterprise-grade compliance, self-reported.</p>
+        </div>
+        <div class="slop-card slop-bento-4">
+          <div class="slop-icon-box slop-icon-emerald">🌍</div>
+          <h3 class="slop-h3">Globally distributed</h3>
+          <p class="slop-muted">Edge nodes in 190 countries, selected by vibes.</p>
+        </div>
+        <div class="slop-card slop-bento-8">
+          <h3 class="slop-h3">One integration away</h3>
+          <p class="slop-muted">Connect your warehouse, your CRM, and your childhood dreams with a single import.</p>
+          <div class="slop-terminal slop-mt-2">
+            <div class="slop-terminal-header"><span class="slop-traffic-lights"></span> zsh</div>
+            <pre class="slop-code">npx synergyflow init --everything
+✔ agents configured      ✔ vibes calibrated
+✔ synergy at 420%        ▓▓▓▓▓▓▓▓▓░ 90%</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="metrics" class="slop-container slop-section-sm">
+      <div class="slop-grid-3">
+        <div class="slop-stat-card">
+          <div class="slop-stat-value" data-slop-count="420%">0%</div>
+          <div class="slop-stat-label">More synergy</div>
+          <div class="slop-stat-delta">▲ +420% YoY</div>
+        </div>
+        <div class="slop-stat-card">
+          <div class="slop-stat-value" data-slop-count="2.4M">0</div>
+          <div class="slop-stat-label">Developers, probably</div>
+          <div class="slop-stat-delta">▲ 100% MoM</div>
+        </div>
+        <div class="slop-stat-card">
+          <div class="slop-stat-value" data-slop-count="99.99%">0%</div>
+          <div class="slop-stat-label">Uptime, self-certified</div>
+          <div class="slop-stat-delta">0 real incidents</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slop-container slop-section-sm">
+      <div class="slop-alert">
+        <span class="slop-dot slop-dot-amber"></span>
+        Warning: this page contains 14 purple gradients, injected automatically.
+      </div>
+    </section>
+
+    <section class="slop-container slop-section-sm">
+      <div data-slop-testimonials="3"></div>
+    </section>
+
+    <section id="cta" class="slop-container slop-section slop-center">
+      <h2 class="slop-h2"><span class="slop-text-gradient-animated">Ready to 10x your roadmap?</span></h2>
+      <p class="slop-lead">Join the waitlist. There is no product yet, but the landing page is done.</p>
+      <a class="slop-btn slop-btn-rainbow slop-btn-lg" href="#">Request early access</a>
+    </section>
+
+    <footer class="slop-container slop-section-sm slop-center">
+      <p class="slop-muted slop-mono">© 2026 SynergyFlow. Built with Slopstrap.</p>
+    </footer>
+  </div>
+
+  <script src="./dist/slopstrap.js" defer></script>
+</body>
+</html>

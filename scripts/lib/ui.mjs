@@ -38,10 +38,15 @@ export function nav(active) {
     ${tab("/", "Designs", "designs")}
     ${tab("/components", "Components", "components")}
     ${tab("/reui", "ReUI", "reui")}
+    ${tab("/baseui", "Base UI", "baseui")}
+    ${tab("/heroui", "HeroUI", "heroui")}
+    ${tab("/mantine", "Mantine", "mantine")}
+    ${tab("/daisyui", "daisyUI", "daisyui")}
     ${tab("/tailwind", "Tailwind", "tailwind")}
     ${tab("/presets", "Gradients &amp; Patterns", "presets")}
     ${tab("/templates", "System templates", "templates")}
     ${tab("/dashboards", "Dashboards", "dashboards")}
+    ${tab("/slopstrap", "Slop", "slopstrap")}
     ${tab("/docs", "UI SDK Docs", "docs")}
     ${tab("/assets", "Assets", "assets")}
     <span class="spacer"></span>
@@ -92,11 +97,13 @@ export function assetsHtml(manifest, importMap = null, origin = "") {
       `<li><a href="${esc(url)}" download>${esc(path)}</a> <span>(${(bytes / 1024).toFixed(1)} KB)</span></li>`)
     .join("");
   const groups = manifest?.groups ?? {};
+  const slop = manifest?.slopstrap ?? null;
   const groupRows = [
     ["previews", "Bundled browser modules behind every live component preview", "/components and /reui"],
     ["starter", "The offline starter: page, sources, compiled modules", manifest?.archive?.url ?? "/assets/starter.zip"],
     ["tailwind", "HyperUI and shadcn example sources, offline", "/tailwind"],
     ["templates", "Vendored design-system template files", "/templates"],
+    ["slopstrap", "The vendored Slopstrap joke framework: zip, css, js", "/slopstrap"],
     ["thumbnails", "Per-variant preview thumbnails", ""],
     ["fonts", "Shared webfont binaries (woff2)", ""],
   ].map(([key, what, href]) => {
@@ -149,6 +156,7 @@ ${manifest ? `
   <a class="dl" href="${esc(manifest.starter)}">Open starter example</a>
   <a class="dl" href="/assets/manifest.json">Asset manifest</a>
   <a class="dl" href="/assets/importmap.json">Import map (JSON)</a>
+  ${slop ? `<a class="dl" href="${esc(slop.zip.url)}" download>Download Slopstrap ZIP</a>` : ""}
 </div>
 <p class="muted">Build version <code>${esc(manifest.version)}</code>, content-addressed: every file is served under
 <code>/assets/${esc(manifest.version)}/</code> with immutable caching, sha256 ETags, and conditional-request revalidation.</p>
@@ -172,6 +180,15 @@ ${esc(mapJson)}
 
 <h2>Dashboard &amp; Visualization JS / CSS</h2>
 <ul>${vendorFiles}</ul>
+${slop ? `
+<h2>Slopstrap</h2>
+<p>The vendored <a href="https://slopstrap.mikelacher.com/">Slopstrap</a> framework by
+Mike Lacher (MIT, upstream README inside the zip): a joke CSS and JS bundle that makes
+any page look hastily vibecoded by an LLM. Grab the
+<a href="${esc(slop.zip.url)}" download>zip</a> (${(slop.zip.bytes / 1024).toFixed(0)} KB),
+the <a href="${esc(slop.css.url)}">css</a> and <a href="${esc(slop.js.url)}">js</a> directly,
+or see it live on the <a href="/slopstrap">Slop examples page</a>.</p>
+` : ""}
 <h2>Packages</h2>
 <ul>${packageRows}</ul>
 <details><summary>All starter files</summary><ul>${fileRows}</ul></details>
@@ -468,6 +485,7 @@ ${NAV_CSS}
   .wrap { padding:18px 20px 60px; max-width:1100px; }
   h1 { margin:0 0 4px; font-size:19px; font-weight:650; letter-spacing:-.015em; }
   .lead { color:var(--muted); margin:0 0 14px; font-size:13px; max-width:70ch; line-height:1.6; }
+  .home { margin:-8px 0 12px; font-size:12px; overflow-wrap:anywhere; }
   .install { background:var(--code-bg); border:1px solid var(--line); border-radius:8px;
     padding:9px 12px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size:12px; color:#9fd3a8; overflow-x:auto; margin-bottom:16px; }
@@ -504,6 +522,7 @@ ${nav("components")}
   <a class="back" href="/components">← All components</a>
   <h1>${esc(component?.title || component?.slug)}</h1>
   <p class="lead">${esc(component?.description || "")}</p>
+  ${component?.homepage ? `<p class="home"><a href="${esc(component.homepage)}" rel="noreferrer">${esc(component.homepage)}</a></p>` : ""}
   ${component?.install ? `<div class="install">${esc(component.install)}</div>` : ""}
   <div class="vtabs">${tabs}</div>
   <section class="preview" aria-labelledby="preview-heading"${variants.length ? "" : " hidden"}>
@@ -554,6 +573,314 @@ document.querySelectorAll('.copy').forEach(btn => btn.addEventListener('click', 
     btn.textContent = 'Copied';
     setTimeout(() => btn.textContent = 'Copy', 1400);
   } catch (e) { btn.textContent = 'Failed'; }
+}));
+</script>
+</body>
+</html>`;
+}
+
+/**
+ * The Slopstrap examples page: the vendored joke framework rendered live,
+ * straight from the /assets files. Declarative only — the framework's own
+ * script hydrates marquees, testimonials, counters, prose, and toggles from
+ * data attributes on load, so no gallery wiring is needed beyond the level
+ * switcher.
+ */
+export function slopstrapHtml(manifest) {
+  const slop = manifest?.slopstrap ?? null;
+  const head = (title, { extra = "", htmlAttrs = 'lang="en"' } = {}) => `<!doctype html>
+<html ${htmlAttrs}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title)}</title>
+<style>
+${BASE_CSS}
+${NAV_CSS}
+  .gate { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:16px 18px; max-width:760px; margin:0 auto; }
+  .gate h1 { font-size:18px; margin:0 0 6px; }
+  .gate p { color:var(--muted); font-size:13px; line-height:1.6; margin:6px 0; }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; }
+  .actions a, .lvbtn { background:var(--panel2); color:var(--fg); border:1px solid var(--line);
+    border-radius:7px; padding:6px 11px; font-size:12px; text-decoration:none; cursor:pointer; font:inherit; }
+  .actions a:hover, .lvbtn:hover { border-color:var(--accent); }
+  .lvbtn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .lvlabel { color:var(--muted); font-size:12px; align-self:center; margin-right:2px; }
+  .note { color:var(--muted); font-size:12px; line-height:1.6; margin-top:10px; }
+  .note code { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+${extra}
+</head>`;
+  if (!slop) {
+    return `${head("Slopstrap unavailable")}
+<body>
+${nav("slopstrap")}
+<main style="padding:40px 20px; text-align:center; color:var(--muted);">
+  <p>The Slopstrap layer is not in this frontend build. Run <code>npm run bake</code> and
+  <code>npm run frontend:build</code> with <code>data/slopstrap/</code> present to serve it.</p>
+</main>
+</body>
+</html>`;
+  }
+  const fmtKB = (bytes) => `${(bytes / 1024).toFixed(0)} KB`;
+  return `${head("Slopstrap: certified AI slop, served offline", {
+    extra: `<link rel="stylesheet" href="${esc(slop.css.url)}">`,
+    htmlAttrs: 'lang="en" data-slop-level="3"',
+  })}
+<body class="slop-body slop-grid-bg">
+${nav("slopstrap")}
+<div class="slop-orb-layer" aria-hidden="true">
+  <div class="slop-orb slop-orb-purple"></div>
+  <div class="slop-orb slop-orb-cyan"></div>
+  <div class="slop-orb slop-orb-pink"></div>
+  <div class="slop-orb slop-orb-emerald"></div>
+</div>
+<div class="slop-content-layer">
+  <header class="slop-container slop-section-sm">
+    <div class="gate">
+      <h1>Slopstrap v4.2.0</h1>
+      <p>Mike Lacher's satirical CSS and JS framework. It bundles every certified AI design
+      tell: purple gradients, blinking status dots, border beams, fake testimonials, and a
+      logo marquee. Everything below is rendered live from the vendored files, fully offline.</p>
+      <div class="actions">
+        <a href="${esc(slop.zip.url)}" download>Download ZIP (${fmtKB(slop.zip.bytes)})</a>
+        <a href="https://slopstrap.mikelacher.com/" rel="noreferrer">Upstream site</a>
+        <a href="/component/slopstrap">Catalog entry</a>
+        <span class="lvlabel">Slop level:</span>
+        <button type="button" class="lvbtn" data-slop-level-set="1">1 Subtle</button>
+        <button type="button" class="lvbtn" data-slop-level-set="2">2 One-shot</button>
+        <button type="button" class="lvbtn on" data-slop-level-set="3">3 Peak</button>
+        <button type="button" class="lvbtn" data-slop-level-set="4">4 Overdrive</button>
+      </div>
+      <p class="note">MIT licensed per the upstream README inside the zip, which ships verbatim.
+      The gallery never links Google Fonts, so Inter and Instrument Serif fall back to system
+      fonts. The runnable examples live on the
+      <a href="/component/slopstrap">component page</a> and in
+      <a href="${esc(slop.zip.url)}" download>the zip</a>.</p>
+    </div>
+  </header>
+
+  <main class="slop-container slop-section">
+    <section class="slop-center">
+      <span class="slop-pill slop-pill-shimmer slop-mb-3">
+        <span class="slop-dot slop-dot-green"></span> Now with 100 percent more slop
+      </span>
+      <h1 class="slop-h1">
+        <span class="slop-text-gradient">It's not just a framework,</span>
+        <span class="slop-serif-emphasis slop-text-gradient-hot">it's a lifestyle</span>
+      </h1>
+      <p class="slop-lead">Every class below ships in the zip. Copy one, and your page
+      immediately looks like a Series B landing page built in one shot.</p>
+      <div class="slop-row slop-row-center slop-mb-4">
+        <a class="slop-btn slop-btn-primary slop-btn-lg" href="${esc(slop.zip.url)}" download>Download the slop</a>
+        <a class="slop-btn slop-btn-ghost slop-btn-lg" href="https://slopstrap.mikelacher.com/" rel="noreferrer">Read the docs</a>
+      </div>
+      <div data-slop-marquee></div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Status dots, connected to nothing</h2>
+      <div class="slop-row slop-mt-2">
+        <span class="slop-dot slop-dot-green"></span>
+        <span class="slop-dot slop-dot-purple"></span>
+        <span class="slop-dot slop-dot-cyan"></span>
+        <span class="slop-dot slop-dot-amber"></span>
+        <span class="slop-dot slop-dot-pink"></span>
+        <span class="slop-dot slop-dot-red"></span>
+        <span class="slop-dot slop-dot-indigo"></span>
+        <span class="slop-dot slop-dot-rainbow"></span>
+        <span class="slop-mono slop-muted">8 services, 0 backends</span>
+      </div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Buttons that shimmer</h2>
+      <div class="slop-row slop-mt-2">
+        <button class="slop-btn slop-btn-primary">Get started</button>
+        <button class="slop-btn slop-btn-rainbow">Book a demo</button>
+        <button class="slop-btn slop-btn-ghost">Learn more</button>
+        <button class="slop-btn slop-btn-primary slop-btn-sm">Small</button>
+        <button class="slop-btn slop-btn-primary slop-btn-lg">Large</button>
+      </div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Pills and badges of authority</h2>
+      <div class="slop-row slop-mt-2">
+        <span class="slop-pill slop-pill-shimmer"><span class="slop-dot slop-dot-green"></span> NEW</span>
+        <span class="slop-badge slop-badge-ai">AI-POWERED</span>
+        <span class="slop-badge slop-badge-popular">POPULAR</span>
+        <span class="slop-badge slop-badge-emerald">SOC2 TYPE ∞</span>
+        <span class="slop-badge slop-badge-cyan">REAL-TIME</span>
+        <span class="slop-badge slop-badge-amber">BETA</span>
+        <span class="slop-badge slop-badge-pink">10x</span>
+      </div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Fat left borders of importance</h2>
+      <div class="slop-grid-3 slop-mt-2">
+        <div class="slop-border-l-purple" style="padding-left:12px"><p class="slop-muted">Purple means vision.</p></div>
+        <div class="slop-border-l-cyan" style="padding-left:12px"><p class="slop-muted">Cyan means velocity.</p></div>
+        <div class="slop-border-l-rainbow" style="padding-left:12px"><p class="slop-muted">Rainbow means the sprint went well.</p></div>
+      </div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Typography with one italic serif word</h2>
+      <h3 class="slop-h2 slop-mt-2">
+        <span class="slop-text-gradient">Reimagine your</span>
+        <span class="slop-serif-emphasis">workflow</span>
+      </h3>
+      <p class="slop-mt-2">
+        Underlines that look hand-drawn, because authenticity is a font choice:
+        <span class="slop-underline">game-changing</span>,
+        <span class="slop-underline slop-underline-squiggle slop-underline-cyan">blazingly fast</span>,
+        <span class="slop-underline slop-underline-double slop-underline-pink">enterprise-ready</span>.
+      </p>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Cards, beams, and cards inside cards</h2>
+      <div class="slop-grid-3 slop-mt-2">
+        <div class="slop-card">
+          <h3 class="slop-h3">Plain card</h3>
+          <p class="slop-muted">Frosted glass, soft shadow, quiet dignity.</p>
+        </div>
+        <div class="slop-card slop-card-beam">
+          <h3 class="slop-h3">Beam card</h3>
+          <p class="slop-muted">A border beam rotates, and a spotlight follows your cursor.</p>
+        </div>
+        <div class="slop-card slop-card-nested">
+          <h3 class="slop-h3">Nested card</h3>
+          <div class="slop-card slop-mt-2">
+            <p class="slop-muted">A card, within a card, within a landing page.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Stats that count themselves</h2>
+      <div class="slop-grid-3 slop-mt-2">
+        <div class="slop-stat-card">
+          <div class="slop-stat-value" data-slop-count="420%">0%</div>
+          <div class="slop-stat-label">More synergy</div>
+          <div class="slop-stat-delta">▲ +420% YoY</div>
+        </div>
+        <div class="slop-stat-card">
+          <div class="slop-stat-value" data-slop-count="2.4M">0</div>
+          <div class="slop-stat-label">Developers, probably</div>
+          <div class="slop-stat-delta">▲ 100% MoM</div>
+        </div>
+        <div class="slop-stat-card">
+          <div class="slop-stat-value" data-slop-count="99.99%">0%</div>
+          <div class="slop-stat-label">Uptime, self-certified</div>
+          <div class="slop-stat-delta">0 real incidents</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Terminal, AI bar, and progress</h2>
+      <div class="slop-grid-2 slop-mt-2">
+        <div class="slop-terminal">
+          <div class="slop-terminal-header"><span class="slop-traffic-lights"></span> zsh</div>
+          <pre class="slop-code">npx create-slop-app
+✔ agents configured      ✔ vibes calibrated
+✔ synergy at 420%        ▓▓▓▓▓▓▓▓▓░ 90%</pre>
+        </div>
+        <div class="slop-card">
+          <div class="slop-row slop-row-between">
+            <h3 class="slop-h3">AI workload</h3>
+            <span class="slop-badge slop-badge-ai">AI-POWERED</span>
+          </div>
+          <div class="slop-ai-bar slop-mt-2"><div class="slop-progress-bar" style="width:87%"></div></div>
+          <div class="slop-progress slop-mt-2"><div class="slop-progress-bar" style="width:64%"></div></div>
+          <p class="slop-muted slop-mt-2">87% of compute is thinking about synergy.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Alerts</h2>
+      <div class="slop-alert slop-mt-2">
+        <span class="slop-dot slop-dot-amber"></span>
+        Warning: this page contains 14 purple gradients, injected automatically.
+      </div>
+      <div class="slop-alert slop-mt-2">
+        <span class="slop-dot slop-dot-green"></span>
+        Great news: the thing you waited for is now generally available.
+      </div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Pricing with a billing toggle</h2>
+      <div class="slop-row slop-row-center slop-mt-2" data-slop-billing-toggle>
+        <span class="slop-muted">Monthly</span>
+        <button class="slop-switch" type="button" aria-label="Toggle billing period">
+          <span class="slop-switch-thumb"></span>
+        </button>
+        <span class="slop-muted">Yearly <span class="slop-badge slop-badge-emerald">save 20%</span></span>
+      </div>
+      <div class="slop-grid-3 slop-mt-3">
+        <div class="slop-pricing-card">
+          <h3 class="slop-h3">Hobby</h3>
+          <div class="slop-price" data-price-monthly="$0" data-price-yearly="$0">$0<span class="slop-muted">/mo</span></div>
+          <ul class="slop-feature-list">
+            <li>1 project</li>
+            <li>3 gradients per page</li>
+          </ul>
+          <button class="slop-btn slop-btn-ghost slop-w-full">Start free</button>
+        </div>
+        <div class="slop-pricing-card slop-pricing-popular">
+          <span class="slop-pricing-popular-tag">RECOMMENDED BY OUR LANDING PAGE</span>
+          <h3 class="slop-h3">Pro</h3>
+          <div class="slop-price" data-price-monthly="$29" data-price-yearly="$23">$29<span class="slop-muted">/mo</span></div>
+          <ul class="slop-feature-list">
+            <li>Unlimited gradients</li>
+            <li>Agentic workflows on toast</li>
+          </ul>
+          <button class="slop-btn slop-btn-primary slop-btn-lg slop-w-full">Go Pro</button>
+        </div>
+        <div class="slop-pricing-card">
+          <h3 class="slop-h3">Enterprise</h3>
+          <div class="slop-price">Let's talk<span class="slop-muted">/quarter</span></div>
+          <ul class="slop-feature-list">
+            <li>SSO, SAML, and other acronyms</li>
+            <li>On-prem, cloud, or spiritually</li>
+          </ul>
+          <button class="slop-btn slop-btn-ghost slop-w-full">Contact sales</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Synthetic social proof</h2>
+      <div class="slop-mt-2" data-slop-testimonials="3"></div>
+    </section>
+
+    <section class="slop-section-sm">
+      <h2 class="slop-h3">Extraneous copy, generated live</h2>
+      <div class="slop-mt-2" data-slop-prose="ai" data-slop-paragraphs="2"></div>
+    </section>
+  </main>
+
+  <footer class="slop-container slop-section-sm slop-center">
+    <p class="slop-muted slop-mono">
+      Slopstrap v4.2.0 by <a class="slop-muted" href="https://mikelacher.com/" rel="noreferrer">Mike Lacher</a>,
+      MIT, served offline by the designer-mcp gallery.
+    </p>
+  </footer>
+</div>
+<script src="${esc(slop.js.url)}" defer></script>
+<script>
+document.querySelectorAll('[data-slop-level-set]').forEach((btn) => btn.addEventListener('click', () => {
+  const level = btn.dataset.slopLevelSet;
+  document.documentElement.setAttribute('data-slop-level', level);
+  if (window.Slopstrap) window.Slopstrap.setLevel(level);
+  document.querySelectorAll('[data-slop-level-set]').forEach((b) => b.classList.toggle('on', b === btn));
 }));
 </script>
 </body>

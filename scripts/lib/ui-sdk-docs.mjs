@@ -10,7 +10,7 @@ import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getRemoteUrl } from "./cache.mjs";
+import { getRemoteUrl, remoteJson, remoteText, REMOTE_DOWN } from "./cache.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // SKILL_DIR keeps two legacy meanings: the old single-skill dir (which held
@@ -50,20 +50,25 @@ async function walkMarkdown(dir, base, out) {
 }
 
 export async function listUiSdkDocs(dir = DEFAULT_UI_SDK_DIR) {
-  const remote = getRemoteUrl();
-  if (remote) {
-    if (cachedIndex) return cachedIndex;
-    const res = await fetch(`${remote}/api/ui-sdk-docs.json`, { signal: AbortSignal.timeout(15000) });
-    if (!res.ok) return { total: 0, docs: [] };
-    cachedIndex = await res.json();
-    return cachedIndex;
-  }
   if (cachedIndex) return cachedIndex;
+  let remoteDown = false;
+  if (getRemoteUrl()) {
+    const remote = await remoteJson("api/ui-sdk-docs.json");
+    if (remote === null) return { total: 0, docs: [] };
+    if (remote !== REMOTE_DOWN && Array.isArray(remote?.docs)) {
+      cachedIndex = remote;
+      return cachedIndex;
+    }
+    remoteDown = true;
+  }
   const docs = [];
   await walkMarkdown(dir, dir, docs);
   docs.sort((a, b) => a.path.localeCompare(b.path));
-  cachedIndex = { total: docs.length, docs };
-  return cachedIndex;
+  const index = { total: docs.length, docs };
+  // The local index stands in while the host is unreachable, but is not
+  // kept: the next call asks the host again.
+  if (!remoteDown) cachedIndex = index;
+  return index;
 }
 
 export async function readUiSdkDoc(docPath, dir = DEFAULT_UI_SDK_DIR) {
@@ -71,13 +76,14 @@ export async function readUiSdkDoc(docPath, dir = DEFAULT_UI_SDK_DIR) {
   if (!clean || clean.includes("..") || !/^[a-z0-9._/-]+$/i.test(clean)) return null;
   if (docContentCache.has(clean)) return docContentCache.get(clean);
 
-  const remote = getRemoteUrl();
-  if (remote) {
-    const res = await fetch(`${remote}/api/ui-sdk-docs/${clean}`, { signal: AbortSignal.timeout(15000) });
-    if (!res.ok) return null;
-    const text = await res.text();
-    docContentCache.set(clean, text);
-    return text;
+  if (getRemoteUrl()) {
+    const text = await remoteText(`api/ui-sdk-docs/${clean}`);
+    if (typeof text === "string") {
+      docContentCache.set(clean, text);
+      return text;
+    }
+    // A 404 is the host's answer. Only an unreachable host falls back to disk.
+    if (text !== REMOTE_DOWN) return null;
   }
 
   const full = resolve(dir, clean);

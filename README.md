@@ -2,7 +2,7 @@
 
 **1,540 real product design systems, queryable by an agent and browsable by a human.**
 
-**Browse it live: [whit3rabbit.github.io/designer-mcp-docker](https://whit3rabbit.github.io/designer-mcp-docker/)**. The full gallery on GitHub Pages: design systems, AI components with live previews, the ReUI gallery, dashboard starters, and presets. No Docker needed to look.
+**Browse it live: [whit3rabbit.github.io/designer-mcp-docker](https://whit3rabbit.github.io/designer-mcp-docker/)**. The full gallery on GitHub Pages: design systems, AI components with live previews, the ReUI gallery, dashboard starters, HeroUI docs, and presets. No Docker needed to look.
 
 [![image: ghcr.io](assets/badges/image.svg)](https://github.com/whit3rabbit/designer-mcp-docker/pkgs/container/designer-mcp)
 [![publish: GitHub Actions](assets/badges/publish.svg)](https://github.com/whit3rabbit/designer-mcp-docker/actions/workflows/publish.yml)
@@ -11,8 +11,8 @@
 Three surfaces over one cache:
 
 - **MCP server** (stdio): 7 upstream `refero_*` tools for agents
-- **Generic MCP server** (stdio): 26 source-neutral `design_*` tools across both sources
-- **Live gallery** (HTTP): design systems, AI components, the ReUI gallery, dashboard starters, and presets
+- **Generic MCP server** (stdio): 37 source-neutral `design_*` tools across both sources
+- **Live gallery** (HTTP): design systems, AI components, the ReUI gallery, dashboard starters, HeroUI docs, the Mantine UI catalog, and presets
 
 The upstream package [`fidgetcoding-refero-mcp`](https://github.com/fidgetcoding/refero-design-mcp)
 is vendored **unmodified** and runs against a prebuilt cache, so upstream
@@ -70,6 +70,20 @@ the sub-skills name every dependency inline with check-then-install
 guidance, so nothing is required upfront. Pin a release tag for repeatable
 installs (`npx -y skills add whit3rabbit/designer-mcp-docker@v1.8.0`), and
 run `skills update` later to move an installed copy to the latest push.
+
+**Upgrading from v1.7.0 or earlier.** The plugin used to be one skill, also
+named `designer-mcp`, with `docx/`, `pptx/`, `pdf/` and the rest inside it.
+v1.8.0 split it into four skills. Installing the new ones does not remove an
+old copy, and the old folder can shadow the new `designer-mcp` skill. If your
+installed `designer-mcp` folder has `docx/` at its top level, delete that
+folder and install again.
+
+**Skills newer than the server.** Skills install from `main`. A hand-pasted
+MCP registration runs `ghcr.io/whit3rabbit/designer-mcp:latest`, and Docker
+keeps using a `:latest` it has already pulled. If a skill names a tool your
+client does not list, run `docker pull ghcr.io/whit3rabbit/designer-mcp:latest`
+and restart the client. The plugin install avoids this: its `.mcp.json` pins
+the image tag that matches the plugin version.
 
 ### 3. Tell the skill to install the MCP server
 
@@ -195,8 +209,8 @@ docker run -d --name designer-mcp-gallery \
 ```
 
 That one container serves 1,540 designs, 109 AI components, 1,264 ReUI
-components, 2 dashboard starters, and 159 presets, and makes **zero
-outbound calls** (verified with `--network none`).
+components, 2 dashboard starters, 73 HeroUI v3 component docs, and 159
+presets, and makes **zero outbound calls** (verified with `--network none`).
 
 Want a refreshed cache instead of the baked one? Fill a docker volume
 once and mount it read-only into any registration above:
@@ -239,13 +253,22 @@ that registration or the two networked tools fail by design.
 | `gradientdeck` | 139 patterns + 20 glass effects | Background gradients, patterns and liquid-glass presets with real CSS (MIT) |
 | `reui` | 1,264 components in 87 categories | KeenThemes [ReUI](https://github.com/keenthemes/reui): Radix UI and Base UI TSX for every example, with live offline previews (MIT) |
 | `dashboards` | 2 starter templates | shadcn-admin (Vite + TanStack Router) and a Next.js 16 App Router starter, fonts bundled and CDN links stripped (MIT) |
+| `heroui` | 73 components / 16 guides | HeroUI v3 docs baked from the pinned [@heroui/react](https://github.com/heroui-inc/heroui) npm tarballs and GitHub tag (Apache-2.0/MIT): component docs, per-component CSS, oklch theme variables, TSX source, v2-to-v3 migration guides |
+| `mantine` | 123 components in 24 categories | [ui.mantine.dev](https://ui.mantine.dev/) ready-made components (MIT): full TSX + CSS module source, category illustrations, demo images, and live offline previews rendered from the vendored @mantine npm tarballs |
+| `baseui` | 37 components / 42 guides | [Base UI](https://base-ui.com) (`@base-ui/react`, MIT): the first-party agent docs (llms.txt index and its markdown pages) for the headless components, handbook, utilities, and release notes; docs-only, cross-linked to the ReUI previews |
+| `daisyui` | 68 components / 35 themes | daisyUI 5 (MIT): the official per-component agent docs, class tables and example HTML baked from the pinned npm tarball + GitHub tag; native offline previews rendered by the vendored compiled CSS with every theme |
 
 The Refero and OpenDesign entries land in **one catalog** with a `source` tag
 on every entry, so a single query searches both.
 
 ReUI components and dashboard starters are separate layers. They carry their
 own cache indexes, gallery tabs, and JSON APIs. The `design_*` MCP tools do
-not cover them.
+not cover them. HeroUI, Mantine and daisyUI are separate layers too, but all
+three **are** MCP covered: the eight `design_heroui_*` tools read the same
+baked cache the `/heroui` gallery routes serve, the three `design_mantine_*`
+tools read the same baked cache the `/mantine` routes serve, and the three
+`design_daisyui_*` tools read the same baked cache the `/daisyui` routes
+serve.
 
 OpenDesign is imported with a sparse clone of just the `design-systems/`
 subtree: **38 MB**, not the 3.6 GB full repo (that figure is git history,
@@ -310,6 +333,9 @@ cache/presets.json       { updatedAt, total, catalogs[] }     <- preset index
 cache/presets/<kind>.json      presets with CSS + templates   <- one catalog
 cache/reui/...                 categories, TSX, screenshots   <- ReUI layer
 cache/dashboards/<slug>/       source + offline zip + fonts   <- dashboard starters
+cache/heroui/...               docs, styles, theme, source, migration <- HeroUI layer
+cache/mantine/...              components, images, vendor, provenance  <- Mantine layer
+cache/daisyui/...              catalog, components, css, docs, provenance <- daisyUI layer
 ```
 
 `styles` and `designs` in `catalog.json` point at the same array: the
@@ -371,7 +397,14 @@ one: it covers every source and works fully offline:
 | `design_preset_search` | search gradients, patterns and glass effects |
 | `design_preset_get` | one preset catalog with real CSS |
 
-Plus `design_template_*` (7 vendored design-system templates), `design_library_*` (install manifests), `design_asset_*` (local asset CDN & import map), `design_markdown_*` (DESIGN.md parse/render/validate), and `design_docs_*` (offline `@ui-sdk/*` docs) — 26 tools in total.
+Plus `design_template_*` (7 vendored design-system templates), `design_library_*` (install manifests), `design_asset_*` (local asset CDN & import map), `design_markdown_*` (DESIGN.md parse/render/validate), `design_docs_*` (offline `@ui-sdk/*` docs), `design_heroui_*` (the offline HeroUI v3 layer: catalog, docs, guides, TSX source, per-component CSS, oklch theme variables, migration guides), `design_mantine_*` (the offline ui.mantine.dev catalog: components with full TSX + CSS module source and vendored package versions), and `design_daisyui_*` (the offline daisyUI 5 catalog: class tables, syntax templates and offline-safe example HTML over the vendored compiled CSS with all 35 themes), and `design_baseui_*` (the offline Base UI docs: headless component docs and the handbook, utilities, and overview guides) — 44 tools in total.
+
+Replies are sized for a model's context. Search and list rows are summaries
+(`detail: "full"` restores every swatch), `design_get` leaves out the raw
+token dump unless asked, long documents come a page at a time with
+`nextOffset`, and the server refuses any reply over 120 KB with a hint
+instead of truncating. The full parameter reference is
+[mcp-tools.md](plugins/designer-mcp/skills/designer-mcp/references/mcp-tools.md).
 
 ---
 
@@ -406,6 +439,22 @@ GET /api/reui                    ReUI index as JSON
 GET /dashboards                  dashboard starters with offline downloads
 GET /dashboard/:slug             one dashboard: file tree, cover, and zips
 GET /api/dashboards              dashboard index as JSON
+
+GET /heroui                      HeroUI v3 docs browser: 73 components, 16 guides
+GET /heroui/component/:slug      one rendered component doc
+GET /heroui/guide/:slug          one rendered guide
+GET /api/heroui                  HeroUI catalog as JSON (docs, styles, theme, source, migration under /api/heroui/*)
+
+GET /mantine                     Mantine UI catalog: 123 components in 24 categories
+GET /mantine/category/:slug      one category with thumbnails
+GET /mantine/component/:slug     one component: live preview + per-file source
+GET /mantine/preview/:slug       one live component preview document
+GET /api/mantine                 Mantine catalog as JSON (?q= searches; /api/mantine/component/:slug for one)
+
+GET /daisyui                     daisyUI catalog: 68 components, thumbnails and search
+GET /daisyui/component/:slug     one component: live preview, classes, copyable example
+GET /daisyui/preview/:slug       one native preview document (?theme= picks any of the 35 themes)
+GET /api/daisyui                 daisyUI catalog as JSON (?q= searches; /api/daisyui/component/:slug for one)
 
 GET /templates                   seven design-system templates with landing and deck previews
 GET /assets                      browser libraries, styles, fonts, and starter downloads
@@ -455,6 +504,7 @@ URLs and zero external network requests. One build carries:
 - 109 AI components with 250 live demos
 - 1,264 ReUI components with live offline previews
 - the Dashboards tab: 2 starters with offline zips and bundled fonts
+- the HeroUI docs browser: 73 components, 16 guides, theme variables
 - the HyperUI & shadcn/ui Tailwind catalogs with client-side variant switching
 - presets, 7 templates, assets, the skill archive, and the JSON APIs
 
@@ -519,6 +569,14 @@ node scripts/mcp-server.mjs --url https://<user>.gitlab.io/<repo>
 When `DESIGN_REMOTE_URL` is unset (the default), `mcp-server.mjs` reads
 strictly from local disk and makes zero outbound network requests.
 
+Remote mode degrades to the local cache. If the host does not answer, the
+server reads the same data from disk and adds a `remoteNote` to the reply
+saying so; after a failure it skips the host for 30 seconds, so a dead host
+costs one timeout rather than one per file. A 404 from the host is taken as
+its answer. A URL that is not `http` or `https` is ignored, with a note in
+every reply and on stderr. Tool arguments cannot steer a request outside the
+host's `api/` tree.
+
 ---
 
 ## Two surfaces, one image
@@ -528,7 +586,7 @@ The `designer-mcp` image runs both surfaces over the same cache:
 | Surface | How to run | What it is |
 |---|---|---|
 | **Gallery** | `docker compose up -d gallery` | HTTP preview on `127.0.0.1:8787`: thumbnails, colour swatches, type scales, DESIGN.md |
-| **MCP** | `docker compose run --rm design` | stdio JSON-RPC server, 26 `design_*` tools over both sources |
+| **MCP** | `docker compose run --rm design` | stdio JSON-RPC server, 44 `design_*` tools over both sources |
 | **MCP (upstream)** | `docker compose run --rm mcp` | stdio JSON-RPC server, 7 `refero_*` tools, Refero-only |
 | **Fetch** | `docker compose run --rm fetch` | populates the cache from Refero's public pages |
 | **OpenDesign** | `docker compose run --rm opendesign` | imports the OpenDesign design-system packages |
@@ -549,14 +607,19 @@ docker compose run --rm agentkit     #  46 more + the Claude layer
 docker compose run --rm thumbs       # 1,342 screenshots     (~55 MB)
 ```
 
-The ReUI and dashboard layers are not compose services. Stage them with npm:
+The ReUI, dashboard, HeroUI, Mantine, daisyUI, and Base UI layers are not
+compose services. Stage them with npm:
 
 ```bash
 npm run reui          # 1,264 components in 87 categories (Radix + Base UI TSX)
 npm run dashboards    # 2 starters with offline zips and bundled fonts
+npm run heroui        # 73 HeroUI v3 component docs, styles, theme, source
+npm run mantine       # 123 ui.mantine.dev components + vendored @mantine packages
+npm run daisyui       # 68 daisyUI 5 components + the compiled css with all 35 themes
+npm run baseui        # 37 Base UI component docs + 42 guides
 ```
 
-Both are baked into the published image.
+All six are baked into the published image.
 
 Each accepts trailing arguments, which append to the script's defaults:
 
@@ -637,6 +700,8 @@ npm test        # end-to-end checks across all cached layers and servers
 | `/reui/:category` | one category with live offline previews |
 | `/dashboards` | dashboard starters with offline downloads |
 | `/dashboard/:slug` | one dashboard: file tree, cover, and zips |
+| `/mantine` | Mantine UI catalog: 123 components in 24 categories, live offline previews |
+| `/daisyui` | daisyUI catalog: 68 components, live offline previews with all 35 themes |
 | `/skill` | the skill zip (`designer-mcp-skill.zip`) |
 | `/skill/SKILL.md` | the skill source |
 | `/healthz` | status + style count |
@@ -804,13 +869,40 @@ node scripts/package-skill.mjs      # → dist/designer-mcp-skill.zip
 
 The zip carries `skills/<four skill directories, with the bundled
 sub-skills inside>`, the plugin-root `evals/` routing suite, and the
-dependency manifests at the zip root. Unzip it
-straight into the skills directory your agent reads:
+dependency manifests at the zip root. Because of that `skills/` prefix,
+extract it aside and copy the four skill folders into the skills directory
+your agent reads (unzipping straight into it lands them one level too deep):
 
 ```bash
 DEST=~/.claude/skills    # see the table below for other agents
-mkdir -p "$DEST" && unzip designer-mcp-skill.zip -d "$DEST"
+TMP=$(mktemp -d) && unzip -q designer-mcp-skill.zip -d "$TMP" && mkdir -p "$DEST" && cp -R "$TMP/skills/." "$DEST/"
 ```
+
+#### Offline Claude Code plugin install
+
+The image also serves the whole plugin (skills, harness manifests,
+`.mcp.json`) as a local marketplace. No GitHub access is needed:
+
+```bash
+curl -o designer-mcp-marketplace.zip http://127.0.0.1:8787/skill/marketplace.zip
+```
+
+```bash
+unzip -oq designer-mcp-marketplace.zip -d ~/designer-mcp-marketplace
+```
+
+```bash
+claude plugin marketplace add ~/designer-mcp-marketplace
+```
+
+```bash
+claude plugin install designer-mcp@designer-mcp-docker
+```
+
+The plugin's `.mcp.json` runs `ghcr.io/whit3rabbit/designer-mcp:<version>`
+with `--network none`, pinned to the plugin version. Docker cannot pull on
+an air-gapped host, so that exact tag must already be loaded there
+(`docker save` on a connected machine, `docker load` on the target).
 
 | Agent | User-level skills directory |
 |---|---|
@@ -889,6 +981,8 @@ designer-mcp-docker/
 │   ├── mcp-server.mjs          # generic stdio MCP server (design_*)
 │   ├── mcp-entry.mjs           # stdio MCP entrypoint (upstream refero_*)
 │   ├── fetch-reui.mjs          # cache the ReUI component library
+│   ├── fetch-mantine.mjs       # cache the Mantine UI catalog + vendored packages
+│   ├── fetch-daisyui.mjs       # cache the daisyUI layer: compiled css + agent docs
 │   ├── fetch-dashboards.mjs    # cache dashboard starters, offline assets
 │   ├── build-static.mjs        # build the self-contained static site
 │   ├── static-serve.mjs        # serve a static build over HTTP

@@ -1,0 +1,13 @@
+{
+  "comment": "HeroUI bake pin. scripts/fetch-heroui.mjs reads this to fetch pinned npm tarballs and the GitHub tag, which also carries the migration docs. Bump versions here and re-run npm run heroui to refresh the layer.",
+  "reactVersion": "3.2.8",
+  "stylesVersion": "3.2.8",
+  "source": {
+    "repo": "heroui-inc/heroui",
+    "tag": "v3.2.8"
+  },
+  "upstream": {
+    "mcp": "https://github.com/heroui-inc/heroui-mcp",
+    "skills": "https://github.com/heroui-inc/heroui (skills/, Apache-2.0)"
+  }
+}

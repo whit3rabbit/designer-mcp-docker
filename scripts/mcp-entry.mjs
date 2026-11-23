@@ -9,12 +9,28 @@
  */
 
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const CACHE_DIR = process.env.REFERO_CACHE_DIR || "/cache";
+// One cache directory, for the check below AND for the upstream package.
+//
+// Upstream reads only REFERO_CACHE_DIR and defaults to ~/.refero-cache, so the
+// directory resolved here is exported back into the environment. Without that
+// this wrapper checked one directory and the server read another whenever the
+// variable was unset. DESIGN_CACHE_DIR is the name the fetchers and the
+// generic server use, so it is honored too. With neither set: /cache inside
+// the image, else ~/.design-cache, where the fetchers write by default.
+// resolve() because upstream rejects a relative path, and only after startup.
+function defaultCacheDir() {
+  return existsSync("/cache/catalog.json") ? "/cache" : join(homedir(), ".design-cache");
+}
+const CACHE_DIR = resolve(
+  process.env.REFERO_CACHE_DIR || process.env.DESIGN_CACHE_DIR || defaultCacheDir(),
+);
+process.env.REFERO_CACHE_DIR = CACHE_DIR;
 // The upstream package defaults its cache TTL to 24 hours and re-fetches from
 // the live API when the mirror looks stale. The image sets a deliberate 10-year
 // TTL (Dockerfile) so reads always come from the cache and refresh happens by
@@ -28,12 +44,17 @@ if (!existsSync(catalog)) {
   // The image reference is deliberately not spelled out here: the version
   // baked into this string would go stale on the next release. Use whatever
   // tag you actually ran.
+  // The image bakes the catalog at /cache, so inside a container the usual
+  // cause is a volume mounted over /cache that shadows it. Lead with that:
+  // the fetcher needs network, which an offline install does not have.
   console.error(
     `[refero-mcp] no catalog at ${catalog}\n` +
-      `[refero-mcp] populate it first — this image ships the fetcher:\n` +
+      `[refero-mcp] the image already bakes one at /cache. If you mounted a volume\n` +
+      `[refero-mcp] over /cache, drop the -v flag or mount a populated cache, and\n` +
+      `[refero-mcp] check REFERO_CACHE_DIR / DESIGN_CACHE_DIR.\n` +
+      `[refero-mcp] to build your own cache instead (needs network):\n` +
       `[refero-mcp]   docker run --rm -v refero-cache:/cache <this-image> \\\n` +
-      `[refero-mcp]     node scripts/refero-public-fetch.js --limit 0\n` +
-      `[refero-mcp] then run the MCP server against the same volume.`,
+      `[refero-mcp]     node scripts/refero-public-fetch.js --limit 0`,
   );
   process.exit(1);
 }

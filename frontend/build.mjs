@@ -2,10 +2,12 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+import { daisyuiPreviewDocument } from "../scripts/lib/frontend.mjs";
 import { sha256, validAssetPath, validSlug, variantFingerprint } from "../scripts/lib/frontend-paths.mjs";
+import { nativePreviewDocument } from "../scripts/lib/slopstrap.mjs";
 import { copy, listFiles, stageTemplates, write } from "./templates.mjs";
 import { captureThumbnails } from "./thumbnails.mjs";
 import { stageTailwindGallery } from "./tailwind-gallery.mjs";
@@ -95,7 +97,11 @@ async function buildPreviews(scratch, out) {
   const previews = {};
   for (const { slug } of index.components) {
     if (!validSlug(slug)) throw new Error(`Invalid component slug: ${slug}`);
-    const { variants } = await readJson(join(cache, "components", `${slug}.json`));
+    const detail = await readJson(join(cache, "components", `${slug}.json`));
+    // Non-React catalog entries (the vendored Slopstrap framework) ship as
+    // gallery examples instead; no preview entry means no iframe in the UI.
+    if (detail.previewable === false) continue;
+    const { variants } = detail;
     previews[slug] = {};
     for (const variant of variants) {
       if (!validSlug(variant.id) || Object.hasOwn(previews[slug], variant.id)) {
@@ -126,6 +132,65 @@ ${await readFile(join(here, "preview.css"), "utf8")}
   tailwind(css, join(out, "previews", "preview.css"));
   console.log(`Compiled ${Object.keys(entries).length} catalog demos`);
   return { previews, packages };
+}
+
+/**
+ * Stage the vendored Slopstrap framework into the public root so the
+ * /assets file server can serve it. Gracefully absent: a cache without the
+ * layer just loses the easter egg, not the build.
+ */
+async function stageSlopstrap(out) {
+  const src = join(cache, "slopstrap");
+  const inputs = {
+    zip: join(src, "slopstrap.zip"),
+    css: join(src, "dist", "slopstrap.css"),
+    js: join(src, "dist", "slopstrap.js"),
+  };
+  if (!existsSync(inputs.zip) || !existsSync(inputs.css) || !existsSync(inputs.js)) {
+    console.log("Slopstrap layer not found in the cache; skipped");
+    return null;
+  }
+  const files = { zip: "slopstrap/slopstrap.zip", css: "slopstrap/slopstrap.css", js: "slopstrap/slopstrap.js" };
+  await copy(inputs.zip, join(out, files.zip));
+  await copy(inputs.css, join(out, files.css));
+  await copy(inputs.js, join(out, files.js));
+  await write(join(out, "slopstrap", "README.txt"), `Slopstrap v4.2.0
+https://slopstrap.mikelacher.com/ — by Mike Lacher (https://mikelacher.com).
+MIT license; the upstream README ships inside slopstrap.zip. Vendored
+verbatim by the designer-mcp gallery. Unzip the archive, place an example
+next to dist/, and open it in a browser, or load slopstrap.css plus
+slopstrap.js directly in any page.
+`);
+  return files;
+}
+
+/**
+ * Native previews for catalog entries that are plain HTML documents rather
+ * than React demos (previewable: false with a preview.css/js pair): each
+ * variant's example is inlined with the framework CSS and JS into one
+ * self-contained file, so gallery iframes, the static site, and the
+ * thumbnail capturer need no asset resolution at all.
+ */
+async function buildNativePreviews(scratch, out) {
+  const index = await readJson(join(cache, "components.json"));
+  const result = {};
+  let count = 0;
+  for (const { slug } of index.components) {
+    const detail = await readJson(join(cache, "components", `${slug}.json`));
+    if (detail.previewable !== false || !detail.preview?.css || !detail.preview?.js) continue;
+    const css = await readFile(join(cache, detail.preview.css), "utf8");
+    const js = await readFile(join(cache, detail.preview.js), "utf8");
+    result[slug] = {};
+    for (const variant of detail.variants || []) {
+      if (!validSlug(variant.id)) throw new Error(`Invalid variant ID: ${slug}/${variant.id}`);
+      const file = `previews/native/${slug}/${variant.id}.html`;
+      await write(join(out, file), nativePreviewDocument(variant.code, css, js));
+      result[slug][variant.id] = { fingerprint: variantFingerprint(variant), native: file };
+      count += 1;
+    }
+  }
+  if (count) console.log(`Built ${count} native HTML previews`);
+  return result;
 }
 
 const OFFLINE_AVATAR_SVG =
@@ -250,6 +315,536 @@ ${await readFile(join(here, "preview.css"), "utf8")}
   tailwind(css, join(out, "previews", "reui.css"));
   console.log(`Compiled ${Object.keys(entries).length} ReUI component previews`);
   return { reuiPreviews, packages };
+}
+
+// ------------------------------------------------------- Mantine previews
+// The ui.mantine.dev demos are real React components importing real npm
+// packages. One shared vendor chunk carries @mantine/* (bundled from the
+// vendored tarballs, with react externalized to the import map so demos and
+// library share one react instance); each demo bundles its own icons, css
+// modules and helpers on top. A demo that fails to bundle is skipped with a
+// logged count — the gallery then shows its source without an iframe.
+
+/**
+ * Expand the Mantine PostCSS mixins the demo CSS modules use (@mixin dark,
+ * light, hover, smaller-than/larger-than) and un-nest every rule, so plain
+ * browser CSS comes out the other side. Class names are collected and
+ * exported as the module's default: the modules stay un-hashed, so a class
+ * name resolves to itself.
+ */
+function expandMantineCss(source) {
+  const classes = new Set();
+  const text = source.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  // Parse the stylesheet into nested { rule | decl } nodes.
+  function parseNodes(s, start, end) {
+    const nodes = [];
+    let i = start;
+    while (i < end) {
+      let brace = -1;
+      let semi = -1;
+      let paren = 0;
+      for (let j = i; j < end; j++) {
+        const ch = s[j];
+        if (ch === "(") paren++;
+        else if (ch === ")") paren--;
+        else if (!paren && ch === "{") { brace = j; break; }
+        else if (!paren && ch === ";") { semi = j; break; }
+      }
+      if (semi !== -1 && (brace === -1 || semi < brace)) {
+        const decl = s.slice(i, semi).trim();
+        if (decl) nodes.push({ type: "decl", text: decl });
+        i = semi + 1;
+      } else if (brace === -1) {
+        const trailing = s.slice(i, end).trim();
+        if (trailing) nodes.push({ type: "decl", text: trailing });
+        break;
+      } else {
+        let close = brace;
+        let inner = 1;
+        for (let j = brace + 1; j < end; j++) {
+          if (s[j] === "{") inner++;
+          else if (s[j] === "}") { inner--; if (!inner) { close = j; break; } }
+        }
+        nodes.push({ type: "rule", prelude: s.slice(i, brace).trim(), children: parseNodes(s, brace + 1, close) });
+        i = close + 1;
+      }
+    }
+    return nodes;
+  }
+
+  // postcss-preset-mantine puts breakpoint lengths in em, 0.1px under the edge.
+  const emMedia = (params, max) => {
+    const m = /^\s*([\d.]+)\s*(px|em|rem)\s*$/.exec(params || "");
+    if (!m) return null;
+    const value = parseFloat(m[1]) * (m[2] === "px" ? 1 / 16 : 1) - 0.1 / 16;
+    return `@media (${max ? "max" : "min"}-width: ${value.toFixed(2)}em)`;
+  };
+  const splitSelectors = (sel) => {
+    const parts = [];
+    let current = "";
+    let paren = 0;
+    for (const ch of sel) {
+      if (ch === "(") paren++;
+      if (ch === ")") paren--;
+      if (ch === "," && !paren) { parts.push(current.trim()); current = ""; }
+      else current += ch;
+    }
+    if (current.trim()) parts.push(current.trim());
+    return parts;
+  };
+  const collectClasses = (selectors) => {
+    for (const sel of selectors) {
+      for (const match of sel.matchAll(/\.(-?[A-Za-z_][\w-]*)/g)) classes.add(match[1]);
+    }
+  };
+
+  // Render nodes against a parent selector list; parent === null at top level.
+  function render(nodes, parents, insideKeyframes) {
+    const chunks = [];
+    const decls = nodes.filter((n) => n.type === "decl").map((n) => n.text);
+    const resolved = parents && !insideKeyframes
+      ? parents
+      : null;
+    if (decls.length && resolved) chunks.push(`${resolved.join(", ")} { ${decls.join("; ")}; }`);
+    else if (decls.length && insideKeyframes) chunks.push(decls.join("; "));
+    else if (decls.length) chunks.push(decls.join(";\n"));
+
+    for (const node of nodes) {
+      if (node.type !== "rule") continue;
+      const prelude = node.prelude;
+      if (insideKeyframes) {
+        chunks.push(`${prelude} { ${render(node.children, null, true).join(" ")} }`);
+        continue;
+      }
+      const mixin = /^@mixin\s+([\w-]+)(?:\(([^)]*)\))?$/.exec(prelude);
+      if (mixin) {
+        const [, name, arg] = mixin;
+        const scheme = name === "dark" || name === "light" ? `[data-mantine-color-scheme='${name}']` : null;
+        if (scheme && parents) {
+          const selectors = parents.map((p) => `${scheme} ${p}`);
+          collectClasses(selectors);
+          chunks.push(render(node.children, selectors, false).join("\n"));
+        } else if ((name === "hover" || name === "where-hover") && parents) {
+          const selectors = parents.map((p) => (name === "hover" ? `${p}:hover` : `${p}:where(:hover)`));
+          collectClasses(selectors);
+          const body = declsOf(node.children);
+          chunks.push(`@media (hover: hover) { ${selectors.join(", ")} { ${body} } }`);
+        } else if (name === "smaller-than" || name === "larger-than") {
+          const media = emMedia(arg, name === "smaller-than");
+          if (!media || !parents) throw new Error(`unsupported @mixin ${prelude}`);
+          collectClasses(parents);
+          chunks.push(`${media} { ${parents.join(", ")} { ${declsOf(node.children)} } }`);
+        } else {
+          throw new Error(`unsupported @mixin ${prelude}`);
+        }
+        continue;
+      }
+      if (prelude.startsWith("@keyframes")) {
+        chunks.push(`${prelude} { ${render(node.children, null, true).join(" ")} }`);
+        continue;
+      }
+      if (prelude.startsWith("@media") || prelude.startsWith("@supports") || prelude.startsWith("@container")) {
+        const inner = render(node.children, parents, false).join("\n");
+        chunks.push(inner ? `${prelude} { ${inner} }` : "");
+        continue;
+      }
+      if (prelude.startsWith("@")) {
+        // @font-face and friends carry declarations, not nested selectors.
+        const declText = declsOf(node.children);
+        chunks.push(`${prelude} { ${declText} }`);
+        continue;
+      }
+      const selectors = splitSelectors(prelude).map((sel) =>
+        parents
+          ? parents.map((p) => (sel.includes("&") ? sel.replaceAll("&", p) : `${p} ${sel}`))
+          : [sel],
+      ).flat();
+      if (!selectors.length) continue;
+      collectClasses(selectors);
+      chunks.push(render(node.children, selectors, false).join("\n"));
+    }
+    return chunks.filter(Boolean);
+  }
+
+  function declsOf(nodes) {
+    return nodes.filter((n) => n.type === "decl").map((n) => n.text).join("; ");
+  }
+
+  const css = render(parseNodes(text, 0, text.length), null, false).join("\n");
+  return { css, classes: Object.fromEntries([...classes].map((name) => [name, name])) };
+}
+
+/** A "css modules lite" loader: the module exports its own class names, and
+ *  the expanded css is collected for the shared mantine stylesheet. */
+function mantineCssModulesPlugin(collector) {
+  const MARK = "\0mantine-module:";
+  return {
+    name: "mantine-css-modules",
+    setup(build) {
+      build.onResolve({ filter: /\.module\.css$/ }, (args) => ({
+        // Resolve here: the onLoad callback receives the path verbatim.
+        path: MARK + resolve(args.resolveDir || process.cwd(), args.path),
+        namespace: "mantine-mod",
+      }));
+      build.onLoad({ filter: /.*/, namespace: "mantine-mod" }, async (args) => {
+        const real = args.path.slice(MARK.length);
+        const { css, classes } = expandMantineCss(await readFile(real, "utf8"));
+        collector.set(real, css);
+        return {
+          contents: `export default ${JSON.stringify(classes)}`,
+          loader: "js",
+          resolveDir: dirname(real),
+        };
+      });
+    },
+  };
+}
+
+/** Exact-match externals: react rides the import map, never the bundle. */
+function externalExactPlugin(specifiers) {
+  const set = new Set(specifiers);
+  return {
+    name: "external-exact",
+    setup(build) {
+      build.onResolve({ filter: /^[^./]/ }, (args) =>
+        set.has(args.path) ? { path: args.path, external: true } : null);
+    },
+  };
+}
+
+const MANTINE_REACT_EXTERNALS = ["react", "react-dom", "react-dom/client", "react/jsx-runtime"];
+const MANTINE_LOADER = {
+  ".svg": "dataurl", ".png": "dataurl", ".jpg": "dataurl", ".jpeg": "dataurl",
+  ".gif": "dataurl", ".webp": "dataurl", ".avif": "dataurl",
+};
+
+async function buildMantinePreviews(scratch, out) {
+  const mantineDir = join(cache, "mantine");
+  const indexPath = join(mantineDir, "index.json");
+  if (!existsSync(indexPath)) {
+    console.log("Mantine layer not found in the cache; skipped");
+    return null;
+  }
+  const index = await readJson(indexPath);
+  const vendorRoot = join(mantineDir, "vendor");
+  const versions = {};
+  if (existsSync(join(mantineDir, "provenance.json"))) {
+    for (const [name, rec] of Object.entries((await readJson(join(mantineDir, "provenance.json"))).packages || {})) {
+      versions[name] = rec.version;
+    }
+  }
+  for (const required of ["@mantine/core", "@mantine/hooks"]) {
+    if (!versions[required]) {
+      console.log(`Mantine vendor tree is missing ${required}; run npm run mantine; skipped`);
+      return null;
+    }
+  }
+
+  const work = join(scratch, "mantine");
+  const cssStore = new Map();
+  const previews = {};
+  const failures = [];
+  const remoteUrls = new Map(); // url -> { file, mime }
+  const dataUrls = new Map(); // url -> data url (both code and css rewrite to it)
+  const seenSlugs = new Set();
+
+  // Stage every demo's sources (and the siblings it imports) as a plain file
+  // tree the bundler can resolve. Remote image urls are inlined as data urls:
+  // a plain string replacement that is valid everywhere the url appears
+  // (JSX attributes, object values, css url()), same trick the ReUI layer uses.
+  const stageComponent = async (slug, errors) => {
+    const detail = await readJson(join(mantineDir, "components", `${slug}.json`));
+    if (!detail) {
+      errors.push(`${slug}: detail missing from the cache`);
+      return null;
+    }
+    for (const file of detail.files || []) {
+      let code = file.code;
+      for (const [url, dataUrl] of dataUrls) code = code.split(url).join(dataUrl);
+      await write(join(work, detail.name, file.name), code);
+    }
+    for (const asset of detail.assets || []) {
+      const from = join(mantineDir, asset.path);
+      if (existsSync(from)) await copy(from, join(work, detail.name, asset.name));
+      else errors.push(`${slug}: local asset missing: ${asset.name}`);
+    }
+    return detail;
+  };
+
+  // Base64 for every cached remote image up front: staging and the css
+  // rewrite share it, and the map doubles as the rewrite table.
+  for (const entry of index.components) {
+    const detail = await readJson(join(mantineDir, "components", `${entry.slug}.json`));
+    for (const { url, file, mime } of detail?.remote || []) {
+      if (dataUrls.has(url)) continue;
+      const bytes = join(mantineDir, "assets", file);
+      if (!existsSync(bytes)) {
+        console.log(`  - ${entry.slug}: cached remote image missing (${file}); its demo may show a gap`);
+        continue;
+      }
+      remoteUrls.set(url, { file, mime });
+      dataUrls.set(url, `data:${mime};base64,${(await readFile(bytes)).toString("base64")}`);
+    }
+  }
+
+  const skipped = [];
+  for (const comp of index.components) {
+    if (!validSlug(comp.slug)) {
+      skipped.push(`${comp.slug}: invalid slug`);
+      continue;
+    }
+    seenSlugs.add(comp.slug);
+    const errors = [];
+    const detail = await stageComponent(comp.slug, errors);
+    // Staging is idempotent, so a sibling that is itself a catalog entry
+    // (NavbarLinksGroup needs UserButton) is simply staged twice.
+    for (const require of detail?.requires || []) await stageComponent(require.slug, errors);
+    if (errors.length) skipped.push(...errors);
+  }
+
+  // The vendor chunk: @mantine plus dayjs, react externalized to the import
+  // map so demos and library share one react instance. Bare imports resolve
+  // into the vendored npm trees via esbuild's alias option: it keeps subpath
+  // imports ("@mantine/core/styles.css") working and applies the vendored
+  // package.json resolution.
+  const vendorAlias = {};
+  for (const [name, version] of Object.entries(versions)) {
+    vendorAlias[name] = join(vendorRoot, name, version);
+  }
+  const demosOut = join(out, "previews", "mantine");
+
+  // Content-addressed single-file chunk: built without writing, hashed, and
+  // written under its content name.
+  const writeHashed = async (relBase, outputFiles) => {
+    const js = outputFiles.find((file) => file.path.endsWith(".mjs"));
+    if (!js) throw new Error("no .mjs output from a mantine chunk build");
+    const rel = `${relBase}-${sha256(js.contents).slice(0, 8)}.mjs`;
+    await write(join(out, rel), js.contents);
+    return rel;
+  };
+
+  const vendorEntry = join(work, "vendor-entry.mjs");
+  await write(vendorEntry, `export * from "@mantine/core";
+export * from "@mantine/hooks";
+export * from "@mantine/form";
+export * from "@mantine/dates";
+export { default } from "dayjs";
+`);
+  const vendorBuild = await build({
+    absWorkingDir: scratch, entryPoints: [vendorEntry], outdir: join(out, "previews", "mantine"),
+    entryNames: "vendor", bundle: true, splitting: false, format: "esm", platform: "browser",
+    minify: true, target: "es2022", define: { "process.env.NODE_ENV": '"production"' },
+    metafile: true, outExtension: { ".js": ".mjs" }, legalComments: "none", write: false,
+    alias: vendorAlias,
+    plugins: [externalExactPlugin(MANTINE_REACT_EXTERNALS)],
+  });
+  const vendorFile = await writeHashed("previews/mantine/vendor", vendorBuild.outputFiles);
+  const vendorExternals = Object.values(vendorBuild.metafile.outputs)
+    .flatMap((output) => output.imports)
+    .filter((link) => link.external)
+    .map((link) => link.path);
+  for (const external of vendorExternals) {
+    if (!MANTINE_REACT_EXTERNALS.includes(external)) {
+      throw new Error(`mantine vendor chunk left an unexpected external: ${external}`);
+    }
+  }
+
+  // The react family rides the import map, not the bundle: react is CJS, so
+  // `export *` cannot see its names statically (the starter's react module
+  // therefore only re-exports the default). These entries bundle react +
+  // react-dom once and re-export every name the demos and @mantine use; one
+  // esbuild build for both entries keeps a single react instance, which the
+  // demo bundles then share through the import map.
+  const reactKeys = Object.keys(await import("react")).filter((key) => key !== "default");
+  const reactDomKeys = Object.keys(await import("react-dom"))
+    .filter((key) => key !== "default" && !reactKeys.includes(key));
+  const clientKeys = ["createRoot", "hydrateRoot"].filter((key) => !reactKeys.includes(key) && !reactDomKeys.includes(key));
+  const reactEntry = join(work, "react-entry.mjs");
+  await write(reactEntry, [
+    'import * as React from "react";',
+    'import * as ReactDOM from "react-dom";',
+    'import { createRoot, hydrateRoot } from "react-dom/client";',
+    'const ReactDefault = React.default !== void 0 ? React.default : React;',
+    "export default ReactDefault;",
+    ...reactKeys.map((key) => `export const ${key} = React.${key};`),
+    ...reactDomKeys.map((key) => `export const ${key} = ReactDOM.${key};`),
+    ...(clientKeys.length ? [`export { ${clientKeys.join(", ")} };`] : []),
+  ].join("\n") + "\n");
+  const jsxEntry = join(work, "jsx-entry.mjs");
+  await write(jsxEntry, [
+    'import { Fragment, jsx, jsxs } from "react/jsx-runtime";',
+    "export { Fragment, jsx, jsxs };",
+    "",
+  ].join("\n"));
+  const reactBuild = await build({
+    absWorkingDir: scratch, entryPoints: [reactEntry, jsxEntry], outdir: demosOut,
+    entryNames: "[name]", bundle: true, splitting: true, format: "esm", platform: "browser",
+    minify: true, target: "es2022", define: { "process.env.NODE_ENV": '"production"' },
+    metafile: true, outExtension: { ".js": ".mjs" }, chunkNames: "chunks/chunk-[hash]",
+    legalComments: "none", nodePaths: [modules],
+  });
+  const reactOutput = async (entryPath) => {
+    for (const [key, output] of Object.entries(reactBuild.metafile.outputs)) {
+      if (output.entryPoint && resolve(scratch, output.entryPoint) === resolve(entryPath)) {
+        // Content-address the entry, like the vendor chunk; its chunk
+        // imports are directory-relative and survive the rename.
+        const abs = join(scratch, key);
+        const bytes = await readFile(abs);
+        const rel = `previews/mantine/${basename(key, ".mjs")}-${sha256(bytes).slice(0, 8)}.mjs`;
+        await write(join(out, rel), bytes);
+        await rm(abs, { force: true });
+        return rel;
+      }
+    }
+    throw new Error("the mantine react chunk produced no output");
+  };
+  const reactFile = await reactOutput(reactEntry);
+  const jsxFile = await reactOutput(jsxEntry);
+
+  const vendorSpecifiers = {
+    "@mantine/core": vendorFile, "@mantine/hooks": vendorFile, "@mantine/form": vendorFile,
+    "@mantine/dates": vendorFile, dayjs: vendorFile,
+    react: reactFile, "react-dom": reactFile, "react-dom/client": reactFile,
+    "react/jsx-runtime": jsxFile,
+  };
+
+  // One entry per demo.
+  const entries = {};
+  for (const comp of index.components) {
+    if (!seenSlugs.has(comp.slug) || skipped.some((line) => line.startsWith(`${comp.slug}:`))) continue;
+    const codeFile = join(work, comp.name, `${comp.name}.tsx`);
+    if (!existsSync(codeFile)) {
+      skipped.push(`${comp.slug}: no ${comp.name}.tsx to lead with`);
+      continue;
+    }
+    const lines = [
+      `import { mount } from ${JSON.stringify(join(here, "mantine-preview-root.mjs"))};`,
+      `import { ${comp.name} as Demo } from ${JSON.stringify(codeFile)};`,
+      `mount(Demo);`,
+    ];
+    entries[comp.slug] = join(scratch, "mantine-entries", `${comp.slug}.mjs`);
+    await write(entries[comp.slug], lines.join("\n") + "\n");
+  }
+
+  const buildOptions = {
+    absWorkingDir: scratch, outdir: demosOut, bundle: true, splitting: true, format: "esm", platform: "browser",
+    jsx: "automatic", jsxImportSource: "react", minify: true, target: "es2022",
+    define: { "process.env.NODE_ENV": '"production"' }, metafile: true,
+    outExtension: { ".js": ".mjs" }, entryNames: "[dir]/[name]", chunkNames: "chunks/chunk-[hash]",
+    loader: MANTINE_LOADER, nodePaths: [modules], legalComments: "none",
+    alias: vendorAlias,
+    plugins: [
+      externalExactPlugin([...MANTINE_REACT_EXTERNALS, ...Object.keys(vendorSpecifiers)]),
+      mantineCssModulesPlugin(cssStore),
+    ],
+  };
+
+  const moduleFor = (metafile, entryPath) => {
+    for (const [key, output] of Object.entries(metafile.outputs)) {
+      if (output.entryPoint && resolve(scratch, output.entryPoint) === resolve(entryPath)) {
+        return relative(out, join(scratch, key)).replaceAll("\\", "/");
+      }
+    }
+    return null;
+  };
+
+  // Try all demos in one build first (esbuild then shares icons and helpers
+  // between demos through chunks); a single failure falls back to per-demo
+  // builds so the healthy demos still ship.
+  let metafile = null;
+  try {
+    const result = await build({ ...buildOptions, entryPoints: Object.values(entries) });
+    metafile = result.metafile;
+    console.log(`Compiled ${Object.keys(entries).length} Mantine demos in one pass`);
+  } catch (error) {
+    console.log(`Mantine batch build failed, building demos one by one: ${String(error.message).split("\n")[0]}`);
+    let done = 0;
+    for (const [slug, entry] of Object.entries(entries)) {
+      try {
+        const result = await build({
+          ...buildOptions, entryPoints: [entry], splitting: false, chunkNames: undefined,
+        });
+        metafile = { outputs: { ...metafile?.outputs, ...result.metafile.outputs } };
+        done++;
+      } catch (demoError) {
+        failures.push({ slug, error: String(demoError.message).split("\n").find((line) => line.trim()) || "unknown error" });
+      }
+    }
+    console.log(`Compiled ${done}/${Object.keys(entries).length} Mantine demos individually`);
+  }
+
+  for (const [slug, entry] of Object.entries(entries)) {
+    const module = metafile ? moduleFor(metafile, entry) : null;
+    if (module) previews[slug] = { module };
+    else failures.push({ slug, error: "no bundle produced" });
+  }
+
+  // The shared stylesheet: the vendored @mantine styles plus every expanded
+  // demo css module, with remote image urls inlined as data urls.
+  const cssParts = [];
+  for (const pkg of ["@mantine/core", "@mantine/dates", "@mantine/carousel", "@mantine/dropzone"]) {
+    const styles = versions[pkg] ? join(vendorRoot, pkg, versions[pkg], "styles.css") : null;
+    if (styles && existsSync(styles)) cssParts.push(await readFile(styles, "utf8"));
+  }
+  cssParts.push(`html { color-scheme: light; }\nbody { margin: 0; }\n#preview-root { min-height: 100vh; display: flow-root; }`);
+  cssParts.push(...cssStore.values());
+  let mantineCss = cssParts.join("\n");
+  for (const [url, dataUrl] of dataUrls) {
+    if (mantineCss.includes(url)) mantineCss = mantineCss.split(url).join(dataUrl);
+  }
+  const cssFile = `previews/mantine/mantine-${sha256(mantineCss).slice(0, 8)}.css`;
+  await write(join(out, cssFile), mantineCss);
+
+  for (const failure of failures) skipped.push(`${failure.slug}: ${failure.error}`);
+  if (skipped.length) {
+    console.log(`Mantine demos without a live preview (${skipped.length}):`);
+    for (const line of skipped) console.log(`  - ${line}`);
+  }
+  return {
+    css: cssFile,
+    vendor: vendorSpecifiers,
+    previews,
+    failures: failures.map(({ slug, error }) => ({ slug, error })),
+  };
+}
+
+/**
+ * daisyUI previews: one self-contained markup document per catalog component
+ * (the rendered example plus the readiness handshake), all linking one shared
+ * copy of the compiled daisyui.css that sits beside them. Like the Mantine
+ * builder this runs directly off the cache layer, so a cache without it just
+ * loses the section.
+ */
+async function buildDaisyuiPreviews(out) {
+  const daisyuiDir = join(cache, "daisyui");
+  const catPath = join(daisyuiDir, "catalog.json");
+  if (!existsSync(catPath)) {
+    console.log("daisyUI layer not found in the cache; skipped");
+    return null;
+  }
+  const catalog = await readJson(catPath);
+  if (!existsSync(join(daisyuiDir, "css", "daisyui.css"))) {
+    console.log("daisyUI css is missing from the cache; run npm run daisyui; skipped");
+    return null;
+  }
+  await copy(join(daisyuiDir, "css", "daisyui.css"), join(out, "previews", "daisyui", "daisyui.css"));
+  await copy(join(daisyuiDir, "css", "compat.css"), join(out, "previews", "daisyui", "compat.css"));
+  const previews = {};
+  let count = 0;
+  for (const entry of catalog.components) {
+    if (!validSlug(entry.slug)) throw new Error(`Invalid daisyUI component slug: ${entry.slug}`);
+    if (!entry.previewable) continue;
+    const detail = await readJson(join(daisyuiDir, "components", `${entry.slug}.json`));
+    if (!detail?.example) continue;
+    const file = `previews/daisyui/${entry.slug}.html`;
+    await write(join(out, file), daisyuiPreviewDocument(detail.example, "./", "light", `daisyUI ${entry.name} preview`));
+    previews[entry.slug] = { file, theme: "light" };
+    count += 1;
+  }
+  if (!count) return null;
+  console.log(`Built ${count} daisyUI previews`);
+  return { css: "previews/daisyui/daisyui.css", themes: catalog.themes || [], previews };
 }
 
 async function stageFonts(out, names) {
@@ -484,13 +1079,17 @@ try {
     Object.entries(starterImports).map(([specifier, file]) => [specifier, file.replace(/^\.\//, "starter/")]),
   );
   const templates = await stageTemplates(cache, out, deckModules);
+  const slopstrap = await stageSlopstrap(out);
   // Templates reference the same font faces and binaries as the downloadable starter.
   const templateFontImport = '@import "../starter/fonts/fonts.css";\n';
   await write(join(out, "fonts", "fonts.css"), templateFontImport);
   const { previews, packages: previewPackages } = await buildPreviews(scratch, out);
+  const nativePreviews = await buildNativePreviews(scratch, out);
   const { reuiPreviews, packages: reuiPackages } = await buildReuiPreviews(scratch, out);
+  const mantinePreviews = await buildMantinePreviews(scratch, out);
+  const daisyuiPreviews = await buildDaisyuiPreviews(out);
   const tailwindGallery = await stageTailwindGallery(out, hyperui, cache, modules, shadcn);
-  await captureThumbnails(out, previews, tailwindGallery);
+  await captureThumbnails(out, previews, tailwindGallery, nativePreviews, mantinePreviews, daisyuiPreviews);
   const browserPackages = packages.filter((name) => !["esbuild", "parse5", "@tailwindcss/cli"].includes(name));
   const licenses = await stageLicenses(pack, browserPackages, deckPackages, new Set([...starterPackages, ...previewPackages, ...reuiPackages]), vendorFiles);
   await writeJson(join(pack, "packages.json"), { packages: licenses, vendorSnapshot: vendorFiles });
@@ -516,7 +1115,11 @@ for self-hosted font faces. Package versions and licenses are in packages.json.
   });
   const files = await inspectFiles(out);
   const version = sha256(JSON.stringify(files)).slice(0, 20);
-  const manifest = { version, files, previews, reuiPreviews, templates, tailwindGallery, packages: licenses, vendorSnapshot: vendorFiles, importMap: starterImportMap };
+  // The Mantine vendor chunk joins the published import map so any page on
+  // this origin can import @mantine/* the same way it imports react. The
+  // starter ZIP itself is untouched: its map was written before this.
+  if (mantinePreviews) Object.assign(starterImportMap, mantinePreviews.vendor);
+  const manifest = { version, files, previews: { ...previews, ...nativePreviews }, reuiPreviews, mantinePreviews, daisyuiPreviews, templates, tailwindGallery, slopstrap, packages: licenses, vendorSnapshot: vendorFiles, importMap: starterImportMap };
   await writeJson(join(scratch, "output", "manifest.json"), manifest);
 
   // Copy completely before replacing an existing cache, and never replace unrelated files.

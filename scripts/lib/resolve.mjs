@@ -9,7 +9,8 @@
  *   1. exact id (case-insensitive)
  *   2. hostname / URL match
  *   3. exact site name
- *   4. substring, then fuzzy (Levenshtein <= 2) on the site name
+ *   4. site name contains the identifier, then a close misspelling
+ *      (bounded: see MIN_GUESS_LENGTH and fuzzyBudget)
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -69,6 +70,18 @@ function levenshtein(a, b, max) {
   return prev[n] > max ? max + 1 : prev[n];
 }
 
+// Steps 1 to 3 are exact. Step 4 guesses, so it is bounded: a one- or
+// two-character identifier is a substring of most site names.
+const MIN_GUESS_LENGTH = 3;
+const MAX_CANDIDATES = 5;
+
+/** Edit budget for a fuzzy guess: short names get none, since two edits turn any three-letter name into another. */
+function fuzzyBudget(length) {
+  if (length >= 6) return 2;
+  if (length >= 4) return 1;
+  return 0;
+}
+
 /**
  * @param {string} input        free-form identifier
  * @param {Array}  catalog      merged catalog entries
@@ -77,9 +90,24 @@ function levenshtein(a, b, max) {
  * @returns {object|null} the matching catalog entry
  */
 export function resolveDesign(input, catalog, opts = {}) {
-  if (!input || typeof input !== "string") return null;
+  return resolveDesignDetailed(input, catalog, opts).item;
+}
+
+/**
+ * As `resolveDesign`, plus how the entry was found.
+ *
+ * `matchedBy` is "id", "hostname", "name", "substring" or "fuzzy". The last
+ * two are guesses: `candidates` then lists the other entries that also
+ * matched, so a caller can tell the user which design it picked and why.
+ *
+ * @returns {{ item: object|null, matchedBy: string|null, candidates: Array<{id: string, siteName: string, source: string}> }}
+ */
+export function resolveDesignDetailed(input, catalog, opts = {}) {
+  const miss = { item: null, matchedBy: null, candidates: [] };
+  const hit = (item, matchedBy) => ({ item, matchedBy, candidates: [] });
+  if (!input || typeof input !== "string") return miss;
   const trimmed = input.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return miss;
 
   const pool = opts.source
     ? catalog.filter((s) => (s.source || "refero") === opts.source)
@@ -88,7 +116,7 @@ export function resolveDesign(input, catalog, opts = {}) {
   // 1. Exact id.
   const lc = trimmed.toLowerCase();
   const byId = pool.find((s) => String(s.id).toLowerCase() === lc);
-  if (byId) return byId;
+  if (byId) return hit(byId, "id");
 
   // 2. Hostname / URL.
   const host = parseHostname(trimmed);
@@ -107,7 +135,7 @@ export function resolveDesign(input, catalog, opts = {}) {
         }
         return String(a.siteName).localeCompare(String(b.siteName));
       });
-      return hits[0];
+      return hit(hits[0], "hostname");
     }
   }
 
@@ -116,25 +144,44 @@ export function resolveDesign(input, catalog, opts = {}) {
   const exact = pool.filter((s) => String(s.siteName).toLowerCase() === name);
   if (exact.length > 0) {
     exact.sort((a, b) => String(a.siteName).localeCompare(String(b.siteName)));
-    return exact[0];
+    return hit(exact[0], "name");
   }
 
   // 4. Substring, then fuzzy.
+  //
+  // Only "site name contains the identifier" counts as a substring match.
+  // The reverse test was dropped: it resolved "not-a-real-design-xyz" to a
+  // site called "Design", and the caller had no way to tell.
+  if (name.length < MIN_GUESS_LENGTH) return miss;
+  const budget = fuzzyBudget(name.length);
   const candidates = [];
   for (const item of pool) {
     const ln = String(item.siteName).toLowerCase();
-    if (ln.includes(name) || name.includes(ln)) {
-      candidates.push({ item, distance: 0 });
+    if (ln.includes(name)) {
+      candidates.push({ item, distance: 0, extra: ln.length - name.length });
       continue;
     }
-    const d = levenshtein(ln, name, 2);
-    if (d <= 2) candidates.push({ item, distance: d });
+    if (budget === 0) continue;
+    const d = levenshtein(ln, name, budget);
+    if (d <= budget) candidates.push({ item, distance: d, extra: Math.abs(ln.length - name.length) });
   }
-  if (candidates.length === 0) return null;
+  if (candidates.length === 0) return miss;
+  // Closest first: fewest edits, then the name with the least text around
+  // the identifier ("Stripe" before "Stripe Press" for "strip").
   candidates.sort(
     (a, b) =>
       a.distance - b.distance ||
+      a.extra - b.extra ||
       String(a.item.siteName).localeCompare(String(b.item.siteName)),
   );
-  return candidates[0]?.item ?? null;
+  return {
+    item: candidates[0].item,
+    matchedBy: candidates[0].distance === 0 ? "substring" : "fuzzy",
+    // id + source, not just the name: two sources can carry the same site.
+    candidates: candidates.slice(1, MAX_CANDIDATES + 1).map((c) => ({
+      id: c.item.id,
+      siteName: String(c.item.siteName),
+      source: c.item.source || "refero",
+    })),
+  };
 }

@@ -1,5 +1,162 @@
 # Changelog
 
+## v1.9.0 (2026-11-23)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.9.0`
+
+- Layer: HeroUI v3 joins the offline catalog. `scripts/fetch-heroui.mjs`
+  bakes, from first-party pinned sources only (`data/heroui/pin.json`,
+  @heroui/react 3.2.8, @heroui/styles 3.2.8, GitHub tag v3.2.8): the
+  73-page component docs and 16 guides the npm package ships for agents,
+  per-component `@heroui/styles` CSS, the oklch theme variables, the
+  prebuilt `heroui.min.css`, component TSX source, and 63 v2-to-v3
+  migration guides. Registry integrity is verified per tarball and every
+  baked file's sha256 is recorded in `heroui/provenance.json`. A failed
+  stage is recorded as a provenance gap and leaves the previous bake
+  intact.
+- MCP: eight `design_heroui_*` tools on the generic server
+  (`design_heroui_list_components`, `design_heroui_search`,
+  `design_heroui_get_docs`, `design_heroui_get_guide`,
+  `design_heroui_get_source`, `design_heroui_get_styles`,
+  `design_heroui_get_theme_variables`, `design_heroui_migration_guide`),
+  mirroring the upstream `@heroui/react-mcp` tool set and reading the same
+  baked cache. Missing layer or missing piece degrades to a note, never an
+  error. `DESIGN_REMOTE_URL` static-host mode serves the layer through
+  `api/heroui.json` and `api/heroui/*`.
+- Gallery: `/heroui` browses the catalog (component groups, guides,
+  version badges), `/heroui/component/:slug` and `/heroui/guide/:slug`
+  render the docs offline with markdown-it, and `/api/heroui` plus
+  `api/heroui/*` serve the JSON. Pages load zero remote resources (the
+  selftest asserts it). The static site emits the same pages and endpoints.
+- Skills: HeroUI's four official agent skills (`heroui-react`,
+  `heroui-theming`, `heroui-native`, `heroui-migration`, Apache-2.0,
+  `LICENSE.txt` verbatim) are bundled under `designer-ui/heroui/` and
+  rewritten for offline use. Every network fallback is gone: the react
+  scripts resolve the project install first (version-matched), then the
+  baked layer. The theming scripts gain the baked `heroui/styles` fallback.
+  The migration scripts read the baked guides. The native scripts read the
+  project's own `heroui-native` install and say plainly when it is absent.
+  The designer-ui description and the skill directory cover the new
+  sub-skills, and `mcp-tools.md` plus `catalog-tools.md` document the tools.
+- Selftest: section 7 asserts the catalog (70+ components, 15+ guides,
+  pinned version), provenance checksums, the migration index, the gallery
+  endpoints with a no-remote-resources check, and an MCP smoke over all
+  eight tools. publish.yml fetches the layer, and its offline image
+  verification now checks `/heroui` and `/api/heroui`.
+- Layer: Mantine UI joins the offline catalog. `scripts/fetch-mantine.mjs`
+  bakes the 123 ready-made components of ui.mantine.dev (MIT) in 24
+  categories with full TSX and CSS module source, plus the vendored
+  `@mantine/*` packages the live previews bundle (`data/mantine/pin.json`).
+  Gallery at `/mantine`, JSON at `/api/mantine*`, and three MCP tools:
+  `design_mantine_list_components`, `design_mantine_search`,
+  `design_mantine_get_component`.
+- Layer: daisyUI 5 joins the offline catalog. `scripts/fetch-daisyui.mjs`
+  bakes 68 components with the upstream agent docs, class tables, and
+  rendered example HTML, and the compiled css with all 35 themes
+  (`data/daisyui/pin.json`, MIT). Gallery at `/daisyui`, JSON at
+  `/api/daisyui*`, and three MCP tools: `design_daisyui_list_components`,
+  `design_daisyui_search`, `design_daisyui_get_component`.
+- Layer: Base UI joins the offline catalog as a docs-only layer.
+  `scripts/fetch-baseui.mjs` bakes the first-party llms.txt docs of
+  `@base-ui/react` (MIT): 37 headless component docs and 42 guides
+  (`data/baseui/pin.json`). Gallery at `/baseui`, JSON at `/api/baseui*`,
+  and four MCP tools: `design_baseui_list_components`, `design_baseui_search`,
+  `design_baseui_get_docs`, `design_baseui_get_guide`. The generic server
+  now registers 44 tools.
+- MCP, breaking: replies are sized for a model's context. The defaults of
+  four tools that shipped in v1.8.0 are smaller, and `detail: "full"`
+  restores the old shape.
+  - `design_search` and `design_list` rows carry a short palette (up to
+    eight swatches as hex, name, group, accents first, with `colorCount`)
+    and drop `screenshotUrl`, which duplicated `thumbnailUrl`. A default
+    search goes from 27 KB to 9 KB. `design_list` `limit` now tops out at
+    100 (was 200).
+  - `design_get` leaves out `fullResult.raw` and the copy of the palette
+    inside `fullResult.designSystem`, and lists them in `omitted`. Average
+    33 KB to 15 KB.
+  - `design_component_get` lists each variant with `codeBytes` instead of
+    inlining its source (up to 194 KB before). `design_component_code` is
+    unchanged.
+  - `design_preset_get` pages (`limit`, `offset`, default 20) and takes
+    `ids`. It returned the whole catalog (128 KB).
+- MCP: long documents page with `offset` and `maxBytes`, and a reply with
+  `nextOffset` has more. Applies to `design_docs_get`,
+  `design_template_file` (only files over 100 KB), the HeroUI and Base UI
+  docs and guide tools, and `design_heroui_migration_guide`. Pages end on a
+  line break and concatenate to the exact document. The `*_get_docs` tools
+  take at most five components and de-duplicate them.
+  `design_heroui_get_source` leaves out Storybook files unless
+  `includeStories` is set. `design_daisyui_list_components` rows no longer
+  carry class tables.
+- MCP: the server refuses any reply over 120,000 bytes
+  (`DESIGN_MCP_MAX_RESPONSE_BYTES`) with a message naming the argument to
+  change. It never truncates.
+- MCP fixes:
+  - An identifier that named nothing could resolve to an unrelated design
+    (`design_get "not-a-real-design-xyz"` returned the site "Design"). The
+    reverse substring match is gone, guesses need three characters, and a
+    guessed match now says so (`matchedBy`, `matchNote`, `otherCandidates`).
+  - `design_baseui_get_guide` returned `overview/releases.md` for every
+    release-note path. It resolves the catalog path first.
+  - `design_heroui_get_source` and `design_heroui_get_styles` failed for
+    `TextField` and `TextArea`, and `design_heroui_get_guide` failed for the
+    slug `theming-with-agents`. Lookups go through the catalog.
+  - An unknown `theme`, `source`, `kind`, `section`, or `detail` value is an
+    error instead of an empty result, and argument errors name the right
+    field.
+  - Three tool schemas used a top-level `oneOf`, which strict clients
+    reject. The rule is enforced in the handler and stated in the
+    descriptions.
+  - `design_facets.updatedAt` is the catalog's timestamp, not the process
+    start time.
+- MCP: the generic server starts without a catalog. Tools that read it fail
+  with the cache path and the command to run, and re-check on the next call,
+  so populating the cache needs no restart. It used to exit, which a client
+  shows as "Connection closed" and which took down the layers that need no
+  catalog.
+- MCP: remote mode (`DESIGN_REMOTE_URL` / `--url`) degrades to the local
+  cache. An unreachable host no longer fails the call or the startup: the
+  reply is read from disk and carries a `remoteNote`. The host is skipped
+  for 30 seconds after a failure. A URL that is not http(s) is ignored with
+  a note. Tool arguments can no longer steer a remote request outside the
+  host's `api/` tree: `design_heroui_get_guide` and
+  `design_heroui_migration_guide` passed `../` through to the URL.
+- MCP: a malformed input line is logged to stderr instead of being dropped
+  silently.
+- Upstream wrapper: `scripts/mcp-entry.mjs` resolves one cache directory and
+  exports it to the upstream server. With `REFERO_CACHE_DIR` unset it checked
+  `/cache` while upstream read `~/.refero-cache`, and it ignored
+  `DESIGN_CACHE_DIR`, the variable the local install snippets set.
+- Dependencies: `@modelcontextprotocol/sdk` is declared (`^1.32.2`). The
+  generic server imports it directly and it used to arrive only through the
+  upstream refero package.
+- Plugin: `.mcp.json` pins the image to the release tag, so a plugin install
+  runs the server its skills describe. Install snippets keep `:latest` and
+  the skill says what to do when a documented tool is missing.
+- Selftest: every registered tool is now called (seven were only named),
+  with regressions for each fix above, byte budgets for default replies and
+  for `tools/list`, a docs drift check (section 11), and degraded-mode cases
+  (section 12): no catalog, unreachable remote host, traversal arguments,
+  bad remote URL, malformed input.
+- Remote mode: a 404 from the host is now the answer for every layer item
+  read too (HeroUI, Mantine, daisyUI, Base UI docs, source, css, themes),
+  not only for catalogs. Only an unreachable host falls back to disk, and
+  that is reported in `remoteNote`. Before, a 404 read the copy on disk
+  without saying so, so a layer the host listed as empty still returned
+  items, and a remote catalog could be paired with a different local bake.
+  The shared rule lives in `remoteOr` (`scripts/lib/cache.mjs`).
+- Offline install: the image and the static site serve
+  `designer-mcp-marketplace.zip` (`/skill/marketplace.zip` on the
+  gallery), the plugin laid out as a local marketplace, so
+  `claude plugin marketplace add <unzipped dir>` installs with no GitHub
+  access. The documented skill-zip install was wrong: the archive keeps a
+  `skills/` prefix, so `unzip -d ~/.claude/skills` landed the skills one
+  level too deep. The docs now extract aside and copy `skills/.`.
+- `mcp-entry.mjs`: the missing-catalog message leads with the offline
+  cause (a volume mounted over the baked `/cache`) before the fetcher,
+  which needs network. It still exits: the upstream server cannot explain
+  an empty catalog itself.
+
 ## v1.8.0 (2026-11-22)
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v1.8.0`

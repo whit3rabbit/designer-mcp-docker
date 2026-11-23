@@ -13,9 +13,15 @@ JSON-RPC. Register them with an agent via a `docker run -i` command, and see
 agent harnesses (Docker and local-checkout variants for each).
 
 When this skill installs as part of the designer-mcp plugin, the plugin's
-`.mcp.json` registers the `designer` server automatically. The install
-snippets are for standalone skill installs and harnesses the plugin does not
-cover.
+`.mcp.json` registers the `designer` server automatically, pinned to the
+image tag that matches the plugin version. The install snippets are for
+standalone skill installs and harnesses the plugin does not cover.
+
+**If a tool named in these skills is missing from your client**, the server
+image is older than the skill. A hand-pasted registration uses the `:latest`
+tag, and Docker does not re-pull a tag it already has. Tell the user and
+suggest `docker pull ghcr.io/whit3rabbit/designer-mcp:latest`, then a client
+restart. Do not work around a missing tool by guessing its output.
 
 ## Catalog Layers
 
@@ -26,9 +32,12 @@ The research library behind the tools has these layers:
 2. **Design systems**, curated hand-written packages with full typed token
    sets (198).
 3. **Catalog extras**: 109 AI components with complete, typed TSX source (250
-   variants), 159 background gradients/patterns and liquid-glass presets with
-   real CSS, and 7 vendored design-system templates with tokens, theme knobs,
-   manifests, and files (loam ships the slide-first deck starter).
+   variants) plus the vendored Slopstrap joke framework entry (4 HTML example
+   variants with self-contained native previews, live gallery page at
+   `/slopstrap`), 159 background
+   gradients/patterns and liquid-glass presets with real CSS, and 7 vendored
+   design-system templates with tokens, theme knobs, manifests, and files
+   (loam ships the slide-first deck starter).
 4. **Library catalog**, install manifests for the common frontend stack
    (react, tailwind, shadcn, radix-ui, lucide, heroicons, motion, and the
    google-fonts and fontsource sources). Each entry carries install steps and
@@ -85,6 +94,21 @@ and templates are seven complete starting systems. Route by need:
 
 - A chat, agent, voice, or media UI to build: `design_component_search`, then
   `design_component_code` for the variant source.
+- Building or restyling UI in HeroUI v3 (`@heroui/react`): the
+  `design_heroui_*` tools serve the baked docs, guides, per-component CSS,
+  theme variables, TSX source, and v2-to-v3 migration guides.
+- Ready-made Mantine UI components (`ui.mantine.dev`, TSX + CSS modules):
+  `design_mantine_list_components`, `design_mantine_search`, and
+  `design_mantine_get_component`.
+- Plain-HTML daisyUI 5 components and themes (no React required):
+  `design_daisyui_list_components`, `design_daisyui_search`, and
+  `design_daisyui_get_component`.
+- Headless Base UI (`@base-ui/react`) docs and guides:
+  `design_baseui_list_components`, `design_baseui_search`,
+  `design_baseui_get_docs`, and `design_baseui_get_guide`.
+- `@ui-sdk/*` (`@ui-sdk/core`, `@ui-sdk/react`, `@ui-sdk/web`) behavior and
+  accessibility docs: `design_docs_search` and `design_docs_get` (`@ui-sdk/*`
+  only).
 - Hero backgrounds, ambient gradients, glass surfaces: `design_preset_search`
   and `design_preset_get`.
 - Starting a project from a coherent template: `design_template_list`, then
@@ -108,6 +132,11 @@ installs are covered in
 reference (every `design_*` and `refero_*` tool, parameters, returns, refresh
 procedure) lives in
 [references/mcp-tools.md](references/mcp-tools.md).
+
+Replies are sized for a model's context. Search and list rows are summaries,
+and long documents come a page at a time: a reply with `nextOffset` has more,
+so call again with `offset` set to it. `detail: "full"` and the paging
+arguments are described under "Reply sizes and paging" in mcp-tools.md.
 
 ### For Product Patterns and Journeys
 
