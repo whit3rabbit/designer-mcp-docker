@@ -1,8 +1,20 @@
 # Changelog
 
-## v1.9.0 (2026-11-23)
+## v1.9.1 (2026-11-23)
 
-- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.9.0`
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v1.9.1`
+- Release note: v1.9.0 was tagged but never published. Its publish run
+  failed before the image build, so there is no `:v1.9.0` image. v1.9.1
+  carries everything listed below plus three build fixes:
+  - `data/slopstrap/dist/` (the vendored css and js) was swallowed by the
+    root `dist/` ignore rule and never committed, so the CI bake had no
+    Slopstrap css.
+  - The Dockerfile `frontend-build` stage did not copy
+    `scripts/lib/slopstrap.mjs`, which `frontend/build.mjs` imports.
+  - On Node 24 (the CI runner default) a CJS namespace lists a
+    `module.exports` key, which the generated Mantine react entry turned
+    into invalid `export const module.exports`. Non-identifier keys are now
+    skipped.
 
 - Layer: HeroUI v3 joins the offline catalog. `scripts/fetch-heroui.mjs`
   bakes, from first-party pinned sources only (`data/heroui/pin.json`,

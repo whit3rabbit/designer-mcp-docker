@@ -10,7 +10,7 @@
     {
       "name": "designer-mcp",
       "source": "./plugins/designer-mcp",
-      "version": "1.9.0",
+      "version": "1.9.1",
       "description": "Research-first design methodology and offline design catalog for coding agents: capture DESIGN.md, research references, verify builds, plus document toolchains for docx, pptx, xlsx, pdf, and the offline design_* MCP tools.",
       "displayName": "Designer MCP",
       "category": "developer-tools"
