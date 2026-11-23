@@ -12,6 +12,9 @@ bake/
 
 # Built skill archives
 dist/
+# ...but the vendored Slopstrap framework ships its own dist/ (css + js) that
+# npm run bake copies into the image. Without this the CI bake has no css.
+!data/slopstrap/dist/
 
 # Skill scratch space. Dockerignored too: the plugin folder is COPY'd into
 # the image, so scratch must stay out of both git and the build context.

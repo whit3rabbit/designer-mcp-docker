@@ -26,7 +26,7 @@ COPY frontend/deck/package.json frontend/deck/package-lock.json ./frontend/deck/
 RUN npm ci --prefix frontend --ignore-scripts && \
     npm ci --prefix frontend/deck --ignore-scripts
 COPY frontend/ ./frontend/
-COPY scripts/lib/frontend-paths.mjs scripts/lib/frontend.mjs ./scripts/lib/
+COPY scripts/lib/frontend-paths.mjs scripts/lib/frontend.mjs scripts/lib/slopstrap.mjs ./scripts/lib/
 COPY scripts/fetch-tailwind.mjs ./scripts/
 RUN node scripts/fetch-tailwind.mjs
 COPY bake/components.json bake/design-systems.json ./bake/

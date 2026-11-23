@@ -296,6 +296,13 @@ selftest.
   tools that honor `.gitignore` (ripgrep and its wrappers) return nothing
   for them, with no error. An empty result there is not evidence of absence.
   Use `grep`, `find`, or a short `node -e` script for those paths.
+- The root `.gitignore` rule `dist/` matches any `dist/` folder, vendored
+  ones included. `data/slopstrap/dist/` was once never committed, so local
+  tests passed and CI failed on the missing css. A vendored `dist/` needs a
+  `!path/dist/` negation; check with `git check-ignore -v <file>`.
+- The Dockerfile `frontend-build` stage copies `scripts/lib/*` modules by
+  name. A new `scripts/lib` import in `frontend/*.mjs` fails only in
+  `docker build`, never in `npm test`. Add it to that COPY line.
 - You do not need Docker to verify the MCP server. It is a stdio process:
   newline-delimited JSON-RPC in, the same out, logs on stderr.
 
