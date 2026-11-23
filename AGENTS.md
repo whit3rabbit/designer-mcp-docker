@@ -303,6 +303,11 @@ selftest.
 - The Dockerfile `frontend-build` stage copies `scripts/lib/*` modules by
   name. A new `scripts/lib` import in `frontend/*.mjs` fails only in
   `docker build`, never in `npm test`. Add it to that COPY line.
+- `publish.yml` has no `setup-node`, so its browser check runs on the
+  runner default (Node 24), while the image runs Node 22. Node 24 lists a
+  `module.exports` key on CJS namespaces, which once broke the generated
+  Mantine react entry in CI only. Run `npm run frontend:build` under Node 24
+  too (`npx -y node@24`) before tagging frontend changes.
 - You do not need Docker to verify the MCP server. It is a stdio process:
   newline-delimited JSON-RPC in, the same out, logs on stderr.
 

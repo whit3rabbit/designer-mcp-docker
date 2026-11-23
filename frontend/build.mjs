@@ -656,9 +656,12 @@ export { default } from "dayjs";
   // react-dom once and re-export every name the demos and @mantine use; one
   // esbuild build for both entries keeps a single react instance, which the
   // demo bundles then share through the import map.
-  const reactKeys = Object.keys(await import("react")).filter((key) => key !== "default");
+  // Newer Node also lists a "module.exports" key on a CJS namespace. It is
+  // not an identifier, so `export const module.exports` would not parse.
+  const exportName = (key) => key !== "default" && /^[A-Za-z_$][\w$]*$/.test(key);
+  const reactKeys = Object.keys(await import("react")).filter(exportName);
   const reactDomKeys = Object.keys(await import("react-dom"))
-    .filter((key) => key !== "default" && !reactKeys.includes(key));
+    .filter((key) => exportName(key) && !reactKeys.includes(key));
   const clientKeys = ["createRoot", "hydrateRoot"].filter((key) => !reactKeys.includes(key) && !reactDomKeys.includes(key));
   const reactEntry = join(work, "react-entry.mjs");
   await write(reactEntry, [
