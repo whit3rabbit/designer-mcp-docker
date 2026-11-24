@@ -11,7 +11,8 @@
  */
 
 import MarkdownIt from "markdown-it";
-import { BASE_CSS, NAV_CSS, nav } from "./ui.mjs";
+import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
+import { hasHeroUiPreview } from "./heroui-preview.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -107,7 +108,7 @@ const HEROUI_CSS = `
   .heroui-doc-body { font-size: 13.5px; line-height: 1.6; }
   .heroui-doc-body h2 { font-size: 17px; margin: 26px 0 8px; letter-spacing: -.01em; }
   .heroui-doc-body h3 { font-size: 14.5px; margin: 20px 0 6px; }
-  .heroui-doc-body p, .heroui-doc-body li { color: #c7cdd6; }
+  .heroui-doc-body p, .heroui-doc-body li { color: var(--text); }
   .heroui-doc-body code {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
     background: var(--code-bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
@@ -247,13 +248,52 @@ search.addEventListener('input', () => {
   return page("HeroUI v3", catalog, null, main, script);
 }
 
-/** /heroui/component/:slug and /heroui/guide/:slug — one rendered markdown doc. */
+/** /heroui/component/:slug and /heroui/guide/:slug — one rendered markdown doc (+ live CSS preview when available). */
 export function herouiDocHtml(catalog, entry, kind, content) {
   const title = kind === "guide" ? `${entry.name} (guide)` : entry.name;
+  const hasPreview = kind === "component" && hasHeroUiPreview(entry.slug);
+  const previewSrc = hasPreview ? `/heroui/preview/${encodeURIComponent(entry.slug)}` : "";
+  const previewBlock = hasPreview ? `
+    <section class="heroui-preview" style="max-width:860px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);">
+        <span>Live offline preview · <code>@heroui/styles</code></span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button type="button" class="hp-theme" data-t="light" aria-pressed="true" style="background:var(--accent-bg);color:var(--strong);border:1px solid var(--accent-line);border-radius:6px;padding:3px 9px;font:inherit;cursor:pointer;">Light</button>
+          <button type="button" class="hp-theme" data-t="dark" aria-pressed="false" style="background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:3px 9px;font:inherit;cursor:pointer;">Dark</button>
+          <a href="${previewSrc}" style="color:var(--fg);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:3px 9px;">Open frame</a>
+        </div>
+      </div>
+      <iframe id="heroui-frame" src="${previewSrc}" title="${esc(entry.name)} HeroUI preview" sandbox="allow-scripts" style="width:100%;height:140px;border:0;display:block;background:#fff;"></iframe>
+    </section>` : "";
+  const previewScript = hasPreview ? `
+    const frame = document.getElementById('heroui-frame');
+    const base = ${JSON.stringify(previewSrc)};
+    document.querySelectorAll('.hp-theme').forEach((btn) => btn.addEventListener('click', () => {
+      const t = btn.dataset.t;
+      document.querySelectorAll('.hp-theme').forEach((b) => {
+        const on = b === btn;
+        b.setAttribute('aria-pressed', String(on));
+        b.style.background = on ? 'var(--accent-bg)' : 'var(--panel2)';
+        b.style.borderColor = on ? 'var(--accent-line)' : 'var(--line)';
+      });
+      frame.src = base + '?theme=' + t;
+      frame.style.background = t === 'dark' ? '#0d0f12' : '#ffffff';
+    }));
+    window.addEventListener('message', (e) => {
+      const d = e.data;
+      if (!d || d.source !== 'design-preview' || d.type !== 'height') return;
+      if (frame && frame.contentWindow === e.source) {
+        frame.style.height = Math.max(96, Math.min(540, Math.ceil(d.height))) + 'px';
+      }
+    });` : "";
   const main = `
-    <div class="heroui-crumb"><a href="/heroui">HeroUI</a> / ${kind === "guide" ? "Guides" : esc(entry.group || "Components")}</div>
+    <div class="heroui-crumb"><a href="/components">Components</a> / <a href="/heroui">HeroUI v3</a> / ${kind === "guide" ? "Guides" : esc(entry.group || "Components")}</div>
+    ${previewBlock}
     <article class="heroui-doc">
-      <h1>${esc(entry.name)}</h1>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px">
+        <h1>${esc(entry.name)}</h1>
+        ${kind === "component" ? mcpButton(`designer:heroui:${entry.slug}`, `HeroUI v3 — ${entry.name}`) : ""}
+      </div>
       <p class="heroui-doc-sub">${esc(entry.description || "")}</p>
       <div class="heroui-doc-body">${markdown.render(String(content || ""))}</div>
     </article>
@@ -262,5 +302,5 @@ export function herouiDocHtml(catalog, entry, kind, content) {
         ? `Read this guide programmatically with <code>design_heroui_get_guide {"path": "${esc(entry.slug)}"}</code>.`
         : `Read this component programmatically with <code>design_heroui_get_docs {"components": ["${esc(entry.name)}"]}</code>; styles with <code>design_heroui_get_styles</code>, source with <code>design_heroui_get_source</code>.`
     }</div>`;
-  return page(title, catalog, entry.path, main);
+  return page(title, catalog, entry.path, main, previewScript);
 }

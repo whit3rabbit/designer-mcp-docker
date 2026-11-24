@@ -13,7 +13,7 @@
  * just re-points the frame at ?theme=. Zero remote URLs.
  */
 
-import { BASE_CSS, NAV_CSS, nav } from "./ui.mjs";
+import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -127,7 +127,7 @@ const DAISYUI_CSS = `
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   .dai-code pre code { white-space: pre; }
-  .dai-docs { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; font-size: 13px; line-height: 1.55; color: #c7cdd6; }
+  .dai-docs { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; font-size: 13px; line-height: 1.55; color: var(--text); }
   .dai-docs h4 { margin: 14px 0 6px; font-size: 13.5px; color: var(--fg); }
   .dai-docs pre {
     background: var(--code-bg); border: 1px solid var(--line); border-radius: 9px;
@@ -313,7 +313,10 @@ export function daisyuiComponentHtml(catalog, detail, { previewPath, thumbnailPa
   const main = `
     <div class="dai-crumb"><a href="/daisyui">daisyUI</a> / ${esc(detail.group || "Components")}</div>
     <div class="dai-header">
-      <h1>${esc(detail.name)}</h1>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px">
+        <h1>${esc(detail.name)}</h1>
+        ${mcpButton(`designer:daisyui:${detail.slug}`, `daisyUI 5 — ${detail.name}`)}
+      </div>
       <p>${esc(detail.description || "")}</p>
     </div>
     <div class="dai-badges">

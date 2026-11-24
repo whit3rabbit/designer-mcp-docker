@@ -1,6 +1,6 @@
 ---
 name: design-template-authoring
-description: "Use this skill when creating, cloning, or registering a vendored design-system template in designer-mcp-docker: turning any reference design (slide decks, websites, brand boards, DESIGN.md files) into the structured template format (theme.json, styles.css token sheet, foundations and components demo pages, deck and landing starters), filling the scaffolded skeleton, tweaking it per the user's request, registering it so the gallery and design_template_* tools serve it, and generating deliverables from it. Also use when the user asks to clone or copy an existing design into a reusable design system."
+description: "Create, clone, and register structured design-system templates (theme.json, styles.css tokens, starters)."
 license: Apache-2.0. LICENSE.txt has complete terms.
 ---
 
@@ -45,7 +45,7 @@ A user-selected source is sufficient grounding. Route by medium:
   discovers design evidence from the file (fonts, fills, type scale).
 - **Images or a brand board**: view them, sample the palette programmatically
   (Pillow pixel medians beat eyeballing), and name the motifs.
-- **DESIGN.md**: `design_markdown_parse` and `design_manifest_from` (MCP
+- **DESIGN.md**: `design_markdown_check` and `design_markdown_check` (MCP
   tools from the designer-mcp skill) seed the token set and roles.
 
 Lock the reference before building. Name the source and list the traits that

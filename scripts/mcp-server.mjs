@@ -34,7 +34,9 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
+  ListResourcesRequestSchema,
   ListToolsRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
 import {
@@ -59,7 +61,18 @@ import {
   readDesignSystemsIndex,
   readDesignSystem,
   readDesignSystemFile,
+  readReuiIndex,
+  readReuiCategory,
+  readDashboard,
 } from "./lib/cache.mjs";
+import {
+  addPick,
+  clearPicks,
+  parseDesignerRef,
+  picksFilePath,
+  readPicks,
+  removePick,
+} from "./lib/picks.mjs";
 import { blankManifestTemplate } from "./lib/ds-manifest.mjs";
 import { parseDesignMd, manifestFromDesignMd } from "./lib/design-md-parse.mjs";
 import {
@@ -68,7 +81,7 @@ import {
 import { resolveDesignDetailed } from "./lib/resolve.mjs";
 import { isPackagePath, legacyPackageFiles } from "./lib/opendesign-package.mjs";
 import { score, searchText } from "./lib/score.mjs";
-import { readUiSdkDoc, searchUiSdkDocs } from "./lib/ui-sdk-docs.mjs";
+import { listUiSdkDocs, readUiSdkDoc, searchUiSdkDocs } from "./lib/ui-sdk-docs.mjs";
 import {
   heroUiSlug,
   readHeroUiCatalog,
@@ -93,12 +106,32 @@ import {
   searchDaisyui,
 } from "./lib/daisyui-docs.mjs";
 import { baseUiSlug, readBaseUiCatalog, readBaseUiDoc, searchBaseUiDocs } from "./lib/baseui-docs.mjs";
+import {
+  findUikitItem,
+  readUikitCatalog,
+  readUikitFile,
+  readUikitFiles,
+  readUikitsIndex,
+  searchUikits,
+} from "./lib/uikit-docs.mjs";
+import {
+  readReferoStyle,
+  readReferoStylesCatalog,
+  readReferoStylesProvenance,
+  searchReferoStyles,
+} from "./lib/refero-styles-docs.mjs";
 import { loadFrontend } from "./lib/frontend.mjs";
+import { buildUnifiedDesignsIndex } from "./lib/designs-index.mjs";
+import { buildUnifiedComponentsHub, LIBRARY_META } from "./lib/components-index.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DASHBOARDS_DIR = process.env.DESIGN_DASHBOARDS_DIR
   ? process.env.DESIGN_DASHBOARDS_DIR
-  : join(HERE, "..", "plugins", "designer-mcp", "skills", "designer-dashboards");
+  : process.env.SKILLS_ROOT && existsSync(join(process.env.SKILLS_ROOT, "designer-dashboards"))
+    ? join(process.env.SKILLS_ROOT, "designer-dashboards")
+    : process.env.SKILL_DIR && existsSync(join(process.env.SKILL_DIR, "designer-dashboards"))
+      ? join(process.env.SKILL_DIR, "designer-dashboards")
+      : join(HERE, "..", "plugins", "designer-mcp", "skills", "designer-dashboards");
 const DASHBOARD_LIST_KINDS = ["all", "stacks", "starters", "presets", "verticals", "frameworks", "references", "subskills"];
 const DASHBOARD_GET_KINDS = ["stack", "starter", "preset", "vertical", "framework", "reference", "skill"];
 
@@ -149,6 +182,42 @@ async function loadCatalog() {
   const remoteFailed = remoteStatus().failures > failuresBefore;
   catalogProblem = designs.length > 0 ? "" : describeMissingCatalog(remoteFailed);
   catalogFellBack = remoteFailed && designs.length > 0;
+
+  if (designs.length > 0) {
+    try {
+      const desc = await readDescriptors().catch(() => ({}));
+      const descMap = desc?.systems || {};
+      const rsCatalog = await readReferoStylesCatalog().catch(() => null);
+      const domainToStyle = new Map();
+      if (rsCatalog?.styles) {
+        for (const s of rsCatalog.styles) {
+          if (s.domain) domainToStyle.set(s.domain.toLowerCase(), s);
+        }
+      }
+      for (const d of designs) {
+        if (d.source === SOURCE.OPENDESIGN && descMap[d.id]) {
+          const info = descMap[d.id];
+          if (info.moods) d.moods = info.moods;
+          if (info.surfaces) d.surfaces = info.surfaces;
+        }
+        const domain = (d.url ? String(d.url).replace(/^https?:\/\//i, "").replace(/\/.*$/, "").toLowerCase() : "");
+        if (domain) {
+          d.domain = domain;
+          const matchedStyle = domainToStyle.get(domain);
+          if (matchedStyle) {
+            d.styleProfile = {
+              uuid: matchedStyle.uuid,
+              siteName: matchedStyle.siteName,
+              recipesCount: matchedStyle.componentRecipesCount || 0,
+            };
+          }
+        }
+      }
+    } catch {
+      // enrichment failure is non-fatal
+    }
+  }
+
   catalog = designs;
   // The catalog's own timestamp. Falls back to load time for a catalog
   // written before the field existed.
@@ -201,11 +270,16 @@ async function ensureCatalog() {
 // The tools that read the design catalog. The three DESIGN.md tools need it
 // only when given an identifier; pasted content needs no catalog.
 const CATALOG_TOOLS = new Set([
-  "design_search", "design_get", "design_package_file", "design_claude_package", "design_list",
-  "design_facets", "design_markdown", "design_markdown_parse", "design_manifest_from",
-  "design_markdown_validate",
+  "design_search", "design_get", "design_file", "design_package_file", "design_claude_package",
+  "design_list", "design_facets", "design_markdown", "design_markdown_check",
+  "design_markdown_parse", "design_manifest_from", "design_markdown_validate",
 ]);
-const CONTENT_INPUT_TOOLS = new Set(["design_markdown_parse", "design_manifest_from", "design_markdown_validate"]);
+const CONTENT_INPUT_TOOLS = new Set([
+  "design_markdown_check", "design_markdown_parse", "design_manifest_from", "design_markdown_validate",
+]);
+const LEGACY_TOOLS_MODE =
+  process.argv.includes("--legacy-tools") ||
+  /^(1|true|yes)$/i.test(process.env.DESIGN_LEGACY_TOOLS || "");
 
 /**
  * Detect a catalog that lost its OpenDesign half.
@@ -266,6 +340,7 @@ function shorthand(item, full = false) {
     northStar: item.northStar,
     theme: item.colorScheme,
     industry: item.industry,
+    ...(item.styleProfile ? { styleProfile: item.styleProfile } : {}),
   };
   if (full) {
     return {
@@ -283,8 +358,6 @@ function shorthand(item, full = false) {
     // Only when the palette was cut, so the caller knows design_get has more.
     ...(total > ROW_COLOR_LIMIT && { colorCount: total }),
     fonts: item.fonts,
-    // screenshotUrl is left out: it holds the same URL as thumbnailUrl.
-    thumbnailUrl: item.thumbnailUrl || "",
   };
 }
 
@@ -295,6 +368,56 @@ const THEMES = ["light", "dark", "mixed"];
 const SOURCES = Object.values(SOURCE);
 const DOC_KINDS = ["component", "guide"];
 const DOC_SECTIONS = ["core", "react", "web", "references", "skill"];
+// UI kits layer. Kit ids must match data/uikits/pins.json; the selftest
+// sweeps every kit, so drift between the two fails loudly there.
+const UIKIT_IDS = [
+  "chakra", "mui", "antd", "primereact", "coss", "magicui", "motion",
+  "unocss", "panda", "vanilla-extract", "stylex", "openprops", "ark",
+  "reactbits", "aceternity", "twentyfirst",
+];
+const UIKIT_ALIASES = {
+  "coss-ui": "coss",
+  "magic-ui": "magicui",
+  "motion-primitives": "motion",
+  "panda-css": "panda",
+  "open-props": "openprops",
+  "ark-ui": "ark",
+  "react-bits": "reactbits",
+  "aceternity-ui": "aceternity",
+  "21st-dev": "twentyfirst",
+  "21st": "twentyfirst",
+  "material-ui": "mui",
+  "ant-design": "antd",
+  "chakra-ui": "chakra",
+};
+
+function normalizeUikitId(val) {
+  if (typeof val !== "string") return val;
+  const s = val.trim().toLowerCase();
+  return UIKIT_ALIASES[s] || s;
+}
+
+function asUikitId(value, field = "kit", { required = false } = {}) {
+  if (value === undefined || value === null || value === "") {
+    if (required) throw new Error(`${field} is required; must be one of: ${UIKIT_IDS.join(", ")}`);
+    return undefined;
+  }
+  const norm = normalizeUikitId(value);
+  if (!UIKIT_IDS.includes(norm)) {
+    throw new Error(`${field} must be one of: ${UIKIT_IDS.join(", ")}`);
+  }
+  return norm;
+}
+
+const UIKIT_KINDS = ["component", "guide", "topic", "tokens", "index"];
+// Rows in one page of a kit's item list (design_kit_list / design_uikit_list).
+const UIKIT_PAGE_ROWS = 40;
+const UIKIT_MAX_ROWS = 500;
+const UIKIT_SCHEMA = {
+  type: "string",
+  enum: UIKIT_IDS,
+  description: "Kit id from design_uikit_list (see that tool's description for the full set).",
+};
 // Long documents are returned a page at a time. The default keeps one call
 // near 10k tokens; the ceiling stays under the reply limit after JSON escaping.
 const DEFAULT_PAGE_BYTES = 40_000;
@@ -304,13 +427,24 @@ const PAGE_PROPERTIES = {
     type: "integer",
     minimum: 0,
     maximum: 100_000_000,
-    description: "Resume at this byte offset: the previous reply's nextOffset.",
+    description: "Resume at previous nextOffset.",
   },
   maxBytes: {
     type: "integer",
     minimum: 1000,
     maximum: MAX_PAGE_BYTES,
-    description: "Max bytes of text per reply (default 40000).",
+    description: "Max bytes per reply (default 40000).",
+  },
+};
+const OUTLINE_PROPERTIES = {
+  ...PAGE_PROPERTIES,
+  outline: {
+    type: "boolean",
+    description: "Return heading outline with byte offsets rather than full text.",
+  },
+  section: {
+    type: "string",
+    description: "Extract only this section by heading title.",
   },
 };
 const MAX_PRESET_IDS = 20;
@@ -353,15 +487,11 @@ const DESIGN_MD_INPUT = {
 const DESIGN_MD_ONE_INPUT_NOTE =
   " Pass exactly one of identifier or content.";
 
-const TOOLS = [
+const LEGACY_TOOLS = [
   {
     name: "design_search",
     description:
-      "Natural-language search over the local design-system catalog. Searches every source " +
-      "(Refero styles, OpenDesign design systems) by name, vibe, industry, font, and color. " +
-      "For website/brand visual direction and DESIGN.md only — use design_component_search for AI components, " +
-      "design_library_search for install manifests, or design_{heroui,mantine,daisyui,baseui}_search / " +
-      "design_docs_search for UI kit docs. Runs entirely offline against the local cache.",
+      "Natural-language search over local design systems (Refero, OpenDesign) by vibe, industry, font, color. Runs offline.",
     inputSchema: {
       type: "object",
       properties: {
@@ -385,9 +515,7 @@ const TOOLS = [
   {
     name: "design_get",
     description:
-      "Resolve a gallery reference, id, site name, hostname, or URL to the full design record, " +
-      "including color tokens and fonts. For OpenDesign, returns the package manifest and cached file list. " +
-      "Use design_markdown for the design prose and design_package_file to read package files.",
+      "Resolve a gallery ref, id, site, host, or URL to full design record, color tokens, and package files.",
     inputSchema: {
       type: "object",
       properties: {
@@ -402,8 +530,7 @@ const TOOLS = [
   {
     name: "design_package_file",
     description:
-      "Read one cached OpenDesign package file, such as DESIGN.md, tokens.css, or components.html. " +
-      "Get the exact reference and available paths from design_get. Files are returned as source.",
+      "Read one cached OpenDesign package file (e.g. DESIGN.md, tokens.css) by relative path.",
     inputSchema: {
       type: "object",
       properties: {
@@ -421,9 +548,7 @@ const TOOLS = [
   {
     name: "design_claude_package",
     description:
-      "Read one file from a system's Claude Design package — the same files Claude's own " +
-      "Design System format uses (README.md, tokens.json, design-system.json, components). " +
-      "Get the available paths from design_get. Files are returned as source.",
+      "Read one file from a Claude Design package (README.md, tokens.json, components) by relative path.",
     inputSchema: {
       type: "object",
       properties: {
@@ -520,6 +645,7 @@ const TOOLS = [
         slug: { type: "string", description: "Component slug, e.g. prompt-input." },
         variant: { type: "string", description: "Variant id or name. Defaults to the first variant." },
         includeCode: { type: "boolean", description: "Include the source (default true)." },
+        ...PAGE_PROPERTIES,
       },
       required: ["slug"],
       additionalProperties: false,
@@ -597,23 +723,19 @@ const TOOLS = [
   {
     name: "design_asset_list",
     description:
-      "Inventory the built frontend assets the gallery serves as a local CDN: the offline starter " +
-      "(page plus zip), bundled browser modules for react/motion/gsap/lucide/phosphor/radix, Tailwind " +
-      "example sources, template files, and thumbnails. Returns the content-hash version, per-group " +
-      "file counts, and the vendored packages with licenses.",
+      "Inventory built frontend CDN assets: starter, bundled modules, Tailwind examples, and packages.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        detail: { ...DETAIL_PROPERTY, description: '"summary" (default, grouped counts) or "full" (includes all 200+ vendored packages).' },
+      },
       additionalProperties: false,
     },
   },
   {
     name: "design_asset_importmap",
     description:
-      "The import map that turns a running gallery into an offline module CDN: bare specifiers " +
-      "(react, react-dom/client, motion/react, gsap, lucide-react, @phosphor-icons/react, radix-ui, cn, " +
-      "class-variance-authority, shadcn/*) resolved to content-addressed asset URLs. Pass origin for " +
-      "absolute URLs, or omit for origin-relative paths under base.",
+      "Import map resolving bare module specifiers to content-addressed asset URLs for offline usage.",
     inputSchema: {
       type: "object",
       properties: {
@@ -806,7 +928,7 @@ const TOOLS = [
       type: "object",
       properties: {
         path: { type: "string", description: "Relative doc path inside the ui-sdk bundle." },
-        ...PAGE_PROPERTIES,
+        ...OUTLINE_PROPERTIES,
       },
       required: ["path"],
       additionalProperties: false,
@@ -835,7 +957,7 @@ const TOOLS = [
   {
     name: "design_heroui_get_docs",
     description:
-      "Read HeroUI v3 component docs (usage examples, props, anatomy, accessibility) for one or more @heroui/react components. Always read the docs before implementing a HeroUI component.",
+      "Read HeroUI v3 component docs (examples, props, anatomy, accessibility) for @heroui/react components.",
     inputSchema: {
       type: "object",
       properties: {
@@ -846,8 +968,7 @@ const TOOLS = [
           maxItems: MAX_DOC_COMPONENTS,
           description: "Up to 5 component names in PascalCase or kebab-case (e.g. 'Button', 'date-picker').",
         },
-        offset: { ...PAGE_PROPERTIES.offset, description: "Resume one doc at its nextOffset (single component only)." },
-        maxBytes: { ...PAGE_PROPERTIES.maxBytes, description: "Max bytes of text for the whole reply (default 40000)." },
+        ...OUTLINE_PROPERTIES,
       },
       required: ["components"],
       additionalProperties: false,
@@ -856,12 +977,12 @@ const TOOLS = [
   {
     name: "design_heroui_get_guide",
     description:
-      "Read a HeroUI v3 guide: quick-start, frameworks, composition, styling, theming, theming-for-agents, colors, dark-mode, design-principles, animation, and more.",
+      "Read a HeroUI v3 guide (theming, styling, composition, dark-mode, animation, etc.).",
     inputSchema: {
       type: "object",
       properties: {
         path: { type: "string", description: "Guide slug ('theming-for-agents') or catalog path ('guides/theming.md')." },
-        ...PAGE_PROPERTIES,
+        ...OUTLINE_PROPERTIES,
       },
       required: ["path"],
       additionalProperties: false,
@@ -870,7 +991,7 @@ const TOOLS = [
   {
     name: "design_heroui_get_source",
     description:
-      "Read HeroUI v3 component TSX source from the pinned upstream tag, to learn how a component is built or to debug its behavior.",
+      "Read HeroUI v3 component TSX source from the pinned upstream tag.",
     inputSchema: {
       type: "object",
       properties: {
@@ -884,7 +1005,7 @@ const TOOLS = [
   {
     name: "design_heroui_get_styles",
     description:
-      "Read the @heroui/styles CSS for one component: its BEM classes, variants, and states, used when restyling components globally.",
+      "Read @heroui/styles CSS for one component: BEM classes, variants, and states.",
     inputSchema: {
       type: "object",
       properties: {
@@ -898,17 +1019,23 @@ const TOOLS = [
     name: "design_heroui_get_theme_variables",
     description:
       "Read the default HeroUI v3 theme variables and design tokens (oklch color space) for light and dark modes, the base for custom themes.",
-    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    inputSchema: {
+      type: "object",
+      properties: {
+        part: { type: "string", description: "Optional filter by token part (e.g. 'colors', 'layout', 'base')." },
+      },
+      additionalProperties: false,
+    },
   },
   {
     name: "design_heroui_migration_guide",
     description:
-      "HeroUI v2-to-v3 migration guides. name='index' lists them; others read one: 'agent-guide-full', 'agent-guide-incremental', 'styling', 'hooks', or a component slug like 'button'.",
+      "HeroUI v2-to-v3 migration guides ('index' lists them; or pass a slug like 'styling', 'button').",
     inputSchema: {
       type: "object",
       properties: {
         name: { type: "string", description: "'index' or a migration guide slug." },
-        ...PAGE_PROPERTIES,
+        ...OUTLINE_PROPERTIES,
       },
       required: ["name"],
       additionalProperties: false,
@@ -937,7 +1064,7 @@ const TOOLS = [
   {
     name: "design_mantine_get_component",
     description:
-      "Read one Mantine UI ready-made component in full: every source file (TSX plus its CSS module) exactly as authored on ui.mantine.dev, with its npm packages and live-preview availability. This is the copy-the-example tool; always read a component here before writing Mantine code from scratch.",
+      "Read a Mantine ready-made component: full source (TSX + CSS module), packages, and preview availability.",
     inputSchema: {
       type: "object",
       properties: {
@@ -950,7 +1077,7 @@ const TOOLS = [
   {
     name: "design_daisyui_list_components",
     description:
-      "List the offline daisyUI 5 catalog: every component with its group and description, the baked compiled-CSS version, and the full daisyUI theme list the vendored css carries (plain HTML class names, no React, no Tailwind install).",
+      "List offline daisyUI 5 catalog: components, groups, compiled CSS version, and themes.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
@@ -970,7 +1097,7 @@ const TOOLS = [
   {
     name: "design_daisyui_get_component",
     description:
-      "Read one daisyUI component in full: its class names by category, the upstream syntax template, the rendered offline-safe example HTML (drop it in any page with daisyUI's css), the upstream usage rules, and live-preview availability. This is the copy-the-example tool; always read a component here before writing daisyUI markup from scratch.",
+      "Read one daisyUI component: class names by category, syntax, example HTML, and usage rules.",
     inputSchema: {
       type: "object",
       properties: {
@@ -981,10 +1108,65 @@ const TOOLS = [
     },
   },
   {
+    name: "design_style_list",
+    description: "List the offline Refero Styles catalog: per-site design profiles with palette, fonts, counts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "integer", minimum: 1, maximum: 200, description: "Max rows (default 40)." },
+        offset: { type: "integer", minimum: 0, maximum: 100000000, description: "Row offset: the previous reply's nextOffset." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_style_search",
+    description: "Search Refero Styles: names, domains, descriptions, fonts, palette colors.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search keywords. Omit to list everything." },
+        limit: { type: "integer", minimum: 1, maximum: 200, description: "Max results (default 20)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_style_get",
+    description: "Read one Refero style profile in full; the markdown export is design_style_get_md.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        uuid: { type: "string", description: "Style uuid." },
+      },
+      required: ["uuid"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_style_get_md",
+    description: "Read a Refero style's DESIGN.md export, paged.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        uuid: { type: "string", description: "Style uuid." },
+        ...OUTLINE_PROPERTIES,
+      },
+      required: ["uuid"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "design_baseui_list_components",
     description:
-      "List the offline Base UI (@base-ui/react) docs catalog: every headless component with a description, the guide index (overview, handbook, utilities), the recorded latest release, and the licence checksum. Base UI is headless — pair these docs with the ReUI gallery's Base UI variants.",
-    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      "List offline Base UI docs catalog: headless components, guides, release version, and licence.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: ["components", "guides", "all"], description: "Filter to components, guides, or all (default all)." },
+      },
+      additionalProperties: false,
+    },
   },
   {
     name: "design_baseui_search",
@@ -1003,7 +1185,7 @@ const TOOLS = [
   {
     name: "design_baseui_get_docs",
     description:
-      "Read Base UI component docs (usage examples, anatomy, props, accessibility notes) for one or more @base-ui/react components. Always read the docs before implementing a Base UI component; for a styled, rendered version use the ReUI gallery it cross-links.",
+      "Read Base UI component docs (examples, anatomy, props, accessibility) for @base-ui/react components.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1014,8 +1196,7 @@ const TOOLS = [
           maxItems: MAX_DOC_COMPONENTS,
           description: "Up to 5 component names in PascalCase, kebab-case or plain English (e.g. 'Dialog', 'alert-dialog', 'Number Field').",
         },
-        offset: { ...PAGE_PROPERTIES.offset, description: "Resume one doc at its nextOffset (single component only)." },
-        maxBytes: { ...PAGE_PROPERTIES.maxBytes, description: "Max bytes of text for the whole reply (default 40000)." },
+        ...OUTLINE_PROPERTIES,
       },
       required: ["components"],
       additionalProperties: false,
@@ -1024,7 +1205,7 @@ const TOOLS = [
   {
     name: "design_baseui_get_guide",
     description:
-      "Read a Base UI guide: the handbook (styling, animation, composition, customization, forms, typescript), the utilities (CSP Provider, Direction Provider, mergeProps, useRender), or an overview page including release notes.",
+      "Read a Base UI guide: handbook (styling, animation, forms), utilities, or overview.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1032,16 +1213,77 @@ const TOOLS = [
           type: "string",
           description: "Guide slug ('styling'), a section path ('handbook/styling'), or a catalog path ('handbook/styling.md').",
         },
-        ...PAGE_PROPERTIES,
+        ...OUTLINE_PROPERTIES,
       },
       required: ["path"],
       additionalProperties: false,
     },
   },
   {
+    name: "design_uikit_list",
+    description:
+      "List the offline UI kits layer (16 kits). Without kit: list all kits. With kit: that kit's items, paged.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kit: { ...UIKIT_SCHEMA, description: "A kit id to list its items instead of the kit index." },
+        limit: { type: "integer", minimum: 1, maximum: 500, description: "Max items (default 150)." },
+        offset: { type: "integer", minimum: 0, maximum: 100000000, description: "Item offset: the previous reply's nextOffset." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_uikit_search",
+    description:
+      "Search the offline UI kits layer by keyword across every kit, or inside one kit. Kits and their items are listed by design_uikit_list.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search keywords. Omit to list everything." },
+        kit: { ...UIKIT_SCHEMA, description: "Narrow to one kit." },
+        kind: { type: "string", enum: UIKIT_KINDS, description: "Filter by item kind (component, guide, topic, tokens, index)." },
+        limit: { type: "integer", minimum: 1, maximum: 100, description: "Max results (default 20, max 100)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_uikit_get_docs",
+    description:
+      "Read one UI kit item's markdown doc page offline. Pointer kits return their llms.txt index only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kit: UIKIT_SCHEMA,
+        item: { type: "string", description: "Item slug from design_uikit_list or design_uikit_search." },
+        path: { type: "string", description: "Specific doc path to read if the item has multiple docs." },
+        ...OUTLINE_PROPERTIES,
+      },
+      required: ["kit", "item"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_uikit_get_source",
+    description:
+      "Read one UI kit item's code offline (demos, component source, CSS tokens, or baked files).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kit: UIKIT_SCHEMA,
+        item: { type: "string", description: "Item slug from design_uikit_list or design_uikit_search." },
+        path: { type: "string", description: "File to read, as listed by the item ('demo/base.tsx') or any baked path ('registry/accordion.json')." },
+        ...PAGE_PROPERTIES,
+      },
+      required: ["kit", "item"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "design_dashboards_list",
     description:
-      "List the offline designer-dashboards skill: tech stacks, starters, presets, verticals, framework kits, references and sub-skills. With query, only the matching entries.",
+      "List designer-dashboards stacks, starters, presets, verticals, frameworks, references, sub-skills.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1068,7 +1310,293 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "design_picks",
+    description:
+      "Read or manage items sent from the gallery's 'Send to MCP' button (picks queue). Use when the user asks to use what they picked in the browser.",
+    annotations: { readOnlyHint: false, idempotentHint: false, destructiveHint: false, openWorldHint: false },
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: ["list", "add", "remove", "clear"], description: "Queue action (default 'list')." },
+        ref: { type: "string", description: "Canonical designer:<kind>:<id> ref (for add/remove)." },
+        label: { type: "string", description: "Human label (for add)." },
+        note: { type: "string", description: "Optional user note (for add)." },
+        resolve: { type: "boolean", description: "Also resolve each pick into a compact summary (default false)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_resolve",
+    description:
+      "Resolve any canonical designer:<kind>:<id> reference (from 'Send to MCP' or gallery) into a compact summary and follow-up tool hints.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ref: { type: "string", description: "Canonical reference, e.g. designer:opendesign:arc, designer:heroui:button, designer:daisyui:card?theme=nord." },
+      },
+      required: ["ref"],
+      additionalProperties: false,
+    },
+  },
 ];
+
+const CORE_TOOLS = [
+  {
+    name: "design_search",
+    description:
+      "Search or list design systems across Refero, Refero Styles, OpenDesign, and System Templates. Omit query to browse/filter.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Optional search query (vibe, industry, font, color, or site)." },
+        source: { type: "string", enum: ["all", "refero", "opendesign", "style", "template"], description: "Filter by source." },
+        theme: { type: "string", enum: THEMES },
+        hue: { type: "string", description: "Accent hue family (red, orange, amber, green, teal, blue, indigo, purple, pink, neutral)." },
+        ground: { type: "string", description: "Canvas/ground tone (white, warm, cool-gray, charcoal, black, tinted)." },
+        industry: { type: "string" },
+        mood: { type: "string" },
+        surface: { type: "string" },
+        offset: { type: "integer", minimum: 0, description: "Row offset when listing (default 0)." },
+        limit: { type: "integer", minimum: 1, maximum: 100, description: "Max rows (default 10 for search, 25 for list)." },
+        detail: DETAIL_PROPERTY,
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_facets",
+    description: "Return counts for themes, sources, hues, grounds, industries, moods, surfaces, and fonts.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "design_get",
+    description:
+      "Get a design system or Refero Style by id, reference (designer:<source>:<id>), hostname, or site name. Supports include: summary|style|markdown|full.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        identifier: DESIGN_IDENTIFIER,
+        source: { type: "string", enum: ["refero", "opendesign", "style"], description: "Optional source disambiguation." },
+        include: { type: "string", enum: ["summary", "style", "markdown", "full"], description: 'What to include (default "summary").' },
+        detail: DETAIL_PROPERTY,
+        ...OUTLINE_PROPERTIES,
+      },
+      required: ["identifier"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_file",
+    description: "Read one file from an OpenDesign package, Claude Design export, or vendored template.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: ["opendesign", "claude", "template"], description: "Package kind." },
+        identifier: { type: "string", description: "OpenDesign reference (designer:opendesign:<slug>) or template slug." },
+        path: { type: "string", description: "Relative file path inside the package." },
+        ...PAGE_PROPERTIES,
+      },
+      required: ["kind", "identifier", "path"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_template",
+    description: "List vendored design-system templates, get one by slug, or generate a blank/filled manifest template.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        slug: { type: "string", description: "Template slug to inspect." },
+        query: { type: "string", description: "Filter template list." },
+        limit: { type: "integer", minimum: 1, maximum: 50 },
+        detail: DETAIL_PROPERTY,
+        manifest: { type: "boolean", description: "True to generate a blank or preset-filled manifest template." },
+        name: { type: "string", description: "System name when manifest: true." },
+        preset: { type: "string", description: "Optional starter preset when manifest: true." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_markdown_check",
+    description: "Parse, extract a manifest from, or validate a DESIGN.md document." + DESIGN_MD_ONE_INPUT_NOTE,
+    inputSchema: {
+      type: "object",
+      properties: {
+        mode: { type: "string", enum: ["parse", "manifest", "validate"], description: 'Operation mode (default "parse").' },
+        ...DESIGN_MD_INPUT,
+        slug: { type: "string", description: "Override slug when mode is manifest." },
+        name: { type: "string", description: "Override name when mode is manifest." },
+        observed: { type: "object", description: "Observed token map when mode is validate." },
+        required: { type: "array", items: { type: "string" }, description: "Required token paths when mode is validate." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_markdown_render",
+    description: "Render a DESIGN.md draft from a system name, normalized token rows, and optional guidance sections.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "System display name." },
+        tokens: DESIGN_MD_INPUT.tokens,
+        body: { type: "string", description: "Optional Markdown guidance." },
+      },
+      required: ["name"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_kit_list",
+    description: "List all 24+ UI kits and component libraries, or page items inside one kit (default 40 rows).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kit: { type: "string", description: "Kit id (e.g. heroui, mantine, daisyui, baseui, ui-sdk, gradientdeck, reui, hyperui, shadcn, chakra, mui, antd, magicui, openprops...)." },
+        offset: { type: "integer", minimum: 0 },
+        limit: { type: "integer", minimum: 1, maximum: UIKIT_MAX_ROWS, description: "Default 40." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_kit_search",
+    description: "Search components, guides, and docs across all UI kits or within one kit (accepts aliases like magic-ui, 21st-dev).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search keyword." },
+        kit: { type: "string", description: "Optional kit filter." },
+        kind: { type: "string", description: "Optional item kind (component, guide, topic, tokens, index)." },
+        section: { type: "string", description: "Optional section/category/group filter." },
+        limit: { type: "integer", minimum: 1, maximum: 100 },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_kit_docs",
+    description: "Read offline component docs, guides, or migration guides for ui-sdk, heroui, baseui, or uikits. Supports outline: true and section.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kit: { type: "string", description: "Kit id (ui-sdk, heroui, baseui, or uikit id like chakra, mui, antd...)." },
+        item: { type: "string", description: "Component slug, guide path, or doc path." },
+        kind: { type: "string", enum: ["component", "guide", "migration"], description: 'Doc kind (default "component").' },
+        ...OUTLINE_PROPERTIES,
+      },
+      required: ["kit", "item"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_kit_code",
+    description: "Read component source, CSS, or theme variables for gradientdeck, heroui, mantine, daisyui, reui, hyperui, shadcn, or uikits.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kit: { type: "string", description: "Kit id (gradientdeck, heroui, mantine, daisyui, reui, hyperui, shadcn, or uikit id)." },
+        item: { type: "string", description: "Component slug (or theme name for heroui theme)." },
+        variant: { type: "string", description: "Variant id (gradientdeck) or 'radix'/'base' (reui)." },
+        path: { type: "string", description: "Relative file path inside a uikit item." },
+        kind: { type: "string", enum: ["source", "styles", "theme"], description: 'Code kind (default "source").' },
+        detail: DETAIL_PROPERTY,
+        ...PAGE_PROPERTIES,
+      },
+      required: ["kit", "item"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_preset",
+    description: "Search background patterns, gradients, and liquid-glass presets, or fetch their CSS by kind + ids.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        kind: { type: "string", enum: ["patterns", "gradients", "glass"] },
+        ids: { type: "array", items: { type: "string" }, maxItems: MAX_PRESET_IDS, description: "Preset ids to fetch full CSS/code for." },
+        limit: { type: "integer", minimum: 1, maximum: 50 },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_library",
+    description: "Search vendored library install manifests (react, tailwind, shadcn, radix-ui, lucide, etc.) or get one by id.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Library id to fetch install steps and setup files." },
+        query: { type: "string" },
+        limit: { type: "integer", minimum: 1, maximum: 50 },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_assets",
+    description: "Inspect built offline frontend CDN assets: summary (default), full packages list, or importmap.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        view: { type: "string", enum: ["summary", "packages", "importmap"], description: 'Output view (default "summary").' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_dashboards",
+    description: "List/search offline designer-dashboards artifacts (stacks, starters, presets, verticals, frameworks, references, subskills) or read one by kind + id.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: [...new Set([...DASHBOARD_LIST_KINDS, ...DASHBOARD_GET_KINDS])] },
+        id: { type: "string", description: "Artifact id to read." },
+        path: { type: "string", description: "Relative file path inside a starter or framework kit." },
+        query: { type: "string", description: "Keyword filter when listing." },
+        limit: { type: "integer", minimum: 1, maximum: 100 },
+        ...PAGE_PROPERTIES,
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_picks",
+    description: "Read or manage the user's queued gallery picks ('+ Send to MCP').",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: ["list", "add", "remove", "clear"], description: "Action (default list)." },
+        ref: { type: "string", description: "Canonical designer:<kind>:<id> reference (required for add/remove)." },
+        label: { type: "string" },
+        note: { type: "string" },
+        resolve: { type: "boolean", description: "Also resolve each pick into a compact summary (default false)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_resolve",
+    description: "Resolve any canonical designer:<kind>:<id> reference into a compact summary and follow-up tool hints.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ref: { type: "string", description: "Canonical reference, e.g. designer:opendesign:arc, designer:heroui:button." },
+      },
+      required: ["ref"],
+      additionalProperties: false,
+    },
+  },
+];
+
+const CORE_TOOL_NAMES = new Set(CORE_TOOLS.map((t) => t.name));
+const TOOLS = LEGACY_TOOLS_MODE
+  ? [...CORE_TOOLS, ...LEGACY_TOOLS.filter((t) => !CORE_TOOL_NAMES.has(t.name))]
+  : CORE_TOOLS;
 
 // ------------------------------------------------------------------ handlers
 function asString(value, field) {
@@ -1101,6 +1629,14 @@ function asEnum(value, field, allowed) {
   if (value === undefined || value === null || value === "") return undefined;
   if (!allowed.includes(value)) throw new Error(`${field} must be one of: ${allowed.join(", ")}`);
   return value;
+}
+
+function asBoolean(value, def = true, field = "boolean") {
+  if (value === undefined || value === null) return def;
+  if (typeof value === "boolean") return value;
+  if (value === "true" || value === "1" || value === 1) return true;
+  if (value === "false" || value === "0" || value === 0) return false;
+  throw new Error(`${field} must be a boolean`);
 }
 
 function asLimit(value, def, max, min = 1, field = "limit") {
@@ -1149,6 +1685,107 @@ function pageText(text, { offset, maxBytes }) {
     offset: start,
     ...(end < totalBytes && { nextOffset: end }),
   };
+}
+
+function extractOutline(text) {
+  const headings = [];
+  const lines = String(text || "").split(/\r?\n/);
+  let byteOffset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = line.match(/^(#{1,6})\s+(.+)$/);
+    if (match) {
+      headings.push({
+        level: match[1].length,
+        title: match[2].trim(),
+        offset: byteOffset,
+      });
+    }
+    byteOffset += Buffer.byteLength(line, "utf8") + 1;
+  }
+  return headings;
+}
+
+function extractSection(text, sectionTitle) {
+  if (!sectionTitle || typeof sectionTitle !== "string") return null;
+  const target = sectionTitle.trim().toLowerCase();
+  const lines = String(text || "").split(/\r?\n/);
+  let inSection = false;
+  let sectionLevel = 0;
+  const sectionLines = [];
+  let found = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = line.match(/^(#{1,6})\s+(.+)$/);
+    if (match) {
+      const level = match[1].length;
+      const title = match[2].trim();
+      if (!inSection) {
+        if (title.toLowerCase() === target || title.toLowerCase().includes(target)) {
+          inSection = true;
+          sectionLevel = level;
+          found = true;
+          sectionLines.push(line);
+          continue;
+        }
+      } else {
+        if (level <= sectionLevel) {
+          break;
+        }
+      }
+    }
+    if (inSection) {
+      sectionLines.push(line);
+    }
+  }
+
+  if (!found) return null;
+  return sectionLines.join("\n");
+}
+
+function pageDoc(text, args = {}) {
+  if (args.outline === true) {
+    const outline = extractOutline(text);
+    return { outline, totalHeadings: outline.length, totalBytes: Buffer.byteLength(text, "utf8") };
+  }
+  let targetText = text;
+  let sectionHeading = null;
+  if (args.section) {
+    const sec = extractSection(text, args.section);
+    if (sec) {
+      targetText = sec;
+      sectionHeading = args.section;
+    } else {
+      const outline = extractOutline(text);
+      throw new Error(`Section "${args.section}" not found. Available headings: ${outline.map((h) => h.title).slice(0, 15).join(", ")}`);
+    }
+  }
+  const page = pageText(targetText, pageArgs(args));
+  return {
+    ...(sectionHeading ? { section: sectionHeading } : {}),
+    ...page,
+  };
+}
+
+function componentsUnavailableNote() {
+  return "The component library is not baked into this deployment. In a checkout run: npm run bake.";
+}
+
+function presetsUnavailableNote() {
+  return "The presets layer is not baked into this deployment. In a checkout run: npm run bake.";
+}
+
+function librariesUnavailableNote() {
+  return "The library catalog is not baked into this deployment. In a checkout run: npm run bake.";
+}
+
+function templatesUnavailableNote() {
+  return "The design-systems templates layer is not baked into this deployment. In a checkout run: npm run bake.";
+}
+
+function uiSdkUnavailableNote() {
+  return "The @ui-sdk/* documentation is not present in this deployment.";
 }
 
 function rankFacet(values, limit = 25) {
@@ -1349,7 +1986,7 @@ async function handleList(args) {
   let pool = catalog;
   if (source) pool = pool.filter((d) => (d.source || SOURCE.REFERO) === source);
   if (theme) pool = pool.filter((d) => d.colorScheme === theme);
-  if (industry) pool = pool.filter((d) => d.industry === industry);
+  if (industry) pool = pool.filter((d) => String(d.industry || "").toLowerCase() === industry.toLowerCase());
   const full = asEnum(args.detail, "detail", DETAIL_LEVELS) === "full";
   const page = pool.slice(offset, offset + limit).map((d) => shorthand(d, full));
   return {
@@ -1404,6 +2041,7 @@ async function handleMarkdown(args) {
  */
 async function handleComponentSearch(args) {
   const index = await readComponentsIndex();
+  if (!index?.components?.length) return { available: false, note: componentsUnavailableNote() };
   // `query` is optional — browsing by category alone is a valid request.
   const q = optionalString(args.query ?? args.q).trim().toLowerCase();
   const category = args.category ? asString(args.category, "category").toLowerCase() : null;
@@ -1413,13 +2051,13 @@ async function handleComponentSearch(args) {
     list = list.filter((c) => (c.category || "").toLowerCase() === category);
   }
   if (q) {
-    list = list.filter((c) =>
-      `${c.title} ${c.description || ""} ${c.category || ""} ${c.slug} ${(c.variants || [])
+    const terms = q.split(/\s+/).filter(Boolean);
+    list = list.filter((c) => {
+      const hay = `${c.title} ${c.description || ""} ${c.category || ""} ${c.slug} ${(c.variants || [])
         .map((v) => `${v.name} ${v.id} ${v.filename}`)
-        .join(" ")}`
-        .toLowerCase()
-        .includes(q),
-    );
+        .join(" ")}`.toLowerCase();
+      return terms.every((t) => hay.includes(t));
+    });
   }
 
   const limit = asLimit(args.limit, 20, 100);
@@ -1492,7 +2130,11 @@ async function handleComponentCode(args) {
     variant = hit;
   }
 
-  const includeCode = args.includeCode !== false;
+  const includeCode = asBoolean(args.includeCode, true, "includeCode");
+  const codeContent = variant.code || "";
+  const codePage = args.offset !== undefined || args.maxBytes !== undefined
+    ? pageText(codeContent, pageArgs(args))
+    : { code: codeContent };
   return {
     slug: component.slug,
     title: component.title,
@@ -1506,7 +2148,7 @@ async function handleComponentCode(args) {
       dependencies: variant.dependencies,
       registryDependencies: variant.registryDependencies,
     },
-    ...(includeCode ? { code: variant.code } : {}),
+    ...(includeCode ? codePage : {}),
   };
 }
 
@@ -1514,30 +2156,38 @@ async function handleComponentCode(args) {
 /** Search within the preset catalogs (gradients, patterns, glass, colors). */
 async function handlePresetSearch(args) {
   const index = await readPresetsIndex();
+  if (!index?.catalogs?.length) return { available: false, note: presetsUnavailableNote() };
   // `query` is optional — listing every preset in a catalog is valid.
   const q = optionalString(args.query ?? args.q).trim().toLowerCase();
-  const kind = args.kind ? asString(args.kind, "kind") : null;
+  const allowedKinds = (index.catalogs || []).map((c) => c.kind);
+  const kind = args.kind ? asEnum(args.kind, "kind", allowedKinds) : null;
 
   const catalogs = (index.catalogs || []).filter((c) => !kind || c.kind === kind);
   if (!catalogs.length) {
     return {
       total: 0,
       returned: 0,
-      kinds: (index.catalogs || []).map((c) => c.kind),
+      kinds: allowedKinds,
       presets: [],
     };
   }
 
   const limit = asLimit(args.limit, 20, 100);
+  const terms = q ? q.split(/\s+/).filter(Boolean) : [];
+  const loaded = await Promise.all(
+    catalogs.map(async (c) => ({ kind: c.kind, catalog: await readPresetCatalog(c.kind) })),
+  );
+
   const hits = [];
-  for (const c of catalogs) {
-    const catalog = await readPresetCatalog(c.kind);
+  for (const { kind: cKind, catalog } of loaded) {
     if (!catalog) continue;
     for (const p of catalog.presets || []) {
-      const hay = `${p.name || ""} ${p.label || ""} ${p.id || ""} ${p.category || ""} ${p.description || ""}`;
-      if (q && !hay.toLowerCase().includes(q)) continue;
+      if (terms.length) {
+        const hay = `${p.name || ""} ${p.label || ""} ${p.id || ""} ${p.category || ""} ${p.description || ""}`.toLowerCase();
+        if (!terms.every((t) => hay.includes(t))) continue;
+      }
       hits.push({
-        kind: c.kind,
+        kind: cKind,
         id: p.id,
         name: p.name || p.label,
         category: p.category,
@@ -1549,7 +2199,7 @@ async function handlePresetSearch(args) {
   return {
     total: hits.length,
     returned: Math.min(hits.length, limit),
-    kinds: (index.catalogs || []).map((c) => c.kind),
+    kinds: allowedKinds,
     presets: hits.slice(0, limit),
   };
 }
@@ -1609,24 +2259,39 @@ function loadFrontendOnce() {
 }
 
 /** The asset CDN inventory: version, groups, vendored packages, starter. */
-async function handleAssetList() {
+async function handleAssetList(args = {}) {
   const frontend = await loadFrontendOnce();
-  const pub = frontend?.publicManifest;
+  let pub = frontend?.publicManifest;
+  let map = frontend?.importMap();
+  if (!pub && getRemoteUrl()) {
+    pub = await remoteJson("assets/manifest.json");
+    if (pub === REMOTE_DOWN) pub = null;
+    map = await remoteJson("assets/importmap.json");
+    if (map === REMOTE_DOWN) map = null;
+  }
   if (!pub) {
     return {
       available: false,
       note: "frontend assets have not been built. The gallery image ships them; in a checkout run npm run frontend:build.",
     };
   }
-  const map = frontend.importMap();
+  const full = args?.detail === "full";
+  const allPackages = (pub.packages || []).map((p) => ({ name: p.name, version: p.version, license: p.license }));
+  const importsCount = map ? Object.keys(map.imports || {}).length : 0;
   return {
     available: true,
     version: pub.version,
     servedAt: "/assets/<version>/<file>",
     groups: pub.groups,
     starter: { url: pub.starter, archive: pub.archive },
-    packages: (pub.packages || []).map((p) => ({ name: p.name, version: p.version, license: p.license })),
-    importMap: map ? { specifiers: Object.keys(map.imports).length, route: "/assets/importmap.json" } : null,
+    packageCount: allPackages.length,
+    ...(full
+      ? { packages: allPackages }
+      : {
+          topPackages: Object.keys(map?.imports || {}).slice(0, 15),
+          packagesNote: `Omitted ${allPackages.length} packages for context economy. Pass detail: 'full' to list all.`,
+        }),
+    importMap: map ? { specifiers: importsCount, route: "/assets/importmap.json" } : null,
   };
 }
 
@@ -1637,7 +2302,11 @@ async function handleAssetList() {
  */
 async function handleAssetImportmap(args) {
   const frontend = await loadFrontendOnce();
-  const map = frontend?.importMap();
+  let map = frontend?.importMap();
+  if (!map && getRemoteUrl()) {
+    map = await remoteJson("assets/importmap.json");
+    if (map === REMOTE_DOWN) map = null;
+  }
   if (!map) {
     throw new Error(
       "No frontend assets in this deployment. The gallery image ships them at /app/frontend-cache; " +
@@ -1663,6 +2332,7 @@ async function handleAssetImportmap(args) {
 /** Search the vendored library catalog (install manifests for common libraries). */
 async function handleLibrarySearch(args) {
   const index = await readLibrariesIndex();
+  if (!index?.libraries?.length) return { available: false, note: librariesUnavailableNote() };
   // `query` is optional — listing every cached library is valid.
   const q = optionalString(args.query ?? args.q).trim().toLowerCase();
   const category = optionalString(args.category, "category").trim().toLowerCase();
@@ -1673,16 +2343,16 @@ async function handleLibrarySearch(args) {
     libs = libs.filter((l) => String(l.category || "").toLowerCase() === category);
   }
   if (q) {
-    // Match against the full entries too: keywords live only there, and the
-    // catalog is small enough that reading all of it stays cheap.
-    const matched = [];
-    for (const l of libs) {
-      const entry = await readLibraryEntry(l.id);
-      const keywords = entry ? (entry.keywords || []).join(" ") : "";
-      const hay = `${l.id} ${l.name} ${l.category} ${l.summary || ""} ${keywords}`;
-      if (hay.toLowerCase().includes(q)) matched.push(l);
-    }
-    libs = matched;
+    const terms = q.split(/\s+/).filter(Boolean);
+    const loaded = await Promise.all(
+      libs.map(async (l) => {
+        const entry = await readLibraryEntry(l.id);
+        const keywords = entry ? (entry.keywords || []).join(" ") : "";
+        const hay = `${l.id} ${l.name} ${l.category} ${l.summary || ""} ${keywords}`.toLowerCase();
+        return { lib: l, matches: terms.every((t) => hay.includes(t)) };
+      }),
+    );
+    libs = loaded.filter((item) => item.matches).map((item) => item.lib);
   }
 
   return {
@@ -1712,13 +2382,14 @@ async function handleTemplateList(args) {
   const query = optionalString(args.query).trim().toLowerCase();
   const limit = asLimit(args.limit, 20, 50);
   const index = await readDesignSystemsIndex();
+  if (!index?.systems?.length) return { available: false, note: templatesUnavailableNote() };
   let systems = index.systems || [];
   if (query) {
-    systems = systems.filter((s) =>
-      `${s.slug} ${s.name} ${s.description} ${s.headingFont}`
-        .toLowerCase()
-        .includes(query),
-    );
+    const terms = query.split(/\s+/).filter(Boolean);
+    systems = systems.filter((s) => {
+      const hay = `${s.slug} ${s.name} ${s.description} ${s.headingFont}`.toLowerCase();
+      return terms.every((t) => hay.includes(t));
+    });
   }
   return {
     total: systems.length,
@@ -1733,10 +2404,17 @@ async function handleTemplateGet(args) {
   if (!record) {
     throw new Error(
       `No design-system template "${slug}". ` +
-        `Run design_template_list to see what is cached.`,
+        `Run design_template (or design_template_list) to see what is cached.`,
     );
   }
-  return record;
+  const full = asEnum(args.detail, "detail", DETAIL_LEVELS) === "full";
+  if (full || record.manifest === undefined) return record;
+  const { manifest: _manifest, ...rest } = record;
+  return {
+    ...rest,
+    omitted: ["manifest"],
+    omittedNote: 'Pass detail: "full" for the full manifest.',
+  };
 }
 
 async function handleTemplateFile(args) {
@@ -2012,7 +2690,7 @@ async function handleHeroUiGetDocs(args) {
     const content = await readHeroUiDoc(entry.path);
     const result = { component: entry.name, slug: entry.slug, path: entry.path };
     if (content === null) result.error = "doc missing from the baked layer; re-run npm run heroui";
-    else Object.assign(result, pageText(content, paging));
+    else Object.assign(result, args.outline || args.section ? pageDoc(content, args) : pageText(content, paging));
     results.push(result);
   }
   return { version: catalog.version, results };
@@ -2022,18 +2700,18 @@ async function handleHeroUiGetGuide(args) {
   const raw = asString(args.path, "path").replace(/^\/+/, "");
   const catalog = await readHeroUiCatalog();
   if (!catalog.guides.length) return { available: false, note: heroUiUnavailableNote() };
-  // Resolve through the catalog first: a guide's slug is not always its file
-  // name ('theming-with-agents' lives at guides/theming-for-agents.md), and
-  // callers pass 'theming', 'guides/theming' and 'guides/theming.md' alike.
+  // Resolve through the catalog guides strictly:
   const guide = catalog.guides.find(
-    (g) => g.slug === raw || g.path === raw || g.path === `${raw}.md` || g.path === `guides/${raw}.md`,
+    (g) => g.slug === raw || g.path === raw || g.path === `${raw}.md` || g.path === `guides/${raw}.md` || g.slug === raw.replace(/^guides\//, "").replace(/\.md$/, ""),
   );
-  const path = guide ? guide.path : raw.endsWith(".md") ? raw : `guides/${raw}.md`;
-  const content = await readHeroUiDoc(path);
+  if (!guide) {
+    throw new Error(`guide not found: ${raw}; use design_heroui_list_components for the guide index`);
+  }
+  const content = await readHeroUiDoc(guide.path);
   if (content === null) {
     throw new Error(`guide not found: ${raw}; use design_heroui_list_components for the guide index`);
   }
-  return { path, ...pageText(content, pageArgs(args)) };
+  return { path: guide.path, ...pageDoc(content, args) };
 }
 
 async function handleHeroUiGetSource(args) {
@@ -2069,7 +2747,7 @@ async function handleHeroUiGetStyles(args) {
   return { component: heroUiSlug(component), css };
 }
 
-async function handleHeroUiGetThemeVariables() {
+async function handleHeroUiGetThemeVariables(args = {}) {
   const catalog = await readHeroUiCatalog();
   if (!catalog.components.length) return { available: false, note: heroUiUnavailableNote() };
   const theme = await readHeroUiTheme();
@@ -2079,6 +2757,10 @@ async function handleHeroUiGetThemeVariables() {
       note: "Theme css was not baked into this deployment; re-run npm run heroui.",
     };
   }
+  const part = asEnum(args.part, "part", ["variables", "theme", "default", "all"]) || "all";
+  if (part === "variables") return { version: catalog.version, variables: theme.variables };
+  if (part === "theme") return { version: catalog.version, theme: theme.theme };
+  if (part === "default") return { version: catalog.version, default: theme.default };
   return { version: catalog.version, ...theme };
 }
 
@@ -2116,6 +2798,12 @@ async function handleMantineList() {
   if (!catalog.components?.length) return { available: false, note: mantineUnavailableNote() };
   return {
     ...catalog,
+    components: (catalog.components || []).map((c) => {
+      const row = { ...c };
+      if (Array.isArray(row.requires) && row.requires.length === 0) delete row.requires;
+      if (row.responsive === false) delete row.responsive;
+      return row;
+    }),
     vendor: provenance?.packages
       ? Object.fromEntries(Object.entries(provenance.packages).map(([name, rec]) => [name, rec.version]))
       : {},
@@ -2180,17 +2868,134 @@ async function handleDaisyuiGetComponent(args) {
     throw new Error(`unknown daisyUI component slug: ${slug}; use design_daisyui_list_components or design_daisyui_search for exact slugs`);
   }
   const frontend = await loadFrontendOnce().catch(() => null);
+  const full = asEnum(args.detail, "detail", DETAIL_LEVELS) === "full";
   return {
     slug: detail.slug,
     name: detail.name,
     group: detail.group || null,
     description: detail.description,
-    docUrl: detail.docUrl,
+    ...(full && detail.docUrl ? { docUrl: detail.docUrl } : {}),
     classes: detail.classes || [],
     syntax: detail.syntax || "",
     example: detail.example || "",
     docs: detail.docs || "",
     livePreview: frontend?.daisyuiPreviewPath?.(detail.slug) != null,
+  };
+}
+
+// --------------------------------------------------------- refero-styles layer
+function referoStylesUnavailableNote() {
+  return (
+    "The Refero Styles layer is not baked into this deployment. The gallery image ships it; " +
+    "in a checkout run: npm run refero-styles && npm run bake."
+  );
+}
+
+const STYLE_LIST_DEFAULT = 40;
+const STYLE_LIST_MAX = 200;
+
+async function referoStylesChecked() {
+  const catalog = await readReferoStylesCatalog();
+  if (!catalog.styles?.length) return { available: false, note: referoStylesUnavailableNote() };
+  return catalog;
+}
+
+/** List/search rows are summaries: hex palette, no asset file names. */
+function styleRowSlim(row) {
+  return {
+    uuid: row.uuid,
+    name: row.name,
+    domain: row.domain,
+    description: row.description,
+    palette: (row.palette || []).map((c) => c.value),
+    fonts: (row.fonts || []).map((f) => (f.substitute ? `${f.family} (sub: ${f.substitute})` : f.family)),
+    counts: row.counts,
+    mdBytes: row.mdBytes,
+  };
+}
+
+async function handleStyleList(args = {}) {
+  const catalog = await referoStylesChecked();
+  if (catalog.available === false) return catalog;
+  const limit = asLimit(args.limit, STYLE_LIST_DEFAULT, STYLE_LIST_MAX);
+  const offset = asLimit(args.offset, 0, catalog.styles.length, 0, "offset");
+  const styles = catalog.styles.slice(offset, offset + limit).map(styleRowSlim);
+  return {
+    updatedAt: catalog.updatedAt,
+    totals: catalog.totals,
+    total: catalog.styles.length,
+    count: styles.length,
+    ...(offset + limit < catalog.styles.length ? { nextOffset: offset + limit } : {}),
+    ...(offset > 0 ? { offset } : {}),
+    styles,
+  };
+}
+
+async function handleStyleSearch(args = {}) {
+  const catalog = await referoStylesChecked();
+  if (catalog.available === false) return catalog;
+  const { query, total, results } = await searchReferoStyles({
+    query: optionalString(args.query),
+    limit: asLimit(args.limit, 20, STYLE_LIST_MAX),
+  });
+  return { query, total, count: results.length, results: results.map(styleRowSlim) };
+}
+
+/** The analysis without the markdown export or the local asset mapping. */
+async function handleStyleGet(args) {
+  const uuid = asString(args.uuid, "uuid").toLowerCase();
+  const catalog = await referoStylesChecked();
+  if (catalog.available === false) return catalog;
+  const record = await readReferoStyle(uuid);
+  if (!record) {
+    throw new Error(`unknown refero style uuid: ${uuid}; use design_style_list or design_style_search for exact uuids`);
+  }
+  const data = record.data || {};
+  const row = catalog.styles.find((r) => r.uuid === uuid) || {};
+  const counts = row.counts || {
+    components: Array.isArray(data.components) ? data.components.length : 0,
+    typography: Array.isArray(data.typography) ? data.typography.length : 0,
+    surfaces: Array.isArray(data.surfaces) ? data.surfaces.length : 0,
+    colors: data.colors ? Object.keys(data.colors).length : 0,
+  };
+  return {
+    uuid: record.uuid,
+    name: record.site?.name || row.name || null,
+    domain: record.site?.domain || row.domain || null,
+    description: record.site?.description || row.description || null,
+    counts,
+    ...(row.palette ? { palette: row.palette } : {}),
+    intent: data.intent || null,
+    essentials: data.essentials || [],
+    colors: data.colors || {},
+    surfaces: data.surfaces || [],
+    typography: data.typography || [],
+    fonts: data.fonts || {},
+    components: data.components || [],
+    dos: data.dos || [],
+    donts: data.donts || [],
+    mdBytes: record.views?.design_md ? Buffer.byteLength(record.views.design_md) : 0,
+    note: "The DESIGN.md export for this style is design_style_get_md.",
+  };
+}
+
+async function handleStyleGetMd(args) {
+  const uuid = asString(args.uuid, "uuid").toLowerCase();
+  const catalog = await referoStylesChecked();
+  if (catalog.available === false) return catalog;
+  const record = await readReferoStyle(uuid);
+  if (!record) {
+    throw new Error(`unknown refero style uuid: ${uuid}; use design_style_list or design_style_search for exact uuids`);
+  }
+  const md = record.views?.design_md || "";
+  if (!md) {
+    return { uuid: record.uuid, available: false, note: "no DESIGN.md export is baked for this style; re-run npm run refero-styles" };
+  }
+  return {
+    uuid: record.uuid,
+    name: record.site?.name || null,
+    domain: record.site?.domain || null,
+    ...pageDoc(md, args),
   };
 }
 
@@ -2202,10 +3007,17 @@ function baseUiUnavailableNote() {
   );
 }
 
-async function handleBaseUiList() {
+async function handleBaseUiList(args = {}) {
   const catalog = await readBaseUiCatalog();
   if (!catalog.components.length) return { available: false, note: baseUiUnavailableNote() };
-  return catalog;
+  const kind = asEnum(args.kind, "kind", ["components", "guides", "all"]);
+  return {
+    ...catalog,
+    components: (catalog.components || []).map(({ docUrl: _d, ...c }) => c),
+    guides: (catalog.guides || []).map(({ docUrl: _d, ...g }) => g),
+    ...(kind === "components" ? { guides: [] } : {}),
+    ...(kind === "guides" ? { components: [] } : {}),
+  };
 }
 
 async function handleBaseUiGetDocs(args) {
@@ -2227,7 +3039,7 @@ async function handleBaseUiGetDocs(args) {
     const content = await readBaseUiDoc(entry.path);
     const result = { component: entry.name, slug: entry.slug, path: entry.path };
     if (content === null) result.error = "doc missing from the baked layer; re-run npm run baseui";
-    else Object.assign(result, pageText(content, paging));
+    else Object.assign(result, args.outline || args.section ? pageDoc(content, args) : pageText(content, paging));
     results.push(result);
   }
   return { version: catalog.version, license: catalog.license?.spdx || null, results };
@@ -2267,9 +3079,180 @@ async function handleBaseUiGetGuide(args) {
   if (content === null) {
     throw new Error(`doc missing from the baked layer (${entry.path}); re-run npm run baseui`);
   }
-  return { path: entry.path, section: entry.section, name: entry.name, ...pageText(content, pageArgs(args)) };
+  return { path: entry.path, section: entry.section, name: entry.name, ...pageDoc(content, args) };
 }
 
+// -------------------------------------------------------------- uikits layer
+function uikitsUnavailableNote() {
+  return (
+    "The UI kits layer is not baked into this deployment. The gallery image ships it; " +
+    "in a checkout run: npm run uikits && npm run bake."
+  );
+}
+
+async function handleUikitList(args = {}) {
+  const kit = args.kit === undefined ? "" : asUikitId(args.kit, "kit", { required: false });
+  if (!kit) {
+    const index = await readUikitsIndex();
+    if (!index.kits.length) return { available: false, note: uikitsUnavailableNote() };
+    return {
+      updatedAt: index.updatedAt,
+      totals: index.totals,
+      kits: index.kits.map((row) => ({
+        kit: row.kit,
+        name: row.name,
+        category: row.category,
+        kind: row.kind,
+        homepage: row.homepage,
+        usesTailwind: row.usesTailwind,
+        license: row.license?.spdx || null,
+        ...(row.note ? { note: row.note } : {}),
+        totals: row.totals,
+        ...(row.error ? { error: row.error } : {}),
+      })),
+    };
+  }
+  const catalog = await readUikitCatalog(kit);
+  if (!catalog) return { available: false, note: uikitsUnavailableNote() };
+  // Rows, not bytes: a cut JSON array would not parse. One row is a short
+  // summary, so a page stays near what a document page is allowed.
+  const limit = asLimit(args.limit, UIKIT_PAGE_ROWS, UIKIT_MAX_ROWS);
+  const offset = asLimit(args.offset, 0, 100_000, 0, "offset");
+  if (offset > 0 && offset >= catalog.items.length) {
+    throw new Error(`offset ${offset} is past the end of the item list (${catalog.items.length} items)`);
+  }
+  const page = catalog.items.slice(offset, offset + limit);
+  return {
+    kit: catalog.kit,
+    name: catalog.name,
+    kind: catalog.kind,
+    license: catalog.license?.spdx || null,
+    ...(catalog.note ? { note: catalog.note } : {}),
+    ...(catalog.pointer ? { pointer: catalog.pointer } : {}),
+    // `totals.items` is the whole list; `returned` is this page of it.
+    totals: catalog.totals,
+    offset,
+    returned: page.length,
+    ...(offset + page.length < catalog.items.length && { nextOffset: offset + page.length }),
+    items: page.map((i) => ({
+      slug: i.slug,
+      title: i.title,
+      group: i.group || null,
+      kind: i.kind,
+      summary: i.summary,
+      docs: i.docs.length,
+      source: (i.source?.length || 0) + (i.demo?.length || 0) + (i.registry?.length || 0),
+    })),
+  };
+}
+
+async function handleUikitGetDocs(args) {
+  const kit = asUikitId(args.kit, "kit", { required: true });
+  const catalog = await readUikitCatalog(kit);
+  if (!catalog) return { available: false, note: uikitsUnavailableNote() };
+  const wanted = asString(args.item, "item");
+  const item = findUikitItem(catalog, wanted);
+  if (!item) {
+    throw new Error(`unknown item '${wanted}' in kit ${kit}; use design_uikit_list with kit:'${kit}' or design_uikit_search for exact slugs`);
+  }
+  if (!item.docs.length) {
+    return {
+      kit,
+      item: item.slug,
+      available: false,
+      note: `no doc page is baked for ${item.slug}; use design_uikit_get_source for its files`,
+    };
+  }
+  const pathArg = optionalString(args.path, "path");
+  let targetDoc = "";
+  if (pathArg) {
+    if (item.docs.includes(pathArg)) {
+      targetDoc = pathArg;
+    } else {
+      const candidates = item.docs.filter((d) => d.endsWith(`/${pathArg}`) || d.endsWith(pathArg));
+      if (candidates.length === 1) targetDoc = candidates[0];
+      else if (candidates.length > 1) {
+        throw new Error(`ambiguous doc path '${pathArg}' (${candidates.join(", ")}); pass the full doc path`);
+      } else {
+        throw new Error(`doc '${pathArg}' not found for ${kit}/${item.slug}; available docs: ${item.docs.join(", ")}`);
+      }
+    }
+  } else {
+    targetDoc = item.primaryDoc && item.docs.includes(item.primaryDoc) ? item.primaryDoc : item.docs[0];
+  }
+  const content = await readUikitFile(kit, targetDoc);
+  if (content === null) {
+    return { kit, item: item.slug, error: `doc missing from the baked layer (${targetDoc}); re-run npm run uikits` };
+  }
+  const otherDocs = item.docs.filter((d) => d !== targetDoc);
+  return {
+    kit,
+    item: item.slug,
+    title: item.title,
+    path: targetDoc,
+    license: catalog.license?.spdx || null,
+    ...(otherDocs.length > 0 ? { otherDocs } : {}),
+    ...pageDoc(content, args),
+  };
+}
+
+async function handleUikitGetSource(args) {
+  const kit = asUikitId(args.kit, "kit", { required: true });
+  const catalog = await readUikitCatalog(kit);
+  if (!catalog) return { available: false, note: uikitsUnavailableNote() };
+  const wanted = asString(args.item, "item");
+  const item = findUikitItem(catalog, wanted);
+  if (!item) {
+    throw new Error(`unknown item '${wanted}' in kit ${kit}; use design_uikit_list with kit:'${kit}' or design_uikit_search for exact slugs`);
+  }
+  if (catalog.kind === "pointer") {
+    return {
+      kit,
+      item: item.slug,
+      available: false,
+      note:
+        (catalog.license?.note || "component code is not cached for this kit") +
+        (catalog.pointer?.install ? ` Install from upstream instead: ${catalog.pointer.install}.` : ""),
+    };
+  }
+  const files = [...(item.source || []), ...(item.demo || []), ...(item.registry || [])];
+  const pathArg = optionalString(args.path, "path");
+  if (!pathArg) {
+    // An item with no files of its own still answers a kit-wide path below.
+    if (!files.length) return { kit, item: item.slug, files: [], note: "no source files are baked for this item" };
+    return { kit, item: item.slug, total: files.length, files };
+  }
+  // An exact path wins. Otherwise the argument may be the tail of one path,
+  // on a "/" boundary ("index.tsx" is a file named index.tsx, never
+  // button/index.tsx), and it must name exactly one file: the item's own
+  // first, then anything baked in the kit (registry JSONs, asset css).
+  const manifest = await readUikitFiles(kit);
+  const baked = Object.keys(manifest?.files || {});
+  let path = files.includes(pathArg) || baked.includes(pathArg) ? pathArg : "";
+  let matchedBy;
+  if (!path) {
+    const suffix = (pool) => pool.filter((f) => f.endsWith(`/${pathArg}`));
+    const candidates = suffix(files).length ? suffix(files) : suffix(baked);
+    if (candidates.length > 1) {
+      const shown = candidates.slice(0, 5).join(", ");
+      throw new Error(
+        `'${pathArg}' matches ${candidates.length} baked files (${shown}${candidates.length > 5 ? ", ..." : ""}); pass the full path`,
+      );
+    }
+    if (candidates.length === 1) {
+      path = candidates[0];
+      matchedBy = "suffix";
+    }
+  }
+  if (!path) {
+    throw new Error(`no baked file '${pathArg}' for ${kit}/${item.slug}; call without path to list the item's files`);
+  }
+  const content = await readUikitFile(kit, path);
+  if (content === null) {
+    return { kit, item: item.slug, path, error: `file missing from the baked layer (${path}); re-run npm run uikits` };
+  }
+  return { kit, item: item.slug, path, ...(matchedBy ? { matchedBy } : {}), ...pageText(content, pageArgs(args)) };
+}
 
 async function listDirFilesRecursive(dir, base = "") {
   if (!existsSync(dir)) return [];
@@ -2317,8 +3300,11 @@ function dashboardsUnavailableNote() {
   );
 }
 
+let cachedSkillDashboardsIndex = null;
+
 /** The skill's index, or null when the skill directory itself is absent. */
 async function readDashboardsIndex() {
+  if (cachedSkillDashboardsIndex) return cachedSkillDashboardsIndex;
   if (!existsSync(DASHBOARDS_DIR)) return null;
   const tplDir = join(DASHBOARDS_DIR, "templates");
   // A broken catalog is a broken skill. Say that, not the host path a raw
@@ -2346,7 +3332,7 @@ async function readDashboardsIndex() {
   // A sub-skill is any directory of the skill that carries a SKILL.md, so
   // adding one needs no edit here.
   const subskills = (await dirNames(DASHBOARDS_DIR)).filter((d) => isFile(join(DASHBOARDS_DIR, d, "SKILL.md")));
-  return {
+  cachedSkillDashboardsIndex = {
     stacks: (Array.isArray(stacksCatalog.profiles) ? stacksCatalog.profiles : []).map((p) => ({
       id: p.id,
       name: p.name,
@@ -2364,6 +3350,7 @@ async function readDashboardsIndex() {
     references: await baseNames(join(DASHBOARDS_DIR, "references"), ".md"),
     subskills,
   };
+  return cachedSkillDashboardsIndex;
 }
 
 /** Every listable entry of the skill as one searchable row. */
@@ -2389,7 +3376,7 @@ const DASHBOARD_SINGULAR = {
   subskills: "skill",
 };
 
-async function handleDashboardsList(args) {
+async function handleDashboardsList(args = {}) {
   const kind = asEnum(args.kind, "kind", DASHBOARD_LIST_KINDS) ?? "all";
   const query = optionalString(args.query).trim().toLowerCase();
   const index = await readDashboardsIndex();
@@ -2398,9 +3385,13 @@ async function handleDashboardsList(args) {
   if (query) {
     const limit = asLimit(args.limit, 20, 100);
     const wanted = DASHBOARD_SINGULAR[kind];
+    const words = query.split(/\s+/).filter(Boolean);
     const matches = dashboardEntries(index)
       .filter((c) => !wanted || c.kind === wanted)
-      .filter((c) => `${c.id} ${c.title} ${c.detail}`.toLowerCase().includes(query));
+      .filter((c) => {
+        const text = `${c.id} ${c.title} ${c.detail}`.toLowerCase();
+        return words.every((w) => text.includes(w));
+      });
     return { query, kind, total: matches.length, results: matches.slice(0, limit) };
   }
   if (kind === "all") return index;
@@ -2469,15 +3460,877 @@ async function handleDashboardsGet(args) {
   return { kind, id, path: pathArg, ...pageText(await readSkillText(target), pageArgs(args)) };
 }
 
+
+function galleryPicksUrl() {
+  const raw = (process.env.DESIGN_GALLERY_URL || "").trim();
+  if (!raw || !/^https?:\/\//i.test(raw)) return null;
+  return `${raw.replace(/\/+$/, "")}/api/picks`;
+}
+
+async function galleryPicksRequest(method, suffix = "", body = null) {
+  const base = galleryPicksUrl();
+  if (!base) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 2000);
+  try {
+    const res = await fetch(suffix ? `${base}/${encodeURIComponent(suffix)}` : base, {
+      method,
+      headers: body ? { "content-type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data && data.live ? data : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function resolveOneRef(rawRef) {
+  const parsed = parseDesignerRef(rawRef);
+  if (!parsed) {
+    throw new Error(
+      `Invalid reference "${String(rawRef ?? "")}". Expected designer:<kind>:<id> (e.g. designer:opendesign:arc, designer:heroui:button).`,
+    );
+  }
+
+  switch (parsed.kind) {
+    case "refero":
+    case "opendesign": {
+      await ensureCatalog();
+      const rec = await handleGet({ identifier: parsed.ref, source: parsed.kind });
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: rec.siteName || parsed.id,
+        nextTools: LEGACY_TOOLS_MODE
+          ? (parsed.kind === "opendesign"
+            ? ["design_markdown", "design_package_file", "design_claude_package"]
+            : ["design_markdown", "design_get"])
+          : (parsed.kind === "opendesign" ? ["design_get", "design_file"] : ["design_get"]),
+        data: rec,
+      };
+    }
+    case "style": {
+      const rec = await readReferoStyle(parsed.id);
+      if (!rec) return { ref: parsed.ref, kind: parsed.kind, found: false, error: "Refero style not found in cache" };
+      const data = rec.data || {};
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: rec.site?.name || parsed.id,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_style_get", "design_style_get_md"] : ["design_get"],
+        data: {
+          uuid: rec.uuid,
+          domain: rec.site?.domain || null,
+          description: rec.site?.description || "",
+          counts: {
+            colors: data.colors ? Object.keys(data.colors).length : 0,
+            surfaces: Array.isArray(data.surfaces) ? data.surfaces.length : 0,
+            typography: Array.isArray(data.typography) ? data.typography.length : 0,
+            components: Array.isArray(data.components) ? data.components.length : 0,
+          },
+          fonts: Object.values(data.fonts || {}).map((f) => ({ family: f.family, substitute: f.substitute || null })),
+        },
+      };
+    }
+    case "template": {
+      const rec = await readDesignSystem(parsed.id);
+      if (!rec) return { ref: parsed.ref, kind: parsed.kind, found: false, error: "Template not found in cache" };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: rec.name || parsed.id,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_template_get", "design_template_file"] : ["design_template", "design_file"],
+        data: {
+          slug: rec.slug,
+          description: rec.description || "",
+          tokensCount: (rec.tokens || []).length,
+          filesCount: (rec.files || []).length,
+          starterTemplates: (rec.manifest?.starterTemplates?.all || []).map((s) => ({
+            name: s.name,
+            entryPath: s.entryPath,
+          })),
+        },
+      };
+    }
+    case "component": {
+      const comp = await readComponent(parsed.id);
+      if (!comp) return { ref: parsed.ref, kind: parsed.kind, found: false, error: "Component not found in cache" };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: comp.title || comp.name || parsed.id,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_component_code", "design_component_get"] : ["design_kit_code"],
+        data: {
+          slug: comp.slug,
+          category: comp.category || null,
+          description: comp.description || "",
+          install: comp.install || null,
+          variant: parsed.variant || null,
+          variants: (comp.variants || []).map((v) => ({ id: v.id, name: v.name, filename: v.filename })),
+        },
+      };
+    }
+    case "heroui": {
+      const cat = await readHeroUiCatalog();
+      const hit = (cat.components || []).find((c) => c.slug === parsed.id || heroUiSlug(c.name) === parsed.id);
+      if (!hit) return { ref: parsed.ref, kind: parsed.kind, found: false, error: "HeroUI component not found in cache" };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: hit.name,
+        nextTools: LEGACY_TOOLS_MODE
+          ? ["design_heroui_get_docs", "design_heroui_get_styles", "design_heroui_get_source"]
+          : ["design_kit_docs", "design_kit_code"],
+        data: hit,
+      };
+    }
+    case "mantine": {
+      const rec = await readMantineComponent(parsed.id);
+      if (!rec) return { ref: parsed.ref, kind: parsed.kind, found: false, error: "Mantine component not found in cache" };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: rec.name || parsed.id,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_mantine_get_component"] : ["design_kit_code"],
+        data: {
+          slug: rec.slug,
+          category: rec.category,
+          title: rec.title || "",
+          files: (rec.files || []).map((f) => f.name || f.path),
+        },
+      };
+    }
+    case "daisyui": {
+      const rec = await readDaisyuiComponent(parsed.id);
+      if (!rec) return { ref: parsed.ref, kind: parsed.kind, found: false, error: "daisyUI component not found in cache" };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: rec.name || parsed.id,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_daisyui_get_component"] : ["design_kit_code"],
+        data: {
+          slug: rec.slug,
+          group: rec.group || null,
+          theme: parsed.theme || "light",
+          description: rec.description || "",
+          classCount: (rec.classes || []).length,
+        },
+      };
+    }
+    case "baseui": {
+      const cat = await readBaseUiCatalog();
+      const hit = (cat.components || []).find((c) => c.slug === parsed.id || baseUiSlug(c.name) === parsed.id);
+      if (!hit) return { ref: parsed.ref, kind: parsed.kind, found: false, error: "Base UI component not found in cache" };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: hit.name,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_baseui_get_docs"] : ["design_kit_docs"],
+        data: hit,
+      };
+    }
+    case "uikit": {
+      const cat = await readUikitCatalog(parsed.kit);
+      const item = cat ? findUikitItem(cat, parsed.id) : null;
+      if (!item) return { ref: parsed.ref, kind: parsed.kind, found: false, error: `UI kit item ${parsed.kit}:${parsed.id} not found` };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: `${cat.name} — ${item.title || item.slug}`,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_uikit_get_docs", "design_uikit_get_source"] : ["design_kit_docs", "design_kit_code"],
+        data: {
+          kit: parsed.kit,
+          slug: item.slug,
+          kind: item.kind,
+          docs: item.docs || [],
+          source: (item.source || []).slice(0, 12),
+          demo: (item.demo || []).slice(0, 12),
+        },
+      };
+    }
+    case "preset": {
+      const cat = await readPresetCatalog(parsed.presetKind);
+      const hit = (cat?.presets || []).find((p) => (p.id || p.slug || p.name) === parsed.id);
+      if (!hit) return { ref: parsed.ref, kind: parsed.kind, found: false, error: `Preset ${parsed.presetKind}:${parsed.id} not found` };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: hit.name || hit.label || parsed.id,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_preset_get"] : ["design_preset"],
+        data: { kind: parsed.presetKind, ...hit },
+      };
+    }
+    case "reui": {
+      const cat = await readReuiCategory(parsed.category);
+      if (!cat) return { ref: parsed.ref, kind: parsed.kind, found: false, error: `ReUI category ${parsed.category} not found` };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: `ReUI — ${cat.label || parsed.category}`,
+        nextTools: [],
+        data: {
+          category: parsed.category,
+          description: cat.description || "",
+          count: (cat.items || []).length,
+          galleryRoute: `/reui/${parsed.category}`,
+          items: (cat.items || []).slice(0, 15).map((i) => ({ name: i.name, label: i.label || i.title })),
+        },
+      };
+    }
+    case "dashboard": {
+      const rec = await readDashboard(parsed.id);
+      if (!rec) return { ref: parsed.ref, kind: parsed.kind, found: false, error: `Dashboard ${parsed.id} not found` };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: rec.name || parsed.id,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_dashboards_list", "design_dashboards_get"] : ["design_dashboards"],
+        data: {
+          slug: rec.slug,
+          description: rec.description || "",
+          stack: rec.stack || rec.frameworks || [],
+          galleryRoute: `/dashboard/${rec.slug}`,
+        },
+      };
+    }
+    case "icon": {
+      const pascal = parsed.id
+        .split("-")
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join("");
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: `${parsed.set}:${parsed.id}`,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_asset_importmap"] : ["design_assets"],
+        data: {
+          set: parsed.set,
+          kebab: parsed.id,
+          component: pascal,
+          reactImport: `import { ${pascal} } from "lucide-react";`,
+          jsx: `<${pascal} size={20} strokeWidth={2} />`,
+          html: `<i data-lucide="${parsed.id}"></i>`,
+        },
+      };
+    }
+    case "font": {
+      const family = parsed.id
+        .split("-")
+        .map((w) => (w === "4" ? "4" : w.charAt(0).toUpperCase() + w.slice(1)))
+        .join(" ");
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: family,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_asset_list"] : ["design_assets"],
+        data: {
+          slug: parsed.id,
+          family,
+          css: `font-family: "${family}", sans-serif;`,
+          note: "Bundled offline in /assets/<version>/starter/fonts/fonts.css via @fontsource.",
+        },
+      };
+    }
+    case "chart": {
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: parsed.id,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_asset_list", "design_asset_importmap"] : ["design_assets"],
+        data: {
+          library: parsed.id,
+          note: "Bundled offline under /assets/<version>/starter/vendor/ and showcased at /components/charts.",
+        },
+      };
+    }
+    case "library": {
+      const lib = await readLibraryEntry(parsed.id);
+      if (!lib) return { ref: parsed.ref, kind: parsed.kind, found: false, error: `Library ${parsed.id} not found` };
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: lib.name || parsed.id,
+        nextTools: LEGACY_TOOLS_MODE ? ["design_library_get"] : ["design_library"],
+        data: lib,
+      };
+    }
+    case "compare": {
+      return {
+        ref: parsed.ref,
+        kind: parsed.kind,
+        found: true,
+        name: `Generic component: ${parsed.id}`,
+        nextTools: LEGACY_TOOLS_MODE
+          ? [
+              "design_heroui_search",
+              "design_mantine_search",
+              "design_daisyui_search",
+              "design_baseui_search",
+              "design_uikit_search",
+            ]
+          : ["design_kit_search"],
+        data: { concept: parsed.id, galleryRoute: `/components/compare/${parsed.id}` },
+      };
+    }
+    default:
+      return { ref: parsed.ref, kind: parsed.kind, found: false, error: "Unsupported reference kind" };
+  }
+}
+
+async function handlePicks(args) {
+  const action = asEnum(args.action, "action", ["list", "add", "remove", "clear"]) || "list";
+  const wantResolve = args.resolve === true;
+
+  if (action === "add") {
+    const ref = asString(args.ref, "ref");
+    const label = optionalString(args.label, "label") || undefined;
+    const note = optionalString(args.note, "note") || undefined;
+    const remote = await galleryPicksRequest("POST", "", { ref, label, note });
+    if (remote) return { source: "gallery-http", total: remote.picks.length, ...remote };
+    const saved = await addPick({ ref, label, note });
+    return { source: "local-file", picksFile: picksFilePath(), total: saved.picks.length, ...saved };
+  }
+  if (action === "remove") {
+    const ref = asString(args.ref, "ref");
+    const remote = await galleryPicksRequest("DELETE", ref);
+    if (remote) return { source: "gallery-http", total: remote.picks.length, ...remote };
+    const saved = await removePick(ref);
+    return { source: "local-file", picksFile: picksFilePath(), total: saved.picks.length, ...saved };
+  }
+  if (action === "clear") {
+    const remote = await galleryPicksRequest("DELETE");
+    if (remote) return { source: "gallery-http", total: 0, ...remote };
+    const saved = await clearPicks();
+    return { source: "local-file", picksFile: picksFilePath(), total: 0, ...saved };
+  }
+
+  const remote = await galleryPicksRequest("GET");
+  const store = remote || (await readPicks());
+  const source = remote ? "gallery-http" : "local-file";
+  const picks = store.picks || [];
+  const out = {
+    source,
+    ...(source === "local-file" ? { picksFile: picksFilePath() } : {}),
+    updatedAt: store.updatedAt || null,
+    total: picks.length,
+    picks,
+  };
+  if (wantResolve && picks.length) {
+    const resolved = [];
+    for (const p of picks.slice(0, 15)) {
+      try {
+        resolved.push(await resolveOneRef(p.ref));
+      } catch (err) {
+        resolved.push({ ref: p.ref, found: false, error: safeMessage(err) });
+      }
+    }
+    out.resolved = resolved;
+  }
+  return out;
+}
+
+async function handleResolve(args) {
+  const ref = asString(args.ref, "ref");
+  return resolveOneRef(ref);
+}
+
+// ------------------------------------------------ consolidated v2 handlers
+let cachedUnifiedDesigns = null;
+async function getUnifiedDesignsIndex() {
+  if (cachedUnifiedDesigns) return cachedUnifiedDesigns;
+  await ensureCatalog();
+  const [desc, rsCat, dsIdx] = await Promise.all([
+    readDescriptors().catch(() => ({})),
+    readReferoStylesCatalog().catch(() => null),
+    readDesignSystemsIndex().catch(() => null),
+  ]);
+  cachedUnifiedDesigns = buildUnifiedDesignsIndex({
+    catalog,
+    descriptors: desc || {},
+    referoStyles: rsCat?.styles || [],
+    templates: dsIdx?.systems || [],
+  });
+  return cachedUnifiedDesigns;
+}
+
+let cachedComponentsHub = null;
+async function getUnifiedComponentsHub() {
+  if (cachedComponentsHub) return cachedComponentsHub;
+  const [compIdx, reuiIdx, heroCat, mantineCat, daisyCat, baseCat, uikitsIdx, frontend] = await Promise.all([
+    readComponentsIndex().catch(() => null),
+    readReuiIndex().catch(() => null),
+    readHeroUiCatalog().catch(() => null),
+    readMantineCatalog().catch(() => null),
+    readDaisyuiCatalog().catch(() => null),
+    readBaseUiCatalog().catch(() => null),
+    readUikitsIndex().catch(() => null),
+    loadFrontendOnce().catch(() => null),
+  ]);
+  const uikitCatalogs = new Map();
+  for (const k of uikitsIdx?.kits || []) {
+    const c = await readUikitCatalog(k.kit).catch(() => null);
+    if (c) uikitCatalogs.set(k.kit, c);
+  }
+  cachedComponentsHub = buildUnifiedComponentsHub({
+    componentsIndex: compIdx,
+    reuiIndex: reuiIdx,
+    herouiCatalog: heroCat,
+    mantineCatalog: mantineCat,
+    daisyuiCatalog: daisyCat,
+    baseuiCatalog: baseCat,
+    uikitsIndex: uikitsIdx,
+    uikitCatalogs,
+    tailwindShadcn: frontend?.tailwindGroups?.("shadcn") || [],
+    tailwindHyperui: frontend?.tailwindGroups?.("hyperui") || [],
+    slopstrap: frontend?.publicManifest?.slopstrap || null,
+  });
+  return cachedComponentsHub;
+}
+
+const KIT_ALIASES = {
+  ...UIKIT_ALIASES,
+  "ui-sdk": "ui-sdk",
+  uisdk: "ui-sdk",
+  "hero-ui": "heroui",
+  "daisy-ui": "daisyui",
+  "base-ui": "baseui",
+  "gradient-deck": "gradientdeck",
+  components: "gradientdeck",
+  "re-ui": "reui",
+  "hyper-ui": "hyperui",
+  "shadcn-ui": "shadcn",
+};
+function normalizeKitId(raw) {
+  if (typeof raw !== "string") return "";
+  const s = raw.trim().toLowerCase();
+  return KIT_ALIASES[s] || s;
+}
+
+async function handleUnifiedSearch(args = {}) {
+  const query = optionalString(args.query, "query").trim();
+  const source = args.source ? asEnum(args.source, "source", ["all", "refero", "opendesign", "style", "template"]) : undefined;
+  const hasFacetFilters = Boolean(args.hue || args.ground || args.industry || args.mood || args.surface);
+
+  if (query && (!source || source === "refero" || source === "opendesign") && !hasFacetFilters && args.offset === undefined) {
+    return handleSearch({ ...args, query, ...(source ? { source } : {}) });
+  }
+  if (!query && (!source || source === "refero" || source === "opendesign") && !hasFacetFilters && !args.hue) {
+    return handleList({ ...args, ...(source ? { source } : {}) });
+  }
+  if (source === "style" && !hasFacetFilters && !args.theme) {
+    return query ? handleStyleSearch({ query, limit: args.limit }) : handleStyleList({ offset: args.offset, limit: args.limit });
+  }
+
+  const idx = await getUnifiedDesignsIndex();
+  const theme = asEnum(args.theme, "theme", THEMES);
+  const hue = optionalString(args.hue, "hue").trim().toLowerCase();
+  const ground = optionalString(args.ground, "ground").trim().toLowerCase();
+  const industry = optionalString(args.industry, "industry").trim().toLowerCase();
+  const mood = optionalString(args.mood, "mood").trim().toLowerCase();
+  const surface = optionalString(args.surface, "surface").trim().toLowerCase();
+
+  let pool = idx.designs || [];
+  if (source && source !== "all") {
+    pool = pool.filter((it) => (it.sources || [it.source]).includes(source) || (source === "style" && (it.sources?.includes("refero-style") || it.hasStyleProfile)));
+  }
+  if (theme) pool = pool.filter((it) => it.theme === theme);
+  if (hue) pool = pool.filter((it) => (it.hues || []).includes(hue));
+  if (ground) pool = pool.filter((it) => it.groundTone === ground);
+  if (industry) pool = pool.filter((it) => String(it.industry || "").toLowerCase().includes(industry));
+  if (mood) pool = pool.filter((it) => (it.moods || []).some((m) => String(m).toLowerCase().includes(mood)));
+  if (surface) pool = pool.filter((it) => (it.surfaces || []).some((s) => String(s).toLowerCase().includes(surface)));
+
+  if (query) {
+    const limit = asLimit(args.limit, 10, 50);
+    const docs = pool.map((it) => ({
+      id: it.id,
+      text: `${it.name || ""} ${it.domain || ""} ${it.industry || ""} ${it.northStar || ""} ${(it.moods || []).join(" ")} ${(it.fonts || []).join(" ")}`,
+    }));
+    const scored = score(query, docs).filter((s) => s.score > 0).sort((a, b) => b.score - a.score).slice(0, limit);
+    const byId = new Map(pool.map((it) => [it.id, it]));
+    return {
+      query,
+      total: scored.length,
+      count: scored.length,
+      results: scored.map((s) => {
+        const it = byId.get(s.id);
+        return {
+          id: it.id,
+          ref: it.ref,
+          source: it.source,
+          name: it.name,
+          domain: it.domain || null,
+          theme: it.theme,
+          hues: it.hues || [],
+          ground: it.groundTone || null,
+          industry: it.industry || null,
+          fonts: it.fonts || [],
+          score: Number(s.score.toFixed(4)),
+        };
+      }),
+    };
+  }
+
+  const limit = asLimit(args.limit, 25, 100);
+  const offset = asLimit(args.offset, 0, 1_000_000, 0, "offset");
+  const page = pool.slice(offset, offset + limit);
+  return {
+    total: pool.length,
+    offset,
+    limit,
+    count: page.length,
+    ...(offset + page.length < pool.length && { nextOffset: offset + page.length }),
+    designs: page.map((it) => ({
+      id: it.id,
+      ref: it.ref,
+      source: it.source,
+      name: it.name,
+      domain: it.domain || null,
+      theme: it.theme,
+      hues: it.hues || [],
+      ground: it.groundTone || null,
+      industry: it.industry || null,
+      fonts: it.fonts || [],
+    })),
+  };
+}
+
+async function handleUnifiedFacets() {
+  const base = await handleFacets();
+  const idx = await getUnifiedDesignsIndex();
+  return {
+    ...base,
+    unifiedTotal: idx.total || base.total,
+    hues: idx.facets?.hues || [],
+    grounds: idx.facets?.groundTones || [],
+    moods: (idx.facets?.moods || []).slice(0, 30),
+    surfaces: (idx.facets?.surfaces || []).slice(0, 30),
+  };
+}
+
+async function handleUnifiedGet(args = {}) {
+  const identifier = asString(args.identifier, "identifier");
+  const include = asEnum(args.include, "include", ["summary", "style", "markdown", "full"]) || "summary";
+  const source = args.source ? asEnum(args.source, "source", ["refero", "opendesign", "style"]) : undefined;
+
+  if (source === "style" || identifier.startsWith("designer:style:")) {
+    const uuid = identifier.replace(/^designer:style:/, "");
+    if (include === "markdown") return handleStyleGetMd({ uuid, ...args });
+    const style = await handleStyleGet({ uuid });
+    if (include === "full") {
+      const md = await handleStyleGetMd({ uuid, ...args }).catch(() => null);
+      if (md) style.markdown = md;
+    }
+    return style;
+  }
+
+  if (include === "markdown") {
+    const { match, guess, md } = await resolveMarkdown(identifier, source);
+    return {
+      ...guessNote(guess),
+      id: match.id,
+      source: match.source || SOURCE.REFERO,
+      siteName: match.siteName,
+      ...pageDoc(md, args),
+    };
+  }
+
+  const rec = await handleGet({
+    identifier,
+    ...(source ? { source } : {}),
+    detail: include === "full" ? "full" : args.detail,
+  });
+
+  if (include === "style" || include === "full") {
+    if (rec.styleProfile?.uuid) {
+      rec.style = await handleStyleGet({ uuid: rec.styleProfile.uuid }).catch(() => null);
+    }
+    if (include === "full") {
+      const mdRes = await resolveMarkdown(identifier, source).catch(() => null);
+      if (mdRes?.md) rec.markdown = pageDoc(mdRes.md, args);
+    }
+  }
+  return rec;
+}
+
+async function handleUnifiedFile(args = {}) {
+  const kind = asEnum(args.kind, "kind", ["opendesign", "claude", "template"]);
+  if (!kind) throw new Error("kind is required (opendesign, claude, or template)");
+  if (kind === "opendesign") return handlePackageFile({ identifier: args.identifier, path: args.path });
+  if (kind === "claude") return handleClaudePackageFile({ identifier: args.identifier, path: args.path });
+  return handleTemplateFile({ slug: args.identifier, path: args.path, offset: args.offset, maxBytes: args.maxBytes });
+}
+
+async function handleUnifiedTemplate(args = {}) {
+  if (args.manifest === true) {
+    return handleManifestTemplate({ name: args.name, preset: args.preset });
+  }
+  if (args.slug) {
+    return handleTemplateGet({ slug: args.slug, detail: args.detail });
+  }
+  return handleTemplateList({ query: args.query, limit: args.limit });
+}
+
+async function handleMarkdownCheck(args = {}) {
+  const mode = asEnum(args.mode, "mode", ["parse", "manifest", "validate"]) || "parse";
+  if (mode === "manifest") return handleManifestFrom(args);
+  if (mode === "validate") return handleMarkdownValidate(args);
+  return handleMarkdownParse(args);
+}
+
+async function handleKitList(args = {}) {
+  const kit = normalizeKitId(optionalString(args.kit, "kit"));
+  if (!kit) {
+    const hub = await getUnifiedComponentsHub();
+    const uiSdk = await listUiSdkDocs().catch(() => ({ total: 0 }));
+    const kits = (hub.libraries || []).map((l) => ({
+      kit: l.id,
+      name: l.name,
+      stack: l.stack,
+      styling: l.styling,
+      count: l.count,
+      previewable: Boolean(l.previewable),
+    }));
+    if (uiSdk?.total) {
+      kits.push({ kit: "ui-sdk", name: "@ui-sdk/* Docs", stack: "React / Web", styling: "Headless", count: uiSdk.total, previewable: false });
+    }
+    return { totalKits: kits.length, totalComponents: hub.total || 0, kits };
+  }
+  if (kit === "heroui") return handleHeroUiList();
+  if (kit === "mantine") return handleMantineList();
+  if (kit === "daisyui") return handleDaisyuiList();
+  if (kit === "baseui") return handleBaseUiList(args);
+  if (kit === "ui-sdk") return listUiSdkDocs();
+  if (UIKIT_IDS.includes(kit)) return handleUikitList({ kit, offset: args.offset, limit: args.limit });
+  if (LIBRARY_META[kit]) {
+    const hub = await getUnifiedComponentsHub();
+    const items = (hub.items || []).filter((it) => it.library === kit);
+    const limit = asLimit(args.limit, UIKIT_PAGE_ROWS, UIKIT_MAX_ROWS);
+    const offset = asLimit(args.offset, 0, 100_000, 0, "offset");
+    const page = items.slice(offset, offset + limit);
+    return {
+      kit,
+      name: LIBRARY_META[kit].name,
+      total: items.length,
+      offset,
+      returned: page.length,
+      ...(offset + page.length < items.length && { nextOffset: offset + page.length }),
+      items: page,
+    };
+  }
+  throw new Error(`Unknown kit '${kit}'. Run design_kit_list without kit to list all available kits.`);
+}
+
+async function handleKitSearch(args = {}) {
+  const query = optionalString(args.query, "query");
+  const kit = normalizeKitId(optionalString(args.kit, "kit"));
+  const limit = asLimit(args.limit, 20, 100);
+
+  if (kit === "ui-sdk") {
+    const idx = await listUiSdkDocs();
+    if (!idx.total) return { available: false, note: uiSdkUnavailableNote() };
+    return searchUiSdkDocs({ query, section: asEnum(args.section, "section", DOC_SECTIONS) ?? "", limit });
+  }
+  if (kit === "heroui") {
+    const cat = await readHeroUiCatalog();
+    if (!cat.components?.length) return { available: false, note: herouiUnavailableNote() };
+    return searchHeroUiDocs({ query, kind: asEnum(args.kind, "kind", DOC_KINDS) ?? "", limit });
+  }
+  if (kit === "mantine") {
+    const cat = await readMantineCatalog();
+    if (!cat.components?.length) return { available: false, note: mantineUnavailableNote() };
+    return searchMantine({ query, category: optionalString(args.section, "section"), limit });
+  }
+  if (kit === "daisyui") {
+    const cat = await readDaisyuiCatalog();
+    if (!cat.components?.length) return { available: false, note: daisyuiUnavailableNote() };
+    const res = await searchDaisyui({ query, group: optionalString(args.section, "section"), limit });
+    if (Array.isArray(res.results)) res.results = res.results.map(({ classes: _c, ...row }) => row);
+    return res;
+  }
+  if (kit === "baseui") {
+    const cat = await readBaseUiCatalog();
+    if (!cat.components?.length) return { available: false, note: baseUiUnavailableNote() };
+    return searchBaseUiDocs({ query, kind: asEnum(args.kind, "kind", DOC_KINDS) ?? "", limit });
+  }
+  if (kit === "gradientdeck") {
+    return handleComponentSearch({ query, category: optionalString(args.section, "section"), limit });
+  }
+  if (kit && UIKIT_IDS.includes(kit)) {
+    const idx = await readUikitsIndex();
+    if (!idx.kits?.length) return { available: false, note: uikitsUnavailableNote() };
+    return searchUikits({ query, kit, kind: asEnum(args.kind, "kind", UIKIT_KINDS) ?? "", limit });
+  }
+
+  const hub = await getUnifiedComponentsHub();
+  let pool = hub.items || [];
+  if (kit) pool = pool.filter((it) => it.library === kit);
+  if (args.section) {
+    const sec = args.section.toLowerCase();
+    pool = pool.filter((it) => String(it.category || "").toLowerCase().includes(sec));
+  }
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = terms.length
+    ? pool.filter((it) => {
+        const hay = `${it.name} ${it.slug} ${it.library} ${it.category || ""} ${it.concept || ""} ${it.summary || ""}`.toLowerCase();
+        return terms.every((t) => hay.includes(t));
+      })
+    : pool;
+  return {
+    query,
+    ...(kit ? { kit } : {}),
+    total: matches.length,
+    returned: Math.min(limit, matches.length),
+    results: matches.slice(0, limit),
+  };
+}
+
+async function handleKitDocs(args = {}) {
+  const kit = normalizeKitId(asString(args.kit, "kit"));
+  const item = asString(args.item, "item");
+  const kind = asEnum(args.kind, "kind", ["component", "guide", "migration"]) || "component";
+
+  if (kit === "ui-sdk") {
+    const content = await readUiSdkDoc(item);
+    if (content === null) throw new Error(`ui-sdk doc not found: ${item}`);
+    return { kit, path: item, ...pageDoc(content, args) };
+  }
+  if (kit === "heroui") {
+    if (kind === "guide") return handleHeroUiGetGuide({ path: item, ...args });
+    if (kind === "migration") return handleHeroUiMigration({ path: item, ...args });
+    const res = await handleHeroUiGetDocs({ components: [item], ...args });
+    return res.results?.length === 1 ? { kit, ...res.results[0] } : res;
+  }
+  if (kit === "baseui") {
+    if (kind === "guide") return handleBaseUiGetGuide({ path: item, ...args });
+    const res = await handleBaseUiGetDocs({ components: [item], ...args });
+    return res.results?.length === 1 ? { kit, ...res.results[0] } : res;
+  }
+  if (UIKIT_IDS.includes(kit)) {
+    return handleUikitGetDocs({ kit, item, ...args });
+  }
+  throw new Error(`No markdown docs endpoint for kit '${kit}'. Try ui-sdk, heroui, baseui, or a uikit id (chakra, mui, antd, etc.), or use design_kit_code for component source.`);
+}
+
+async function handleKitCode(args = {}) {
+  const kit = normalizeKitId(asString(args.kit, "kit"));
+  const item = asString(args.item, "item");
+  const kind = asEnum(args.kind, "kind", ["source", "styles", "theme"]) || "source";
+
+  if (kit === "gradientdeck") {
+    if (args.variant) return handleComponentCode({ slug: item, variant: args.variant });
+    return handleComponentGet({ slug: item, detail: args.detail });
+  }
+  if (kit === "heroui") {
+    if (kind === "styles") return handleHeroUiGetStyles({ component: item });
+    if (kind === "theme") return handleHeroUiGetThemeVariables({ theme: item });
+    return handleHeroUiGetSource({ component: item });
+  }
+  if (kit === "mantine") return handleMantineGetComponent({ slug: item });
+  if (kit === "daisyui") return handleDaisyuiGetComponent({ slug: item, detail: args.detail });
+  if (UIKIT_IDS.includes(kit)) {
+    return handleUikitGetSource({ kit, item, path: args.path, offset: args.offset, maxBytes: args.maxBytes });
+  }
+  if (kit === "reui") {
+    const cat = await readReuiCategory(item);
+    if (!cat) throw new Error(`Unknown ReUI category '${item}'. Run design_kit_list with kit:'reui'.`);
+    return cat;
+  }
+  if (kit === "hyperui" || kit === "shadcn") {
+    const frontend = await loadFrontendOnce();
+    const groups = frontend?.tailwindGroups?.(kit) || [];
+    const group = groups.find((g) => g.slug === item);
+    if (!group) throw new Error(`Unknown ${kit} group '${item}'. Run design_kit_list with kit:'${kit}'.`);
+    const examples = [];
+    for (const ex of (group.items || []).slice(0, 10)) {
+      const code = await frontend.tailwindExample(ex).catch(() => null);
+      examples.push({ id: ex.id, title: ex.title || ex.id, code });
+    }
+    return { kit, slug: group.slug, title: group.title, examples };
+  }
+  throw new Error(`No code/source endpoint for kit '${kit}'.`);
+}
+
+async function handlePreset(args = {}) {
+  if (Array.isArray(args.ids) && args.ids.length) {
+    return handlePresetGet({ kind: args.kind, ids: args.ids });
+  }
+  return handlePresetSearch({ query: args.query, kind: args.kind, limit: args.limit });
+}
+
+async function handleLibrary(args = {}) {
+  if (args.id) return handleLibraryGet({ id: args.id });
+  return handleLibrarySearch({ query: args.query, limit: args.limit });
+}
+
+async function handleAssets(args = {}) {
+  const view = asEnum(args.view, "view", ["summary", "packages", "importmap"]) || "summary";
+  if (view === "importmap") return handleAssetImportmap();
+  return handleAssetList({ detail: view === "packages" ? "full" : "summary" });
+}
+
+async function handleDashboards(args = {}) {
+  if (args.id && args.kind) {
+    return handleDashboardsGet({ kind: args.kind, id: args.id, path: args.path, offset: args.offset, maxBytes: args.maxBytes });
+  }
+  return handleDashboardsList({ kind: args.kind, query: args.query, limit: args.limit });
+}
+
 async function dispatch(name, args) {
-  if (CATALOG_TOOLS.has(name) && !(CONTENT_INPUT_TOOLS.has(name) && args.identifier === undefined)) {
+  if (CATALOG_TOOLS.has(name) && !(CONTENT_INPUT_TOOLS.has(name) && args.identifier === undefined) && !(name === "design_get" && (args.source === "style" || String(args.identifier || "").startsWith("designer:style:"))) && !(name === "design_file" && args.kind === "template")) {
     await ensureCatalog();
   }
   switch (name) {
     case "design_search":
-      return handleSearch(args);
+      return handleUnifiedSearch(args);
+    case "design_facets":
+      return handleUnifiedFacets();
     case "design_get":
-      return handleGet(args);
+      return handleUnifiedGet(args);
+    case "design_file":
+      return handleUnifiedFile(args);
+    case "design_template":
+      return handleUnifiedTemplate(args);
+    case "design_markdown_check":
+      return handleMarkdownCheck(args);
+    case "design_kit_list":
+      return handleKitList(args);
+    case "design_kit_search":
+      return handleKitSearch(args);
+    case "design_kit_docs":
+      return handleKitDocs(args);
+    case "design_kit_code":
+      return handleKitCode(args);
+    case "design_preset":
+      return handlePreset(args);
+    case "design_library":
+      return handleLibrary(args);
+    case "design_assets":
+      return handleAssets(args);
+    case "design_dashboards":
+      return handleDashboards(args);
     case "design_package_file":
       return handlePackageFile(args);
     case "design_claude_package":
@@ -2522,27 +4375,32 @@ async function dispatch(name, args) {
       return handleMarkdownRender(args);
     case "design_markdown_validate":
       return handleMarkdownValidate(args);
-    case "design_docs_search":
+    case "design_docs_search": {
+      const idx = await listUiSdkDocs();
+      if (!idx.total) return { available: false, note: uiSdkUnavailableNote() };
       return searchUiSdkDocs({
         query: optionalString(args.query),
         section: asEnum(args.section, "section", DOC_SECTIONS) ?? "",
         limit: asLimit(args.limit, 20, 100),
       });
+    }
     case "design_docs_get": {
       const docPath = asString(args.path, "path");
       const content = await readUiSdkDoc(docPath);
       if (content === null) throw new Error(`ui-sdk doc not found: ${docPath}`);
-      const page = pageText(content, pageArgs(args));
-      return { path: docPath, bytes: page.totalBytes, ...page };
+      return { path: docPath, ...pageDoc(content, args) };
     }
     case "design_heroui_list_components":
       return handleHeroUiList();
-    case "design_heroui_search":
+    case "design_heroui_search": {
+      const cat = await readHeroUiCatalog();
+      if (!cat.components?.length) return { available: false, note: herouiUnavailableNote() };
       return searchHeroUiDocs({
         query: optionalString(args.query),
         kind: asEnum(args.kind, "kind", DOC_KINDS) ?? "",
         limit: asLimit(args.limit, 20, 100),
       });
+    }
     case "design_heroui_get_docs":
       return handleHeroUiGetDocs(args);
     case "design_heroui_get_guide":
@@ -2552,45 +4410,86 @@ async function dispatch(name, args) {
     case "design_heroui_get_styles":
       return handleHeroUiGetStyles(args);
     case "design_heroui_get_theme_variables":
-      return handleHeroUiGetThemeVariables();
+      return handleHeroUiGetThemeVariables(args);
     case "design_heroui_migration_guide":
       return handleHeroUiMigration(args);
     case "design_mantine_list_components":
       return handleMantineList();
-    case "design_mantine_search":
+    case "design_mantine_search": {
+      const cat = await readMantineCatalog();
+      if (!cat.components?.length) return { available: false, note: mantineUnavailableNote() };
       return searchMantine({
         query: optionalString(args.query),
         category: optionalString(args.category, "category"),
         limit: asLimit(args.limit, 20, 100),
       });
+    }
     case "design_mantine_get_component":
       return handleMantineGetComponent(args);
     case "design_daisyui_list_components":
       return handleDaisyuiList();
-    case "design_daisyui_search":
-      return searchDaisyui({
+    case "design_daisyui_search": {
+      const cat = await readDaisyuiCatalog();
+      if (!cat.components?.length) return { available: false, note: daisyuiUnavailableNote() };
+      const res = await searchDaisyui({
         query: optionalString(args.query),
         group: optionalString(args.group, "group"),
         limit: asLimit(args.limit, 20, 100),
       });
+      if (Array.isArray(res.results)) {
+        res.results = res.results.map(({ classes: _classes, ...row }) => row);
+      }
+      return res;
+    }
     case "design_daisyui_get_component":
       return handleDaisyuiGetComponent(args);
+    case "design_style_list":
+      return handleStyleList(args);
+    case "design_style_search":
+      return handleStyleSearch(args);
+    case "design_style_get":
+      return handleStyleGet(args);
+    case "design_style_get_md":
+      return handleStyleGetMd(args);
     case "design_baseui_list_components":
-      return handleBaseUiList();
-    case "design_baseui_search":
+      return handleBaseUiList(args);
+    case "design_baseui_search": {
+      const cat = await readBaseUiCatalog();
+      if (!cat.components?.length) return { available: false, note: baseUiUnavailableNote() };
       return searchBaseUiDocs({
         query: optionalString(args.query),
         kind: asEnum(args.kind, "kind", DOC_KINDS) ?? "",
         limit: asLimit(args.limit, 20, 100),
       });
+    }
     case "design_baseui_get_docs":
       return handleBaseUiGetDocs(args);
     case "design_baseui_get_guide":
       return handleBaseUiGetGuide(args);
+    case "design_uikit_list":
+      return handleUikitList(args);
+    case "design_uikit_search": {
+      const idx = await readUikitsIndex();
+      if (!idx.kits?.length) return { available: false, note: uikitsUnavailableNote() };
+      return searchUikits({
+        query: optionalString(args.query),
+        kit: args.kit === undefined ? "" : asUikitId(args.kit, "kit", { required: false }),
+        kind: asEnum(args.kind, "kind", UIKIT_KINDS) ?? "",
+        limit: asLimit(args.limit, 20, 100),
+      });
+    }
+    case "design_uikit_get_docs":
+      return handleUikitGetDocs(args);
+    case "design_uikit_get_source":
+      return handleUikitGetSource(args);
     case "design_dashboards_list":
       return handleDashboardsList(args);
     case "design_dashboards_get":
       return handleDashboardsGet(args);
+    case "design_picks":
+      return handlePicks(args);
+    case "design_resolve":
+      return handleResolve(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -2625,9 +4524,27 @@ const NARROWING_HINT = {
   design_baseui_get_guide: "Lower maxBytes and page with offset.",
   design_heroui_migration_guide: "Lower maxBytes and page with offset.",
   design_heroui_get_source: "Drop includeStories.",
-  design_dashboards_list: "Pass a specific kind or query, or lower limit.",
-  design_dashboards_get: "Lower maxBytes and page with offset, or omit path to list files.",
+  design_uikit_list: "Lower limit, or page with offset.",
+  design_uikit_search: "Lower limit, or add a query or kit.",
+  design_uikit_get_docs: "Lower maxBytes and page with offset.",
+  design_uikit_get_source: "Lower maxBytes and page with offset, or drop path to list files.",
   design_template_file: "Lower maxBytes and page with offset.",
+  design_dashboards_list: "Pass kind, or add a query.",
+  design_dashboards_get: "Lower maxBytes and page with offset, or omit path to list files.",
+  design_style_list: "Lower limit, or page with offset.",
+  design_style_search: "Lower limit, or add a query.",
+  design_style_get_md: "Lower maxBytes and page with offset.",
+  design_file: "Lower maxBytes and page with offset.",
+  design_template: 'Omit detail: "full", or pass query/limit.',
+  design_kit_list: "Lower limit (default 40), or page with offset.",
+  design_kit_search: "Lower limit, or add a query or kit.",
+  design_kit_docs: "Use outline: true, section, or lower maxBytes and page with offset.",
+  design_kit_code: "Lower maxBytes, drop detail: \"full\", or pass variant/path.",
+  design_preset: "Lower limit or pass fewer ids.",
+  design_assets: 'Use view: "summary" instead of "packages".',
+  design_dashboards: "Pass kind, lower maxBytes, or omit path to list files.",
+  design_picks: "Drop resolve: true and inspect individual refs with design_resolve.",
+  design_resolve: "Use the layer-specific tool named in nextTools to page large docs.",
 };
 
 function serializeResult(name, result) {
@@ -2667,10 +4584,66 @@ function safeMessage(err) {
   return "An unexpected error occurred";
 }
 
+const TOOL_SETS = {
+  core: [
+    "design_search", "design_facets", "design_get", "design_file",
+    "design_template", "design_markdown_check", "design_markdown_render",
+    "design_package_file", "design_claude_package", "design_list", "design_markdown",
+    "design_manifest_template", "design_markdown_parse", "design_manifest_from", "design_markdown_validate",
+  ],
+  kits: [
+    "design_kit_list", "design_kit_search", "design_kit_docs", "design_kit_code",
+  ],
+  extras: [
+    "design_preset", "design_library", "design_assets",
+  ],
+  components: [
+    "design_component_search", "design_component_get", "design_component_code",
+    "design_preset_search", "design_preset_get", "design_library_search", "design_library_get",
+    "design_asset_list", "design_asset_importmap", "design_template_list", "design_template_get",
+    "design_template_file", "design_docs_search", "design_docs_get",
+  ],
+  heroui: [
+    "design_heroui_list_components", "design_heroui_search", "design_heroui_get_docs",
+    "design_heroui_get_guide", "design_heroui_get_source", "design_heroui_get_styles",
+    "design_heroui_get_theme_variables", "design_heroui_migration_guide",
+  ],
+  mantine: ["design_mantine_list_components", "design_mantine_search", "design_mantine_get_component"],
+  daisyui: ["design_daisyui_list_components", "design_daisyui_search", "design_daisyui_get_component"],
+  style: ["design_style_list", "design_style_search", "design_style_get", "design_style_get_md"],
+  baseui: ["design_baseui_list_components", "design_baseui_search", "design_baseui_get_docs", "design_baseui_get_guide"],
+  uikits: ["design_uikit_list", "design_uikit_search", "design_uikit_get_docs", "design_uikit_get_source"],
+  dashboards: ["design_dashboards", "design_dashboards_list", "design_dashboards_get"],
+  picks: ["design_picks", "design_resolve"],
+};
+
+function activeTools(rawToolsets) {
+  if (!rawToolsets || rawToolsets === "all") return TOOLS;
+  const requested = new Set(rawToolsets.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
+  if (requested.has("all")) return TOOLS;
+  const allowedNames = new Set();
+  for (const set of requested) {
+    if (TOOL_SETS[set]) {
+      for (const name of TOOL_SETS[set]) allowedNames.add(name);
+    }
+  }
+  return TOOLS.filter((t) => allowedNames.has(t.name));
+}
+
 async function main() {
   const urlIdx = process.argv.indexOf("--url");
   if (urlIdx !== -1 && process.argv[urlIdx + 1]) {
     setRemoteUrl(process.argv[urlIdx + 1]);
+  }
+  const toolsetIdx = process.argv.indexOf("--toolsets");
+  const rawToolsets = (
+    toolsetIdx !== -1 && process.argv[toolsetIdx + 1]
+      ? process.argv[toolsetIdx + 1]
+      : process.env.DESIGN_TOOLSETS || ""
+  ).trim();
+  const configuredTools = activeTools(rawToolsets);
+  if (rawToolsets) {
+    console.error(`[design-mcp] active toolsets (${rawToolsets}): ${configuredTools.length} of ${TOOLS.length} tools enabled`);
   }
   const remote = getRemoteUrl();
   if (remote) console.error(`[design-mcp] reading catalog from remote static server: ${remote}`);
@@ -2700,13 +4673,46 @@ async function main() {
 
   const server = new Server(
     { name: "design-mcp", version: pkgVersion },
-    { capabilities: { tools: {} } },
+    {
+      capabilities: { tools: {}, resources: {} },
+      instructions:
+        "design-mcp provides 100% offline access to local design systems, components, presets, templates, UI kit docs, and styles. " +
+        "Rules: (1) Do not guess names or slugs; use the appropriate *_list or *_search tools to discover exact identifiers. " +
+        "(2) Large documents and source files are paged via offset and nextOffset; use outline: true on doc tools to view sections before reading. " +
+        "(3) All operations execute offline against cached assets; no outbound network calls are made.",
+    },
   );
 
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [
+      {
+        uri: "designer://picks",
+        name: "Gallery MCP Picks Queue",
+        description: "Items sent from the Designer gallery via '+ Send to MCP' (canonical designer:* references + notes).",
+        mimeType: "application/json",
+      },
+    ],
+  }));
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    if (request.params.uri !== "designer://picks") {
+      throw new Error(`Unknown resource: ${request.params.uri}`);
+    }
+    const payload = await handlePicks({ action: "list" });
+    return {
+      contents: [
+        {
+          uri: "designer://picks",
+          mimeType: "application/json",
+          text: JSON.stringify(payload, null, 2),
+        },
+      ],
+    };
+  });
+
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: TOOLS.map((tool) => ({
+    tools: configuredTools.map((tool) => ({
       ...tool,
-      annotations: {
+      annotations: tool.annotations || {
         readOnlyHint: true,
         idempotentHint: true,
         destructiveHint: false,
@@ -2716,6 +4722,9 @@ async function main() {
   }));
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+    if (!configuredTools.some((t) => t.name === name)) {
+      throw new Error(`Tool '${name}' is not enabled in active toolsets (${rawToolsets || "default"}). Available toolsets: ${Object.keys(TOOL_SETS).join(", ")}`);
+    }
     const startedAt = Date.now();
     const remoteFailuresBefore = remoteStatus().failures;
     try {

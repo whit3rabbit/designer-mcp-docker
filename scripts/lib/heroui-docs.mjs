@@ -17,8 +17,8 @@
 
 import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import { getRemoteUrl, remoteJson, remoteOr, REMOTE_DOWN, HEROUI_DIR } from "./cache.mjs";
+import { join, resolve, sep } from "node:path";
+import { getRemoteUrl, remoteJson, remoteOr, REMOTE_DOWN, HEROUI_DIR, createBoundedCache } from "./cache.mjs";
 
 const EMPTY_CATALOG = {
   updatedAt: null,
@@ -31,7 +31,7 @@ const EMPTY_CATALOG = {
   hasMigration: false,
 };
 
-const contentCache = new Map();
+const contentCache = createBoundedCache(64);
 
 /** PascalCase component name -> kebab-case doc slug ("ToggleButton" -> "toggle-button"). */
 export function heroUiSlug(name) {
@@ -57,8 +57,9 @@ function slugVariants(slug) {
 async function readTextUnder(base, rel) {
   const clean = String(rel || "").replace(/^\/+/, "");
   if (!clean || clean.includes("..") || clean.includes("\\") || !/^[\w./-]+$/.test(clean)) return null;
-  const full = resolve(join(base, clean));
-  if (!full.startsWith(resolve(base) + "/") || !existsSync(full)) return null;
+  const root = resolve(base);
+  const full = resolve(root, clean);
+  if (!full.startsWith(root + sep) || !existsSync(full)) return null;
   if (contentCache.has(full)) return contentCache.get(full);
   const text = await readFile(full, "utf8");
   contentCache.set(full, text);

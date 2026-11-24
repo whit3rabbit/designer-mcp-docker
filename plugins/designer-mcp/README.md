@@ -5,7 +5,7 @@ the research-first design methodology (`design-system`, which bundles the
 `design-template-authoring` sub-skill), the offline catalog and MCP setup
 (`designer-mcp`), the document toolchains (`designer-documents`, which
 bundles docx, pptx, xlsx, pdf, and pdf-reading), and the UI craft and SDK
-layers (`designer-ui`, which bundles frontend-design and ui-sdk). The Docker
+layers (`designer-ui`, which bundles frontend-design, heroui, and ui-sdk). The Docker
 image copies the whole directory into the image, and
 `scripts/package-skill.mjs` zips the five skills into the single
 `designer-mcp-skill.zip` served at `/skill`, so treat every file as
@@ -21,12 +21,12 @@ distributable: no secrets, no scratch material.
 | `skills/designer-mcp/references/`, `skills/designer-mcp/evals/` | Tool reference, catalog workflows, skill directory (routes and recommends the sibling skills), eval harness | See repo |
 | `skills/design-system/references/`, `agents/`, `evals/` | Craft references, agent interface metadata, eval harness | See repo |
 | `skills/designer-documents/` | Routing skill bundling `docx/`, `pptx/`, `xlsx/`, `pdf/`, `pdf-reading/`: file mechanics and render-and-inspect QA, design decisions come from a design-system reference lock | See repo (sub-skills: Apache-2.0 `LICENSE.txt` in each, verbatim from [anthropics/skills](https://github.com/anthropics/skills)) |
-| `skills/designer-ui/` | Routing skill bundling `frontend-design/` (implementation craft executed inside design-system's research-first workflow) and `ui-sdk/` (offline docs for the `@ui-sdk/*` headless packages, searchable via `design_docs_search` / `design_docs_get`) | See repo (sub-skills: Apache-2.0 `LICENSE.txt` files) |
-| `skills/designer-dashboards/` | Multi-framework dashboard builder (`init`, `design`, `ui`, `login`, `pages`, `audit`) with 24 starters, 26 tech-stack profiles, 20 UI/CSS framework kits, 21 OpenDesign presets, 16 industry verticals, and `design_dashboards_*` MCP tools | See repo |
+| `skills/designer-ui/` | Routing skill bundling `frontend-design/` (implementation craft executed inside design-system's research-first workflow) and `ui-sdk/` (offline docs for the `@ui-sdk/*` headless packages, searchable via `design_kit_search` / `design_kit_docs`) | See repo (sub-skills: Apache-2.0 `LICENSE.txt` files) |
+| `skills/designer-dashboards/` | Multi-framework dashboard builder (`init`, `design`, `ui`, `login`, `pages`, `audit`) with 24 starters, 26 tech-stack profiles, 20 UI/CSS framework kits, 21 OpenDesign presets, 16 industry verticals, and `design_dashboards` MCP tool | See repo |
 | `.zcode-plugin/plugin.json`, `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, `.cursor-plugin/plugin.json`, `.mcp.json` | Plugin manifests and the auto-registered Docker MCP server | See repo |
 | `requirements.txt`, `package.json` | Dependency manifests for the sub-skills' scripts | See repo |
 
-The four top-level skills carry their own `SKILL.md`, and the bundled
+The five top-level skills carry their own `SKILL.md`, and the bundled
 sub-skills keep theirs, so a harness that scans nested skill files can still
 route by trigger descriptions. The top-level skills route by path otherwise.
 
@@ -48,7 +48,7 @@ route by trigger descriptions. The top-level skills route by path otherwise.
   check-then-install guidance covers the rest.
 - **Manual.** Grab `designer-mcp-skill.zip` from the gallery `/skill` route
   or build it with `node scripts/package-skill.mjs`. The zip contains
-  `skills/<four skill directories, with the bundled sub-skills inside>`, the
+  `skills/<five skill directories, with the bundled sub-skills inside>`, the
   plugin-root `evals/` routing suite, and the dependency manifests at the
   zip root. Unzip it into your skills directory.
 

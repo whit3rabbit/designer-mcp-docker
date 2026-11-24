@@ -60,11 +60,14 @@ import {
 import { herouiCatalogHtml, herouiDocHtml } from "./lib/heroui-ui.mjs";
 import { readBaseUiCatalog, readBaseUiDoc } from "./lib/baseui-docs.mjs";
 import { baseUiCatalogHtml, baseUiDocHtml } from "./lib/baseui-ui.mjs";
+import { readUikitCatalog, readUikitFile, readUikitFiles, readUikitsIndex } from "./lib/uikit-docs.mjs";
+import { uikitItemHtml, uikitKitHtml, uikitsIndexHtml, uikitPreviewHtml } from "./lib/uikit-ui.mjs";
 import {
   readMantineCatalog,
   readMantineComponent,
   readMantineProvenance,
   readMantineAsset,
+  readMantineLicence,
 } from "./lib/mantine-docs.mjs";
 import { mantineCatalogHtml, mantineCategoryHtml, mantineComponentHtml } from "./lib/mantine-ui.mjs";
 import {
@@ -74,6 +77,13 @@ import {
   readDaisyuiProvenance,
 } from "./lib/daisyui-docs.mjs";
 import { daisyuiCatalogHtml, daisyuiComponentHtml } from "./lib/daisyui-ui.mjs";
+import {
+  readReferoStyle,
+  readReferoStylesAsset,
+  readReferoStylesCatalog,
+  readReferoStylesProvenance,
+} from "./lib/refero-styles-docs.mjs";
+import { referoStyleHtml, referoStylesCatalogHtml } from "./lib/refero-styles-ui.mjs";
 import { loadFrontend, previewHtml } from "./lib/frontend.mjs";
 import {
   KIT_CSS,
@@ -92,12 +102,20 @@ import {
   presetDetailHtml,
   presetsHtml,
   slopstrapHtml,
+  startersHtml,
   tailwindCatalogHtml,
   tailwindExampleHtml,
   templateDetailHtml,
   templatesHtml,
   uiSdkDocsHtml,
+  mcpButton,
 } from "./lib/ui.mjs";
+import { buildUnifiedDesignsIndex } from "./lib/designs-index.mjs";
+import { unifiedDesignsHtml } from "./lib/designs-ui.mjs";
+import { buildUnifiedComponentsHub } from "./lib/components-index.mjs";
+import { unifiedComponentsHtml, compareIndexHtml, compareConceptHtml } from "./lib/components-ui.mjs";
+import { iconsBrowserHtml, chartsBrowserHtml, fontsBrowserHtml } from "./lib/cdn-ui.mjs";
+import { heroUiPreviewDocument, listHeroUiPreviewSlugs } from "./lib/heroui-preview.mjs";
 import { listUiSdkDocs, readUiSdkDoc } from "./lib/ui-sdk-docs.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -171,7 +189,13 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
   const routePairs = [
     ['href="/"', `href="${p}index.html"`],
     ['href="/components"', `href="${p}components/index.html"`],
+    ['href="/components/compare"', `href="${p}components/compare/index.html"`],
+    ['href="/components/icons"', `href="${p}components/icons/index.html"`],
+    ['href="/components/charts"', `href="${p}components/charts/index.html"`],
+    ['href="/components/fonts"', `href="${p}components/fonts/index.html"`],
+    ['href="/starters"', `href="${p}starters/index.html"`],
     ['href="/reui"', `href="${p}reui/index.html"`],
+    ['href="/heroui"', `href="${p}heroui/index.html"`],
     ['href="/tailwind"', `href="${p}tailwind/index.html"`],
     ['href="/tailwind/shadcn"', `href="${p}tailwind/shadcn/index.html"`],
     ['href="/presets"', `href="${p}presets/index.html"`],
@@ -180,12 +204,17 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
     ['href="/mantine"', `href="${p}mantine/index.html"`],
     ['href="/daisyui"', `href="${p}daisyui/index.html"`],
     ['href="/baseui"', `href="${p}baseui/index.html"`],
+    ['href="/uikits"', `href="${p}uikits/index.html"`],
+    ['href="/refero-styles"', `href="${p}refero-styles/index.html"`],
     ['href="/slopstrap"', `href="${p}slopstrap/index.html"`],
     ['href="/docs"', `href="${p}docs/index.html"`],
     ['href="/assets"', `href="${p}assets/index.html"`],
     ['href="/skill"', `href="${p}skill/designer-mcp-skill.zip"`],
+    ['href="/skill/marketplace.zip"', `href="${p}skill/designer-mcp-marketplace.zip"`],
     ['href="/assets/manifest.json"', `href="${p}assets/manifest.json"`],
+    ['href="/assets/importmap.json"', `href="${p}assets/importmap.json"`],
     ['href="/assets/starter.zip"', `href="${p}assets/starter.zip"`],
+    ['data-picks-api="/api/picks"', 'data-picks-api=""'],
   ];
   for (const [from, to] of routePairs) {
     out = out.replaceAll(from, to);
@@ -193,6 +222,8 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
 
   // Rewrite dynamic route prefixes
   out = out.replace(/(href|src)="\/design\/([^"?#]+)"/g, (_, attr, id) => `${attr}="${p}design/${id}/index.html"`);
+  out = out.replace(/href="\/components\/compare\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}components/compare/${slug}/index.html"`);
+  out = out.replaceAll("'/components/compare/' +", `'${p}components/compare/' +`);
   out = out.replace(/(href|src)="\/component\/([^"/?#]+)"/g, (_, attr, slug) => `${attr}="${p}component/${slug}/index.html"`);
   out = out.replace(/href="\/reui\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}reui/${slug}/index.html"`);
   out = out.replace(/src="\/reui\/screenshot\/([^"]+)"/g, (_, file) => `src="${p}reui/screenshot/${file}"`);
@@ -201,6 +232,12 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
     /(data-base-src|src)="\/reui\/preview\/([a-z0-9-]+)\/([a-z0-9-]+)(\?[^"]*)?"/g,
     (_, attr, cat, name, q) => `${attr}="${p}reui/preview/${cat}/${name}.html${q || ""}"`,
   );
+  out = out.replace(/href="\/heroui\/component\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}heroui/component/${slug}/index.html"`);
+  out = out.replace(/href="\/heroui\/guide\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}heroui/guide/${slug}/index.html"`);
+  out = out.replace(/(href|src)="\/heroui\/preview\/([a-z0-9-]+)"/g, (_, attr, slug) => `${attr}="${p}heroui/preview/${slug}.html"`);
+  out = out.replace(/"\/heroui\/preview\/([a-z0-9-]+)"/g, (_, slug) => `"${p}heroui/preview/${slug}.html"`);
+  out = out.replace(/(href|src)="\/heroui\/css\/heroui\.min\.css"/g, (_, attr) => `${attr}="${p}heroui/css/heroui.min.css"`);
+  out = out.replace(/href="\/api\/library\/([^"]+)"/g, (_, id) => `href="${p}api/library/${id}.json"`);
   out = out.replace(/(href|src)="\/presets\/([^"/?#]+)"/g, (_, attr, kind) => `${attr}="${p}presets/${kind}/index.html"`);
   out = out.replace(/(href|src)="\/template\/([^"/?#]+)"/g, (_, attr, slug) => `${attr}="${p}template/${slug}/index.html"`);
   out = out.replace(/href="\/dashboard\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}dashboard/${slug}/index.html"`);
@@ -215,6 +252,13 @@ function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } =
   out = out.replace(/href="\/daisyui\/component\/([a-z0-9-]+)"/g, (_, slug) => `href="${p}daisyui/component/${slug}/index.html"`);
   out = out.replace(/(href|src)="\/daisyui\/preview\/([a-z0-9-]+)"/g, (_, attr, slug) => `${attr}="${p}daisyui/preview/${slug}.html"`);
   out = out.replace(/href="\/baseui\/doc\/(components|overview|handbook|utils)\/([a-z0-9-]+)"/g, (_, section, slug) => `href="${p}baseui/doc/${section}/${slug}/index.html"`);
+  out = out.replace(/href="\/uikits\/([a-z0-9-]+)\/item\/([a-z0-9-]+)"/g, (_, kit, slug) => `href="${p}uikits/${kit}/item/${slug}/index.html"`);
+  out = out.replace(/href="\/uikits\/([a-z0-9-]+)\/preview\/([a-z0-9-]+)"/g, (_, kit, slug) => `href="${p}uikits/${kit}/preview/${slug}/index.html"`);
+  out = out.replace(/href="\/uikits\/([a-z0-9-]+)\/raw\/([\w./-]+)"/g, (_, kit, file) => `href="${p}uikits/${kit}/raw/${file}"`);
+  out = out.replace(/href="\/uikits\/([a-z0-9-]+)\/file\/([\w./-]+)"/g, (_, kit, file) => `href="${p}api/uikits/${kit}/file/${file}"`);
+  out = out.replace(/href="\/uikits\/([a-z0-9-]+)\/?"/g, (_, kit) => `href="${p}uikits/${kit}/index.html"`);
+  out = out.replace(/href="\/refero-styles\/style\/([0-9a-fA-F][0-9a-fA-F-]{35})"/g, (_, uuid) => `href="${p}refero-styles/style/${uuid}/index.html"`);
+  out = out.replace(/(href|src)="\/refero-styles\/asset\/([\w.-]+)"/g, (_, attr, file) => `${attr}="${p}refero-styles/asset/${file}"`);
   out = out.replace(/(href|src)="\/daisyui\/css\/([a-z0-9-]+)\.css"/g, (_, attr, name) => `${attr}="${p}daisyui/preview/${name}.css"`);
 
   // Rewrite template thumbs
@@ -683,6 +727,7 @@ ${donts ? `<h2>Don't</h2><ul>${donts}</ul>` : ""}
 <div class="theme-actions">
   <input id="theme-reference" aria-label="Theme reference" value="${kitEsc(reference)}" readonly spellcheck="false">
   <button type="button" id="copy-theme">Copy theme reference</button>
+  ${mcpButton(reference, full.siteName || full.id)}
   <a href="/api/designs/${encodeURIComponent(full.id)}/design.md">Open DESIGN.md</a>
   <span id="theme-status" role="status"></span>
 </div>
@@ -772,7 +817,7 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
             href: `/preview/${encodeURIComponent(full.id)}/claude/file/${f.path.split("/").map(encodeURIComponent).join("/")}`,
           }))));
         }
-        aside.push(`<section><h2>Theme reference</h2><pre class="prompt" id="p-reference">${kitEsc(reference)}</pre><div><button type="button" class="btn" data-copy="p-reference">Copy reference</button></div></section>`);
+        aside.push(`<section><h2>Theme reference</h2><pre class="prompt" id="p-reference">${kitEsc(reference)}</pre><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button type="button" class="btn" data-copy="p-reference">Copy reference</button>${mcpButton(reference, full.siteName || full.id)}</div></section>`);
         pageHtml = designDetailHtml({
           design: { siteName: full.siteName, northStar: full.northStar || "" },
           views,
@@ -835,19 +880,27 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
     }
   }
 
-  // 7c. HeroUI v3 docs (catalog, rendered pages, and the raw endpoints the
+  // 7c. HeroUI v3 docs (catalog, rendered pages, live CSS previews, and the raw endpoints the
   // DESIGN_REMOTE_URL MCP mode reads through scripts/lib/heroui-docs.mjs)
   const heroUiCatalog = await readHeroUiCatalog();
   if (heroUiCatalog.components?.length) {
     await writeJson("api/heroui.json", heroUiCatalog);
     await writeOut("heroui/index.html", relativizeHtml(herouiCatalogHtml(heroUiCatalog), 1, { assetBase }));
+    const heroMinCssPath = join(CACHE_DIR, "heroui", "styles", "heroui.min.css");
+    if (existsSync(heroMinCssPath)) {
+      await writeOut("heroui/css/heroui.min.css", await readFile(heroMinCssPath));
+      for (const slug of listHeroUiPreviewSlugs()) {
+        const doc = heroUiPreviewDocument(slug, { cssHref: "../css/heroui.min.css" });
+        if (doc) await writeOut(`heroui/preview/${slug}.html`, doc);
+      }
+    }
     for (const entry of heroUiCatalog.components) {
       const content = await readHeroUiDoc(entry.path);
       if (content === null) continue;
       await writeOut(`api/heroui/doc/${entry.path}`, content);
       await writeOut(
         `heroui/component/${entry.slug}/index.html`,
-        relativizeHtml(herouiDocHtml(heroUiCatalog, entry, "component", content), 2, { assetBase }),
+        relativizeHtml(herouiDocHtml(heroUiCatalog, entry, "component", content), 3, { assetBase }),
       );
       if (heroUiCatalog.hasSource) {
         const src = await readHeroUiSource(entry.name);
@@ -864,7 +917,7 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
       await writeOut(`api/heroui/doc/${guide.path}`, content);
       await writeOut(
         `heroui/guide/${guide.slug}/index.html`,
-        relativizeHtml(herouiDocHtml(heroUiCatalog, guide, "guide", content), 2, { assetBase }),
+        relativizeHtml(herouiDocHtml(heroUiCatalog, guide, "guide", content), 3, { assetBase }),
       );
     }
     const theme = await readHeroUiTheme();
@@ -930,6 +983,8 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
     };
     const provenance = await readMantineProvenance();
     if (provenance) await writeJson("api/mantine/provenance.json", provenance);
+    const licence = await readMantineLicence();
+    if (licence) await writeOut("api/mantine/LICENCE", licence);
     await writeJson("api/mantine.json", {
       ...mantineCatalog,
       vendor: provenance?.packages
@@ -1044,6 +1099,89 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
     }
   }
 
+  // 7h. UI kits (catalog, rendered pages, and the raw file endpoints the
+  // DESIGN_REMOTE_URL MCP mode reads through scripts/lib/uikit-docs.mjs).
+  const uikitsIndex = await readUikitsIndex();
+  if (uikitsIndex.kits?.length) {
+    await writeJson("api/uikits.json", uikitsIndex);
+    await writeOut("uikits/index.html", relativizeHtml(uikitsIndexHtml(uikitsIndex), 1, { assetBase }));
+    for (const row of uikitsIndex.kits) {
+      const catalog = await readUikitCatalog(row.kit);
+      if (!catalog) continue;
+      await writeJson(`api/uikits/${row.kit}/catalog.json`, catalog);
+      await writeOut(`uikits/${row.kit}/index.html`, relativizeHtml(uikitKitHtml(catalog), 2, { assetBase }));
+      const manifest = await readUikitFiles(row.kit);
+      // Mirrored for the same reason as the catalog: a remote-mode
+      // design_uikit_get_source resolves path suffixes against it.
+      if (manifest) await writeJson(`api/uikits/${row.kit}/files.json`, manifest);
+      const bakedFiles = Object.entries(manifest?.files || {}).map(([path, bytes]) => ({ path, bytes }));
+      const wantedPaths = (item) => [
+        ...(item.docs || []),
+        ...(item.source || []),
+        ...(item.demo || []),
+        ...(item.registry || []),
+      ];
+      for (const item of catalog.items) {
+        const itemFiles = bakedFiles.filter((f) => wantedPaths(item).includes(f.path));
+        let docsContent = "";
+        if (item.docs?.length) {
+          const primary = item.primaryDoc && item.docs.includes(item.primaryDoc) ? item.primaryDoc : item.docs[0];
+          docsContent = (await readUikitFile(row.kit, primary)) || "";
+        }
+        await writeOut(
+          `uikits/${row.kit}/item/${item.slug}/index.html`,
+          relativizeHtml(uikitItemHtml(catalog, item, docsContent, itemFiles), 4, { assetBase }),
+        );
+        if (item.previewable) {
+          const cssRel = (item.source || []).find((f) => f.startsWith("assets/") && f.endsWith(".css"));
+          const cssText = cssRel ? await readUikitFile(row.kit, cssRel) : null;
+          if (cssRel && cssText !== null) {
+            await writeOut(`uikits/${row.kit}/raw/${cssRel}`, cssText);
+            await writeOut(
+              `uikits/${row.kit}/preview/${item.slug}/index.html`,
+              relativizeHtml(uikitPreviewHtml(catalog, { ...item, _cssText: cssText }, cssRel), 4, { assetBase }),
+            );
+          }
+        }
+      }
+      // The remote-mode mirror: one plain-text endpoint per baked file, so
+      // design_uikit_get_source resolves any path the manifest lists.
+      for (const [path] of Object.entries(manifest?.files || {})) {
+        const content = await readUikitFile(row.kit, path);
+        if (content !== null) await writeOut(`api/uikits/${row.kit}/file/${path}`, content);
+      }
+    }
+  }
+
+  // 7i. Refero Styles (catalog, record pages, mirrored assets, and the raw
+  // endpoints the DESIGN_REMOTE_URL MCP mode reads through
+  // scripts/lib/refero-styles-docs.mjs).
+  const rsCatalog = await readReferoStylesCatalog();
+  if (rsCatalog.styles?.length) {
+    const rsAssetPath = (file) => `/refero-styles/asset/${file}`;
+    await writeJson("api/refero-styles.json", rsCatalog);
+    const rsProv = await readReferoStylesProvenance();
+    if (rsProv) await writeJson("api/refero-styles/provenance.json", rsProv);
+    await writeOut("refero-styles/index.html", relativizeHtml(referoStylesCatalogHtml(rsCatalog, { assetPath: rsAssetPath }), 1, { assetBase }));
+    // The mirrored preview bytes: svg type previews, webp keyframes, favicons.
+    const assetsDir = join(CACHE_DIR, "refero-styles", "assets");
+    if (existsSync(assetsDir)) {
+      for (const file of await readdir(assetsDir)) {
+        const buf = await readReferoStylesAsset(`assets/${file}`);
+        if (buf) await writeOut(`refero-styles/asset/${file}`, buf);
+      }
+    }
+    for (const row of rsCatalog.styles) {
+      const record = await readReferoStyle(row.uuid);
+      if (!record) continue;
+      await writeJson(`api/refero-styles/style/${row.uuid}.json`, record);
+      await writeOut(
+        `refero-styles/style/${row.uuid}/index.html`,
+        relativizeHtml(referoStyleHtml(rsCatalog, record, { assetPath: rsAssetPath }), 3, { assetBase }),
+      );
+    }
+  }
+
   // 8. Tailwind (HyperUI & shadcn/ui)
   await writeOut("tailwind/index.html", relativizeHtml(tailwindCatalogHtml("hyperui", frontend.tailwindGroups("hyperui")), 1, { assetBase }));
   await writeOut("tailwind/shadcn/index.html", relativizeHtml(tailwindCatalogHtml("shadcn", frontend.tailwindGroups("shadcn")), 2, { assetBase }));
@@ -1132,7 +1270,169 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
     .replaceAll("'/api/ui-sdk-docs/'", "'../api/ui-sdk-docs/'");
   await writeOut("docs/index.html", docsHtml);
 
-  console.log(`Static site built at ${OUT_DIR} (${catalog.length} designs, ${compIndex.components?.length || 0} components, ${dsIndex.systems?.length || 0} templates).`);
+  // 12. Unified Hubs (Design Systems index, Components Hub + Comparator, CDN Browsers, Starters, Assets with Libraries)
+  function staticHref(raw, depth) {
+    if (!raw || !raw.startsWith("/")) return raw;
+    const p = prefixFor(depth);
+    if (raw === "/") return `${p}index.html`;
+    if (raw.startsWith("/assets/")) return `${p}${raw.slice(1)}`;
+    if (raw.startsWith("/reui/screenshot/")) return `${p}${raw.slice(1)}`;
+    if (raw.startsWith("/refero-styles/asset/")) return `${p}${raw.slice(1)}`;
+    if (/^\/reui\/preview\/([a-z0-9-]+)\/([a-z0-9-]+)$/.test(raw)) return `${p}${raw.slice(1)}.html`;
+    if (/^\/mantine\/preview\/([a-z0-9-]+)$/.test(raw)) return `${p}${raw.slice(1)}.html`;
+    if (/^\/daisyui\/preview\/([a-z0-9-]+)$/.test(raw)) return `${p}${raw.slice(1)}.html`;
+    if (/^\/heroui\/preview\/([a-z0-9-]+)$/.test(raw)) return `${p}${raw.slice(1)}.html`;
+    if (/^\/component\/([a-z0-9-]+)\/preview\/([a-z0-9-]+)$/.test(raw)) return `${p}${raw.slice(1)}.html`;
+    if (/^\/component\/([a-z0-9-]+)\/thumbnail\/([a-z0-9-]+)$/.test(raw)) {
+      const slug = raw.split("/")[2];
+      return assetBase ? `${p}${assetBase}/thumbnails/components/${slug}.jpg` : raw;
+    }
+    const [pathOnly, qs] = raw.split("?");
+    const clean = pathOnly.replace(/^\/|\/$/g, "");
+    return `${p}${clean}/index.html${qs ? `?${qs}` : ""}`;
+  }
+
+  // 12a. Unified Design Systems index & root index.html
+  const galleryIds = new Set();
+  const claudeIds = new Set();
+  for (const d of catalog) {
+    if ((d.source || "refero") === "opendesign") {
+      if (existsSync(join(CACHE_DIR, "gallery", d.id, "preview.html"))) galleryIds.add(d.id);
+      if (existsSync(join(CACHE_DIR, "claude", `${d.id}.json`))) claudeIds.add(d.id);
+    }
+  }
+  const unifiedDesigns = buildUnifiedDesignsIndex({
+    catalog,
+    descriptors,
+    referoStyles: rsCatalog?.styles || [],
+    templates: dsIndex.systems || [],
+    galleryIds,
+    claudeIds,
+    thumbFor: (id) => `./${thumbMap.get(id) || `thumb/${id}.svg`}`,
+    rsAssetFor: (file) => `./refero-styles/asset/${file}`,
+    templateThumbFor: (slug) => `./${templateThumbMap.get(slug) || `template/${slug}/thumb.webp`}`,
+  });
+  const staticDesignsPayload = {
+    ...unifiedDesigns,
+    designs: unifiedDesigns.designs.map((d) => ({
+      ...d,
+      href: staticHref(d.href, 0),
+      deepHref: d.deepHref ? staticHref(d.deepHref, 0) : null,
+    })),
+  };
+  await writeJson("api/designs-index.json", staticDesignsPayload);
+  await writeOut(
+    "index.html",
+    relativizeHtml(
+      unifiedDesignsHtml({
+        total: unifiedDesigns.total,
+        facets: unifiedDesigns.facets,
+        indexUrl: "./api/designs-index.json",
+      }),
+      0,
+      { assetBase, thumbMap, templateThumbMap },
+    ),
+  );
+
+  // 12b. Unified Components Hub, Cross-Library Comparator, and Offline CDN Browsers
+  const uikitCatalogMap = new Map();
+  for (const row of uikitsIndex?.kits || []) {
+    if (row.error) continue;
+    const cat = await readUikitCatalog(row.kit);
+    if (cat) uikitCatalogMap.set(row.kit, cat);
+  }
+  const componentsHub = buildUnifiedComponentsHub({
+    componentsIndex: compIndex,
+    reuiIndex,
+    herouiCatalog: heroUiCatalog,
+    mantineCatalog,
+    daisyuiCatalog,
+    baseuiCatalog: baseUiCatalog,
+    uikitsIndex,
+    uikitCatalogs: uikitCatalogMap,
+    tailwindShadcn: frontend.tailwindGroups("shadcn"),
+    tailwindHyperui: frontend.tailwindGroups("hyperui"),
+    frontend,
+  });
+  const rewriteHubItem = (it, depth) => ({
+    ...it,
+    href: staticHref(it.href, depth),
+    previewUrl: it.previewUrl ? staticHref(it.previewUrl, depth) : null,
+    thumb: it.thumb ? staticHref(it.thumb, depth) : null,
+  });
+  const staticHubDepth1 = {
+    totals: componentsHub.totals,
+    libraries: componentsHub.libraries.map((l) => ({ ...l, href: staticHref(l.href, 1) })),
+    concepts: componentsHub.concepts.map((c) => ({
+      ...c,
+      implementations: c.implementations.map((im) => rewriteHubItem(im, 1)),
+    })),
+    items: componentsHub.items.map((it) => rewriteHubItem(it, 1)),
+  };
+  await writeJson("api/components-hub.json", staticHubDepth1);
+  await writeOut(
+    "components/index.html",
+    relativizeHtml(
+      unifiedComponentsHtml({
+        componentsCatalog: compIndex,
+        hub: componentsHub,
+        thumbnailPath: frontend.thumbnailPath,
+        hubUrl: "../api/components-hub.json",
+      }),
+      1,
+      { assetBase },
+    ),
+  );
+  await writeOut(
+    "components/compare/index.html",
+    relativizeHtml(compareIndexHtml(componentsHub), 2, { assetBase }),
+  );
+  for (const concept of componentsHub.concepts || []) {
+    const staticConcept = {
+      ...concept,
+      implementations: concept.implementations.map((im) => rewriteHubItem(im, 3)),
+    };
+    await writeOut(
+      `components/compare/${concept.slug}/index.html`,
+      relativizeHtml(compareConceptHtml(staticConcept, componentsHub), 3, { assetBase }),
+    );
+  }
+  const cdnCounts = { concepts: componentsHub.concepts.length };
+  await writeOut(
+    "components/icons/index.html",
+    relativizeHtml(iconsBrowserHtml({ manifest: frontend.publicManifest, counts: cdnCounts }), 2, { assetBase }),
+  );
+  await writeOut(
+    "components/charts/index.html",
+    relativizeHtml(chartsBrowserHtml({ manifest: frontend.publicManifest, counts: cdnCounts }), 2, { assetBase }),
+  );
+  await writeOut(
+    "components/fonts/index.html",
+    relativizeHtml(fontsBrowserHtml({ manifest: frontend.publicManifest, counts: cdnCounts }), 2, { assetBase }),
+  );
+
+  // 12c. Starters hub & Assets page with library manifests
+  await writeOut(
+    "starters/index.html",
+    relativizeHtml(
+      startersHtml({
+        dashboards: dashIndex?.dashboards || [],
+        templates: dsIndex?.systems || [],
+        slopstrap: frontend.publicManifest?.slopstrap || null,
+      }),
+      1,
+      { assetBase, templateThumbMap },
+    ),
+  );
+  const fullLibraries = await Promise.all(
+    (libsIndex?.libraries || []).map(async (row) => (await readLibraryEntry(row.id)) || row),
+  );
+  await writeOut(
+    "assets/index.html",
+    relativizeHtml(assetsHtml(frontend.publicManifest, frontend.importMap(), "", fullLibraries), 1, { assetBase }),
+  );
+
+  console.log(`Static site built at ${OUT_DIR} (${unifiedDesigns.total} unified designs, ${componentsHub.totals.items} components across ${componentsHub.totals.libraries} libraries, ${componentsHub.concepts.length} cross-library comparisons).`);
 }
 
 main().catch((err) => {

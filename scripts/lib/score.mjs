@@ -43,30 +43,46 @@ export function searchText(item) {
     ...(item.fonts || []),
     ...(item.colors || []).map((c) => `${c.name || ""} ${c.hex || ""}`),
     ...(item.tags || []),
+    ...(item.moods || []),
+    ...(item.surfaces || []),
+    item.domain,
+    item.styleProfile?.siteName,
   ];
   return parts.filter(Boolean).join("\n");
 }
 
 /**
- * Score every item against a query.
+ * Score every item against a query using BM25 with IDF weighting.
  * @returns {Array<{id: string, score: number}>}
  */
 export function score(query, items) {
   const queryTerms = Array.from(new Set(tokenize(query)));
   if (queryTerms.length === 0) return items.map((item) => ({ id: item.id, score: 0 }));
 
-  return items.map((item) => {
-    const itemTerms = tokenize(item.text ?? "");
-    if (itemTerms.length === 0) return { id: item.id, score: 0 };
+  const N = items.length;
+  const dfMap = new Map();
+  const tokenized = items.map((item) => {
+    const terms = item._tokens || tokenize(item.text ?? "");
+    item._tokens = terms;
+    const unique = new Set(terms);
+    for (const t of unique) {
+      dfMap.set(t, (dfMap.get(t) || 0) + 1);
+    }
+    return { id: item.id, terms };
+  });
+
+  return tokenized.map(({ id, terms }) => {
+    if (terms.length === 0) return { id, score: 0 };
     const tf = new Map();
-    for (const t of itemTerms) tf.set(t, (tf.get(t) ?? 0) + 1);
-    let score = 0;
+    for (const t of terms) tf.set(t, (tf.get(t) ?? 0) + 1);
+    let totalScore = 0;
     for (const q of queryTerms) {
       const f = tf.get(q) ?? 0;
       if (f === 0) continue;
-      // BM25-lite: f / (f + k1), k1 = 1.5.
-      score += f / (f + 1.5);
+      const df = dfMap.get(q) || 1;
+      const idf = Math.log(1 + (N - df + 0.5) / (df + 0.5));
+      totalScore += idf * (f / (f + 1.5));
     }
-    return { id: item.id, score };
+    return { id, score: totalScore };
   });
 }

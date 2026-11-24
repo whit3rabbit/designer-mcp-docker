@@ -11,7 +11,7 @@
  * module documents framed in an iframe. Zero remote URLs.
  */
 
-import { BASE_CSS, NAV_CSS, nav } from "./ui.mjs";
+import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -333,7 +333,10 @@ export function mantineComponentHtml(catalog, detail, { previewPath, category } 
   const main = `
     <div class="mant-crumb"><a href="/mantine">Mantine</a> / <a href="/mantine/category/${esc(detail.category)}">${esc(category?.name || detail.category)}</a></div>
     <div class="mant-header">
-      <h1>${esc(detail.name)}</h1>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px">
+        <h1>${esc(detail.name)}</h1>
+        ${mcpButton(`designer:mantine:${detail.slug}`, `Mantine — ${detail.name}`)}
+      </div>
       <p>${esc(detail.title || "")}</p>
     </div>
     <div class="mant-badges">

@@ -1,0 +1,16 @@
+{
+  "comment": "Refero Styles layer pin. scripts/fetch-refero-styles.mjs reads this to fetch the public /v1/styles API that backs refero.design/styles. robots.txt on refero.design, api.refero.design and images.refero.design permits generic agents; the endpoints are public, unauthenticated, and every style page ships a public DESIGN.md download. There are no upstream versions to pin: discovery is the paginated list, so re-run npm run refero-styles to refresh (new records are fetched incrementally; --force refetches everything). See docs/DATA-SOURCE.md, 'The Refero Styles layer'.",
+  "source": {
+    "site": "https://refero.design/styles",
+    "list": "https://api.refero.design/v1/styles",
+    "detail": "https://api.refero.design/v1/styles",
+    "search": "https://api.refero.design/v1/search/styles",
+    "robots": [
+      "https://refero.design/robots.txt",
+      "https://api.refero.design/robots.txt",
+      "https://images.refero.design/robots.txt"
+    ],
+    "apiPathPrefix": "/v1/"
+  },
+  "fetch": { "delayMs": 400, "conc": 4, "assetDelayMs": 150, "assetConc": 4 }
+}

@@ -1,0 +1,530 @@
+{
+  "comment": "UI kits layer pin. scripts/fetch-uikits.mjs reads this to bake every kit into <cache>/uikits/<kit>/. Baked kits fetch first-party npm tarballs (registry.npmjs.org, sha512 verified) or GitHub repo tarballs (codeload.github.com at the pinned ref, resolved sha recorded in provenance.json); pointer kits cache only the site's first-party llms.txt index (robots-gated, like Base UI) because their licences restrict component redistribution or gate access. Every baked kit's LICENSE file is read from its own archive and its sha256 recorded; a kit whose licence file is missing or does not match the pinned spdx is skipped, recorded as a gap, and its previous bake is removed, so a licence change upstream never leaves stale code served. GitHub refs are full commit shas (source.branch records where each sha came from), so a bake is reproducible from this file alone and the fetcher makes no API call. To bump one: git ls-remote https://github.com/<repo> <branch>, put the sha in ref, and re-run npm run uikits. A URL extra is pinned the same way and carries the sha256 the fetched bytes must match. excludes.files are globs over a file name (* matches within the name): tests, fixtures and binary assets stay out of a docs-and-source layer. Bump a version here and re-run npm run uikits to refresh.",
+  "excludes": {
+    "dirs": [
+      "__tests__",
+      "__mocks__",
+      "__snapshots__",
+      "__fhir_tests__",
+      "node_modules",
+      ".github",
+      "testdata"
+    ],
+    "files": [
+      "*.test.*",
+      "*.spec.*",
+      "*.snap",
+      "*.woff2",
+      "*.woff",
+      "*.ttf",
+      "*.otf",
+      "*.eot",
+      "*.png",
+      "*.gif",
+      "*.jpg",
+      "*.jpeg",
+      "*.webp",
+      "*.ico",
+      "*.svg",
+      "*.pdf",
+      "*.mp4",
+      "*.webm",
+      "*.zip"
+    ]
+  },
+  "kits": [
+    {
+      "kit": "chakra",
+      "name": "Chakra UI",
+      "category": "complete-framework",
+      "kind": "docs+source",
+      "homepage": "https://chakra-ui.com",
+      "usesTailwind": false,
+      "source": {
+        "type": "github",
+        "repo": "chakra-ui/chakra-ui",
+        "ref": "4fca0889be532fced536b77e1dff982001ebc672",
+        "branch": "main"
+      },
+      "license": {
+        "file": "LICENSE",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "apps/www/content/docs",
+          "to": "docs"
+        },
+        {
+          "from": "packages/react/src",
+          "to": "source"
+        }
+      ],
+      "items": {
+        "model": "docs-tree",
+        "docsRoot": "docs",
+        "sourceRoot": "source",
+        "sourceDir": "source/components"
+      }
+    },
+    {
+      "kit": "mui",
+      "name": "Material UI",
+      "category": "complete-framework",
+      "kind": "docs+source",
+      "homepage": "https://mui.com/material-ui",
+      "usesTailwind": false,
+      "source": {
+        "type": "github",
+        "repo": "mui/material-ui",
+        "ref": "8e91819287608c4f4c54375083cabff44fbf5180",
+        "branch": "master"
+      },
+      "license": {
+        "file": "LICENSE",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "docs/data/material",
+          "to": "docs",
+          "keep": [
+            "*.md",
+            "*.tsx",
+            "*.ts",
+            "*.js"
+          ]
+        }
+      ],
+      "items": {
+        "model": "mui",
+        "docsRoot": "docs",
+        "demoDir": "demos"
+      },
+      "note": "Component example code lives in each page's demos/ directory; the @mui/material package source is not baked (docs + demos carry the code examples)."
+    },
+    {
+      "kit": "antd",
+      "name": "Ant Design",
+      "category": "complete-framework",
+      "kind": "docs+source",
+      "homepage": "https://ant.design",
+      "usesTailwind": false,
+      "source": {
+        "type": "github",
+        "repo": "ant-design/ant-design",
+        "ref": "469bba8a737430015142ad36dd5b7e8e460244ae",
+        "branch": "master"
+      },
+      "license": {
+        "file": "LICENSE",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "components",
+          "to": "components",
+          "keep": [
+            "*.md",
+            "*.tsx",
+            "*.ts",
+            "*.jsx",
+            "*.js",
+            "*.css",
+            "*.json"
+          ]
+        },
+        {
+          "from": "components/style",
+          "to": "drop"
+        }
+      ],
+      "pickExcludeFiles": [
+        "index.zh-CN.md",
+        "index.$*"
+      ],
+      "items": {
+        "model": "antd",
+        "componentsRoot": "components"
+      }
+    },
+    {
+      "kit": "primereact",
+      "name": "PrimeReact",
+      "category": "complete-framework",
+      "kind": "docs+source",
+      "homepage": "https://primereact.org",
+      "usesTailwind": false,
+      "source": {
+        "type": "github",
+        "repo": "primefaces/primereact",
+        "ref": "5cd9b145ce7d8b498e745002624ba958f307897e",
+        "branch": "master"
+      },
+      "license": {
+        "file": "LICENSE.md",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "components/doc",
+          "to": "docs"
+        },
+        {
+          "from": "components/lib",
+          "to": "source"
+        }
+      ],
+      "items": {
+        "model": "primereact",
+        "docsRoot": "docs",
+        "sourceRoot": "source"
+      },
+      "note": "Pinned to the MIT line (v10.x / master). PrimeReact 11+ on npm switched to the PrimeUI dual commercial licence and is deliberately not baked."
+    },
+    {
+      "kit": "coss",
+      "name": "coss ui",
+      "category": "complete-framework",
+      "kind": "docs+source",
+      "homepage": "https://coss.com/ui",
+      "usesTailwind": true,
+      "source": {
+        "type": "github",
+        "repo": "cosscom/ui",
+        "ref": "66b96c8463c8e50ca65e543babae5607cf21c92f",
+        "branch": "main"
+      },
+      "license": {
+        "file": "LICENSE",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "apps/ui/content/docs",
+          "to": "docs"
+        },
+        {
+          "from": "packages/ui/src",
+          "to": "source"
+        },
+        {
+          "from": "apps/origin/public/r",
+          "to": "registry"
+        }
+      ],
+      "items": {
+        "model": "shadcn",
+        "docsRoot": "docs",
+        "sourceRoot": "source",
+        "registryRoot": "registry"
+      }
+    },
+    {
+      "kit": "magicui",
+      "name": "Magic UI",
+      "category": "animated",
+      "kind": "docs+source",
+      "homepage": "https://magicui.design",
+      "usesTailwind": true,
+      "source": {
+        "type": "github",
+        "repo": "magicuidesign/magicui",
+        "ref": "b0b2e4974b1b68cd5278277c6837a27736e20c3a",
+        "branch": "main"
+      },
+      "license": {
+        "file": "LICENSE.md",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "apps/www/registry/magicui",
+          "to": "source"
+        },
+        {
+          "from": "apps/www/registry/example",
+          "to": "source/example"
+        },
+        {
+          "from": "apps/www/registry/lib",
+          "to": "source/lib"
+        },
+        {
+          "from": "apps/www/content/docs",
+          "to": "docs"
+        }
+      ],
+      "extraFiles": [
+        {
+          "from": "registry.json",
+          "to": "registry.json"
+        },
+        {
+          "from": "apps/www/registry/registry-ui.ts",
+          "to": "registry-ui.ts"
+        }
+      ],
+      "items": {
+        "model": "shadcn",
+        "docsRoot": "docs",
+        "sourceRoot": "source",
+        "registryFile": "registry.json"
+      }
+    },
+    {
+      "kit": "motion",
+      "name": "Motion Primitives",
+      "category": "animated",
+      "kind": "docs+source",
+      "homepage": "https://motion-primitives.com",
+      "usesTailwind": true,
+      "source": {
+        "type": "github",
+        "repo": "ibelick/motion-primitives",
+        "ref": "120f64f6ca60348e251f929e9c81f11ccbe45eda",
+        "branch": "main"
+      },
+      "license": {
+        "file": "LICENCE.md",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "components",
+          "to": "source"
+        },
+        {
+          "from": "public/c",
+          "to": "registry"
+        }
+      ],
+      "items": {
+        "model": "shadcn",
+        "sourceRoot": "source",
+        "registryRoot": "registry"
+      }
+    },
+    {
+      "kit": "unocss",
+      "name": "UnoCSS",
+      "category": "css-engine",
+      "kind": "docs",
+      "homepage": "https://unocss.dev",
+      "usesTailwind": false,
+      "source": {
+        "type": "github",
+        "repo": "unocss/unocss",
+        "ref": "3e0f696b18665ecac3b4efd64367dd0acc491cf0",
+        "branch": "main"
+      },
+      "license": {
+        "file": "LICENSE",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "docs",
+          "to": "docs"
+        }
+      ],
+      "items": {
+        "model": "docs-tree",
+        "docsRoot": "docs"
+      }
+    },
+    {
+      "kit": "panda",
+      "name": "Panda CSS",
+      "category": "css-engine",
+      "kind": "docs",
+      "homepage": "https://panda-css.com",
+      "usesTailwind": false,
+      "source": {
+        "type": "github",
+        "repo": "chakra-ui/panda",
+        "ref": "af5cf02d63efefeb24b78a52037812b7c88c99cc",
+        "branch": "v2"
+      },
+      "license": {
+        "file": "LICENSE.md",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "website/content/docs",
+          "to": "docs"
+        }
+      ],
+      "items": {
+        "model": "docs-tree",
+        "docsRoot": "docs"
+      }
+    },
+    {
+      "kit": "vanilla-extract",
+      "name": "vanilla-extract",
+      "category": "css-engine",
+      "kind": "docs",
+      "homepage": "https://vanilla-extract.style",
+      "usesTailwind": false,
+      "source": {
+        "type": "github",
+        "repo": "vanilla-extract-css/vanilla-extract",
+        "ref": "e6bc0706a2ed1db1eddacf58fd494c381d5eec92",
+        "branch": "master"
+      },
+      "license": {
+        "file": "LICENSE",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "site/docs",
+          "to": "docs"
+        }
+      ],
+      "items": {
+        "model": "docs-tree",
+        "docsRoot": "docs"
+      },
+      "note": "The repo-root docs/ is a legacy migration guide; the real docs live in site/docs (Astro)."
+    },
+    {
+      "kit": "stylex",
+      "name": "StyleX",
+      "category": "css-engine",
+      "kind": "docs",
+      "homepage": "https://stylexjs.com",
+      "usesTailwind": false,
+      "source": {
+        "type": "github",
+        "repo": "meta/stylex",
+        "ref": "b39a8c4dc0be16369c37cc9dfcc246cb2363b228",
+        "branch": "main"
+      },
+      "license": {
+        "file": "LICENSE",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": "packages/docs/content/docs",
+          "to": "docs"
+        }
+      ],
+      "items": {
+        "model": "docs-tree",
+        "docsRoot": "docs"
+      }
+    },
+    {
+      "kit": "openprops",
+      "name": "Open Props",
+      "category": "css-engine",
+      "kind": "assets",
+      "homepage": "https://open-props.style",
+      "usesTailwind": false,
+      "source": {
+        "type": "npm",
+        "package": "open-props",
+        "version": "1.7.23"
+      },
+      "license": {
+        "file": "LICENSE",
+        "spdx": "MIT"
+      },
+      "picks": [
+        {
+          "from": ".",
+          "to": "assets",
+          "keep": [
+            "*.css"
+          ],
+          "root": true
+        }
+      ],
+      "extraFiles": [
+        {
+          "url": "https://raw.githubusercontent.com/argyleink/open-props/f39ab7c377a0e047f930982e3611bbc95254a260/readme.md",
+          "sha256": "552c700d787a50409f71d833fde0249bfae8264af7f31d366d949aa45af1e7ae",
+          "to": "docs/README.md"
+        }
+      ],
+      "items": {
+        "model": "openprops",
+        "assetsRoot": "assets",
+        "docsRoot": "docs"
+      }
+    },
+    {
+      "kit": "ark",
+      "name": "Ark UI",
+      "category": "headless",
+      "kind": "docs",
+      "homepage": "https://ark-ui.com",
+      "usesTailwind": false,
+      "docsCrawl": {
+        "index": "https://ark-ui.com/llms.txt",
+        "pageBase": "https://ark-ui.com/llms.txt/",
+        "robots": "https://ark-ui.com/robots.txt",
+        "framework": "react",
+        "licenseUrl": "https://raw.githubusercontent.com/chakra-ui/ark/main/LICENSE"
+      },
+      "license": { "spdx": "MIT" },
+      "items": { "model": "docs-tree", "docsRoot": "docs" },
+      "note": "React docs only; Ark ships the same components for Vue, Svelte and Solid. Cross-links to the ReUI gallery cover styled usage."
+    },
+    {
+      "kit": "reactbits",
+      "name": "React Bits",
+      "category": "animated",
+      "kind": "pointer",
+      "homepage": "https://reactbits.dev",
+      "usesTailwind": true,
+      "pointer": {
+        "llms": "https://reactbits.dev/llms.txt",
+        "robots": "https://reactbits.dev/robots.txt",
+        "install": "npx shadcn add https://reactbits.dev/r/<component>",
+        "license": {
+          "spdx": "MIT WITH Commons-Clause",
+          "note": "MIT + Commons Clause v1.0: use in your own projects is fine, but selling, sublicensing or redistributing the components themselves is not. This layer caches the first-party llms.txt index (names, variants, categories) and no component code."
+        }
+      }
+    },
+    {
+      "kit": "aceternity",
+      "name": "Aceternity UI",
+      "category": "animated",
+      "kind": "pointer",
+      "homepage": "https://ui.aceternity.com",
+      "usesTailwind": true,
+      "pointer": {
+        "llms": "https://ui.aceternity.com/llms.txt",
+        "robots": "https://ui.aceternity.com/robots.txt",
+        "install": "npx shadcn add @aceternity/<component>",
+        "license": {
+          "spdx": "Custom",
+          "note": "Free for personal and commercial projects, but redistributing the components as a competing library is not permitted (https://ui.aceternity.com/licence). This layer caches the first-party llms.txt index only; component code stays upstream and Pro blocks are paid."
+        }
+      }
+    },
+    {
+      "kit": "twentyfirst",
+      "name": "21st.dev",
+      "category": "marketplace",
+      "kind": "pointer",
+      "homepage": "https://21st.dev",
+      "usesTailwind": true,
+      "pointer": {
+        "llms": "https://21st.dev/llms.txt",
+        "robots": "https://21st.dev/robots.txt",
+        "install": "npx shadcn add @21st/<component> (21st.dev registry; their MCP needs an API key)",
+        "license": {
+          "spdx": "Per-component",
+          "note": "Community marketplace: components are uploaded by users, each under its own licence, and the registry API is key-gated. This layer caches the first-party llms.txt index only."
+        }
+      }
+    }
+  ]
+}

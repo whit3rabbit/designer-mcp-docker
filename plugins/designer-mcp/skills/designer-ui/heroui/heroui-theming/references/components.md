@@ -17,8 +17,8 @@ node scripts/list_component_classes.mjs modal --css     # plus the raw CSS
 | Component CSS (installed)      | `node_modules/@heroui/styles/dist/components/<name>.css`                                 |
 | Import order of all components | `node_modules/@heroui/styles/dist/components/index.css`                                  |
 | Class ↔ prop mapping           | `node_modules/@heroui/styles/dist/components/<name>/<name>.styles.js` (variant function) |
-| Component CSS (offline)        | `design_heroui_get_styles {"component": "<name>"}`: the classes, variants and states   |
-| Component docs (offline)       | `design_heroui_get_docs {"components": ["<name>"]}` → "CSS Classes" section (near the end: follow `nextOffset`) |
+| Component CSS (offline)        | `design_kit_code {"component": "<name>"}`: the classes, variants and states   |
+| Component docs (offline)       | `design_kit_docs {"components": ["<name>"]}` → "CSS Classes" section (near the end: follow `nextOffset`) |
 | Baked CSS (pinned tag)         | `<cache>/heroui/styles/components/<name>.css`                                            |
 
 `<name>` is kebab-case: `button`, `date-picker`, `list-box-item`, `alert-dialog`.
@@ -235,4 +235,4 @@ A new modifier is just another class in `@layer components`. Reuse the component
 }
 ```
 
-Use it with `className` (the block class is added by the component): `<Button className="button--brand">` or, on plain HTML, `<button class="button button--brand">`. For a typed prop, extend the variant function: `tv({extend: buttonVariants, variants: {variant: {brand: "button--brand"}}})` (see the Styling guide: `design_heroui_get_guide {"path": "styling"}`).
+Use it with `className` (the block class is added by the component): `<Button className="button--brand">` or, on plain HTML, `<button class="button button--brand">`. For a typed prop, extend the variant function: `tv({extend: buttonVariants, variants: {variant: {brand: "button--brand"}}})` (see the Styling guide: `design_kit_docs {"path": "styling"}`).

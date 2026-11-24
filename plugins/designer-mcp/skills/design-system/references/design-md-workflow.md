@@ -60,14 +60,14 @@ scope of each sample.
   them explicitly. Treat the artifact as the reference.
 - **Selected theme.** Paste **Copy theme reference** from the gallery design
   detail into the task. Pass `designer:<source>:<id>` as `identifier` to
-  `design_markdown_parse`. If the cache or tool is unavailable, open that design's
+  `design_markdown_check`. If the cache or tool is unavailable, open that design's
   **Open DESIGN.md** link on the host, or read the supplied download. Parse the
   raw Markdown with `content` when MCP is available. Confirm that the resolved
   source and ID match the selection. Record the theme actually used and whether
   it came from the cache, gallery, or a file.
 - **OpenDesign package.** Pass the full reference (for example,
   `designer:opendesign:arc`) to `design_get`. Read `USAGE.md` when listed,
-  then use `design_package_file` with the same reference and paths from
+  then use `design_file` with the same reference and paths from
   `package.files`. Use the original `DESIGN.md` for visual rules and
   `tokens.css` for semantic CSS values. Use the declared Tailwind stylesheet,
   component examples, and other files only where they fit the target. Keep
@@ -79,7 +79,7 @@ scope of each sample.
   missing theme values in `gaps`. Use provisional values in `recipes.css` when
   needed for a runnable starter. Adapt layout to the target medium.
 - **Complete gallery starter.** When the user selects a vendored system such as
-  Classical, use `design_template_get` and `design_template_file` for its actual
+  Classical, use `design_template` and `design_file` for its actual
   stylesheet, component examples, and starter. Preserve the system's token roles
   and use its manifest to find the files.
 
@@ -149,7 +149,7 @@ design-system/
    }
    ```
 
-4. Put the authored design's `parsed.tokens` from `design_markdown_parse` in
+4. Put the authored design's `parsed.tokens` from `design_markdown_check` in
    `theme.json` with `version: 1` and `name`. Keep the path, value, and reference
    where present. Use kebab-case names for custom token keys and standard field
    names such as `fontSize` and `fontFamily`. Without MCP, manually enter the
@@ -210,7 +210,7 @@ node scripts/build-design-system.mjs . --check
    (default `ppt/theme/theme1.xml`). PDF embedded fonts may use PostScript
    names. Verify the name mapping before comparing font families.
 3. Pass the final Markdown as `content`, the mapped paths as `requiredTokens`,
-   and the new readings as `observations` to `design_markdown_validate`.
+   and the new readings as `observations` to `design_markdown_check`.
    Use `null` for an unavailable measurement. Check each relevant viewport,
    theme, or state and report missing or unverified required roles explicitly.
    Send only the Markdown and selected token rows across MCP.

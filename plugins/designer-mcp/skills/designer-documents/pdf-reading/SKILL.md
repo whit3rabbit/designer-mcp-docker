@@ -1,6 +1,6 @@
 ---
 name: pdf-reading
-description: "Reads and inspects PDF files from disk when their content is not in context: content inventory, text extraction, page rasterization for visual inspection, embedded image/attachment/table/form-field extraction, and choosing the right reading strategy for different document types (text-heavy, scanned, slide-decks, forms, data-heavy). Use this skill when file content must be read from disk. Do NOT use this skill for PDF creation, form filling, merging, splitting, watermarking, or encryption (use the pdf skill instead)."
+description: "Extract text, tables, forms, and rasterize pages for visual inspection of PDF files."
 license: Apache-2.0. LICENSE.txt has complete terms. Rewritten to be agent/harness-agnostic.
 ---
 

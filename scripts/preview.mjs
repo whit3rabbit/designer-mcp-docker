@@ -87,6 +87,21 @@ import { herouiCatalogHtml, herouiDocHtml } from "./lib/heroui-ui.mjs";
 import { readBaseUiCatalog, readBaseUiDoc, searchBaseUiDocs } from "./lib/baseui-docs.mjs";
 import { baseUiCatalogHtml, baseUiDocHtml } from "./lib/baseui-ui.mjs";
 import {
+  findUikitItem,
+  readUikitCatalog,
+  readUikitFile,
+  readUikitFiles,
+  readUikitsIndex,
+  searchUikits,
+} from "./lib/uikit-docs.mjs";
+import {
+  uikitFileHtml,
+  uikitItemHtml,
+  uikitKitHtml,
+  uikitsIndexHtml,
+  uikitPreviewHtml,
+} from "./lib/uikit-ui.mjs";
+import {
   readMantineCatalog,
   readMantineComponent,
   readMantineProvenance,
@@ -103,10 +118,19 @@ import {
 } from "./lib/daisyui-docs.mjs";
 import { daisyuiCatalogHtml, daisyuiComponentHtml } from "./lib/daisyui-ui.mjs";
 import {
+  readReferoStyle,
+  readReferoStylesAsset,
+  readReferoStylesCatalog,
+  readReferoStylesProvenance,
+  searchReferoStyles,
+} from "./lib/refero-styles-docs.mjs";
+import { referoStyleHtml, referoStylesCatalogHtml } from "./lib/refero-styles-ui.mjs";
+import {
   assetsHtml,
   componentsHtml,
   componentDetailHtml,
   slopstrapHtml,
+  startersHtml,
   tailwindCatalogHtml,
   tailwindExampleHtml,
   presetsHtml,
@@ -116,7 +140,16 @@ import {
   uiSdkDocsHtml,
   nav,
   NAV_CSS,
+  themeHead,
+  mcpButton,
 } from "./lib/ui.mjs";
+import { readPicks, addPick, removePick, clearPicks, picksFilePath } from "./lib/picks.mjs";
+import { buildUnifiedDesignsIndex } from "./lib/designs-index.mjs";
+import { unifiedDesignsHtml } from "./lib/designs-ui.mjs";
+import { buildUnifiedComponentsHub } from "./lib/components-index.mjs";
+import { unifiedComponentsHtml, compareIndexHtml, compareConceptHtml } from "./lib/components-ui.mjs";
+import { iconsBrowserHtml, chartsBrowserHtml, fontsBrowserHtml } from "./lib/cdn-ui.mjs";
+import { heroUiPreviewDocument } from "./lib/heroui-preview.mjs";
 import { listUiSdkDocs, readUiSdkDoc } from "./lib/ui-sdk-docs.mjs";
 import {
   galleryIndexHtml,
@@ -336,52 +369,92 @@ function tagsFor(entry) {
   return [...new Set(tags.map((t) => String(t).toLowerCase()))];
 }
 
-/**
- * The gallery index.
- *
- * Every design in the catalog appears here: the Refero styles and the
- * OpenDesign systems side by side. Systems carry a rendered cover; styles
- * carry their screenshot; the rest fall back to a swatch strip.
- */
-function galleryHtml() {
-  const designs = catalog.map((entry) => {
-    const tags = tagsFor(entry);
-    const search = [
-      entry.siteName,
-      entry.northStar,
-      entry.industry,
-      ...(entry.fonts || []),
-      ...tags,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    return { entry, tags, search };
-  });
+let unifiedDesignsCache = null;
+let referoStylesByDomain = null;
+let componentsHubCache = null;
 
-  // The most-used tags lead, so the chips a reader wants are visible.
-  const counts = new Map();
-  for (const { tags } of designs) {
-    for (const tag of tags) counts.set(tag, (counts.get(tag) || 0) + 1);
+async function getUnifiedDesigns() {
+  if (unifiedDesignsCache) return unifiedDesignsCache;
+  const [rsCatalog, templatesIndex] = await Promise.all([
+    readReferoStylesCatalog().catch(() => null),
+    readDesignSystemsIndex().catch(() => null),
+  ]);
+  const galleryIds = new Set();
+  const claudeIds = new Set();
+  for (const d of catalog) {
+    if ((d.source || "refero") === "opendesign") {
+      if (existsSync(join(CACHE_DIR, "gallery", d.id, "preview.html"))) galleryIds.add(d.id);
+      if (existsSync(join(CACHE_DIR, "claude", `${d.id}.json`))) claudeIds.add(d.id);
+    }
   }
-  const chipList = [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, 32)
-    .map(([value, count]) => ({ value, count }));
+  referoStylesByDomain = new Map();
+  for (const r of rsCatalog?.styles || []) {
+    const dom = String(r.domain || "").replace(/^www\./, "").toLowerCase();
+    if (dom && !referoStylesByDomain.has(dom)) referoStylesByDomain.set(dom, r);
+  }
+  unifiedDesignsCache = buildUnifiedDesignsIndex({
+    catalog,
+    descriptors,
+    referoStyles: rsCatalog?.styles || [],
+    templates: templatesIndex?.systems || [],
+    galleryIds,
+    claudeIds,
+  });
+  return unifiedDesignsCache;
+}
 
-  return galleryIndexHtml({
-    total: designs.length,
-    tags: chipList,
-    designs: designs.map(({ entry, tags, search }) => ({
-      id: entry.id,
-      siteName: entry.siteName,
-      tags,
-      search,
-      colors: entry.colors || [],
-      // The OpenDesign covers are rendered images; the Refero styles have
-      // screenshots. Both are local bytes.
-      thumb: (entry.source || "refero") === "opendesign" ? `/thumb/${encodeURIComponent(entry.id)}` : `/thumb/${encodeURIComponent(entry.id)}`,
-    })),
+async function getComponentsHub() {
+  if (componentsHubCache) return componentsHubCache;
+  const [
+    componentsIndex,
+    reuiIndex,
+    herouiCatalog,
+    mantineCatalog,
+    daisyuiCatalog,
+    baseuiCatalog,
+    uikitsIndex,
+  ] = await Promise.all([
+    readComponentsIndex().catch(() => null),
+    readReuiIndex().catch(() => null),
+    readHeroUiCatalog().catch(() => null),
+    readMantineCatalog().catch(() => null),
+    readDaisyuiCatalog().catch(() => null),
+    readBaseUiCatalog().catch(() => null),
+    readUikitsIndex().catch(() => null),
+  ]);
+  const uikitCatalogs = new Map();
+  for (const row of uikitsIndex?.kits || []) {
+    if (row.error) continue;
+    const cat = await readUikitCatalog(row.kit).catch(() => null);
+    if (cat) uikitCatalogs.set(row.kit, cat);
+  }
+  componentsHubCache = buildUnifiedComponentsHub({
+    componentsIndex,
+    reuiIndex,
+    herouiCatalog,
+    mantineCatalog,
+    daisyuiCatalog,
+    baseuiCatalog,
+    uikitsIndex,
+    uikitCatalogs,
+    tailwindShadcn: frontend.tailwindGroups("shadcn"),
+    tailwindHyperui: frontend.tailwindGroups("hyperui"),
+    frontend,
+  });
+  return componentsHubCache;
+}
+
+/**
+ * The unified Design Systems gallery index:
+ * Classic Refero, Refero Styles (merged by domain + standalone), OpenDesign,
+ * and System Templates in one searchable, multi-facet filterable gallery.
+ */
+async function galleryHtml() {
+  const unified = await getUnifiedDesigns();
+  return unifiedDesignsHtml({
+    total: unified.total,
+    facets: unified.facets,
+    indexUrl: "/api/designs-index.json",
   });
 }
 
@@ -443,19 +516,40 @@ ${donts ? `<h2>Don't</h2><ul>${donts}</ul>` : ""}
 <div class="theme-actions">
   <input id="theme-reference" aria-label="Theme reference" value="${esc(reference)}" readonly spellcheck="false">
   <button type="button" id="copy-theme">Copy theme reference</button>
+  ${mcpButton(reference, s.siteName || s.id)}
   <a href="/api/designs/${encodeURIComponent(s.id)}/design.md">Open DESIGN.md</a>
   <span id="theme-status" role="status"></span>
 </div>
 <pre>${esc(designMarkdown(s))}</pre>`;
 
   if (!views.length) {
+    // Check if this site also has a deep Refero Styles profile (recipes, surfaces, font substitutes).
+    await getUnifiedDesigns();
+    let rsMatch = null;
+    try {
+      const host = new URL(s.url || "").hostname.replace(/^www\./, "").toLowerCase();
+      if (host && referoStylesByDomain) rsMatch = referoStylesByDomain.get(host) || null;
+    } catch {}
+    const deepBanner = rsMatch
+      ? `<div class="deep-banner">
+          <div>
+            <strong>Deep Style Profile Available</strong>
+            <span>${rsMatch.counts?.components ?? 0} component CSS recipes · ${rsMatch.counts?.surfaces ?? 0} surfaces · ${rsMatch.counts?.typography ?? 0} type recipes · font substitutes &amp; dos/don'ts</span>
+          </div>
+          <a class="btn" href="/refero-styles/style/${encodeURIComponent(rsMatch.uuid)}">Open Deep Style Profile →</a>
+        </div>`
+      : "";
     // No gallery artifacts: show the cached screenshot preview + token-led page.
     return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${themeHead()}
 <title>${esc(s.siteName)} — Design Systems</title>
 <style>
 ${KIT_CSS}${KIT_NAV_CSS}
   .wrap{max-width:1040px;margin:0 auto;padding:22px 20px 70px}
+  .deep-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:14px 0;padding:12px 15px;border-radius:10px;background:var(--accent-bg);border:1px solid var(--accent-line)}
+  .deep-banner strong{display:block;color:var(--strong);font-size:14px}
+  .deep-banner span{font-size:12.5px;color:var(--muted)}
   .shot-card{margin:18px 0 6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   .shot-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
   .shot-bar button{font:inherit;color:var(--strong);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 9px;cursor:pointer}
@@ -464,13 +558,13 @@ ${KIT_CSS}${KIT_NAV_CSS}
   .shot-wrap img{display:block;width:100%;height:auto}
   .toks{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
   .tok{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px}
-  .chip{width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,.14);flex:none}
+  .chip{width:20px;height:20px;border-radius:5px;border:1px solid var(--line);flex:none}
   .tn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tv{color:var(--muted);font-family:var(--mono);font-size:11px}
   .tsr{display:flex;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 11px;margin-bottom:5px;font-size:13px}
   .tsrole{color:var(--muted)}
   ul{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 12px 12px 30px}
-  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-size:12px;white-space:pre-wrap}
+  pre{background:var(--code-bg);color:var(--code-fg);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-size:12px;white-space:pre-wrap}
   .theme-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
   .theme-actions input,.theme-actions button{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
   .theme-actions input{width:54ch;max-width:100%;font-family:var(--mono);font-size:12px}
@@ -485,6 +579,7 @@ ${kitNav("designs")}
 <p class="lede">${esc(s.northStar || "")}</p>
 ${s.url ? `<p class="lede">Source <code>${esc(s.url)}</code></p>` : ""}
 ${tags.length ? `<ul class="tags">${tags.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+${deepBanner}
 <div class="shot-card">
   <div class="shot-bar"><span>Cached screenshot preview</span><button type="button" id="toggle-shot">Expand full height</button></div>
   <div class="shot-wrap" id="shot-wrap"><img src="/thumb/${encodeURIComponent(s.id)}" alt="${esc(s.siteName)} preview"></div>
@@ -552,7 +647,7 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
   aside.push(`<section>
   <h2>Theme reference</h2>
   <pre class="prompt" id="p-reference">${esc(reference)}</pre>
-  <div><button type="button" class="btn" data-copy="p-reference">Copy reference</button></div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button type="button" class="btn" data-copy="p-reference">Copy reference</button>${mcpButton(reference, s.siteName || s.id)}</div>
 </section>`);
 
   return designDetailHtml({
@@ -576,6 +671,31 @@ function sendHtml(res, body, kind) {
   return res.end(body);
 }
 
+function readJsonBody(req, maxBytes = 16384) {
+  return new Promise((resolve, reject) => {
+    let total = 0;
+    const chunks = [];
+    req.on("data", (chunk) => {
+      total += chunk.length;
+      if (total > maxBytes) {
+        reject(new Error("request body too large"));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      try {
+        const text = Buffer.concat(chunks).toString("utf8").trim();
+        resolve(text ? JSON.parse(text) : {});
+      } catch {
+        reject(new Error("invalid JSON body"));
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
@@ -583,14 +703,65 @@ const server = createServer(async (req, res) => {
 
     if (p === "/healthz") return json(res, 200, { ok: true, styles: catalog.length, updatedAt: loadedAt });
 
-    if (p === "/" || p === "/index.html") return sendHtml(res, galleryHtml());
+    // ---------------------------------------------------- Live MCP Picks API
+    if (p === "/api/picks") {
+      if (req.method === "GET") {
+        const store = await readPicks();
+        return json(res, 200, { live: true, picksFile: picksFilePath(), total: store.picks.length, ...store });
+      }
+      if (req.method === "POST") {
+        const body = await readJsonBody(req);
+        try {
+          const result = await addPick(body);
+          return json(res, 200, { ok: true, live: true, total: result.picks.length, ...result });
+        } catch (err) {
+          return json(res, 400, { error: err.message });
+        }
+      }
+      if (req.method === "DELETE") {
+        const result = await clearPicks();
+        return json(res, 200, { ok: true, live: true, total: 0, ...result });
+      }
+      return json(res, 405, { error: "method not allowed" });
+    }
+    const mPickDel = p.match(/^\/api\/picks\/(.+)$/);
+    if (mPickDel && req.method === "DELETE") {
+      const ref = decodeURIComponent(mPickDel[1]);
+      const result = await removePick(ref);
+      return json(res, 200, { ok: true, live: true, total: result.picks.length, ...result });
+    }
+
+    if (p === "/" || p === "/index.html") return sendHtml(res, await galleryHtml());
+
+    if (p === "/api/designs-index.json") {
+      return json(res, 200, await getUnifiedDesigns());
+    }
+
+    if (p === "/starters" || p === "/starters/") {
+      const [dashIdx, tmplIdx] = await Promise.all([
+        readDashboardsIndex().catch(() => null),
+        readDesignSystemsIndex().catch(() => null),
+      ]);
+      return sendHtml(
+        res,
+        startersHtml({
+          dashboards: dashIdx?.dashboards || [],
+          templates: tmplIdx?.systems || [],
+          slopstrap: frontend.publicManifest?.slopstrap || null,
+        }),
+      );
+    }
 
     if (p === "/slopstrap") return sendHtml(res, slopstrapHtml(frontend.publicManifest));
 
     if (p === "/assets" || p === "/assets/") {
       const proto = String(req.headers["x-forwarded-proto"] || "http").split(",")[0].trim();
       const origin = `${proto}://${req.headers.host || "127.0.0.1:8787"}`;
-      return sendHtml(res, assetsHtml(frontend.publicManifest, frontend.importMap(), origin));
+      const libIndex = await readLibrariesIndex().catch(() => null);
+      const libraries = await Promise.all(
+        (libIndex?.libraries || []).map(async (row) => (await readLibraryEntry(row.id).catch(() => null)) || row),
+      );
+      return sendHtml(res, assetsHtml(frontend.publicManifest, frontend.importMap(), origin, libraries));
     }
     if (p === "/assets/manifest.json") {
       return frontend.publicManifest ? json(res, 200, frontend.publicManifest) :
@@ -765,6 +936,27 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { "content-type": "text/markdown; charset=utf-8" });
       return res.end(content);
     }
+    if (p === "/heroui/css/heroui.min.css") {
+      const cssPath = join(CACHE_DIR, "heroui", "styles", "heroui.min.css");
+      if (!existsSync(cssPath)) return json(res, 404, { error: "heroui.min.css not in cache" });
+      const css = await readFile(cssPath);
+      res.writeHead(200, {
+        "content-type": "text/css; charset=utf-8",
+        "content-length": css.length,
+        "cache-control": "public, max-age=86400",
+      });
+      return res.end(css);
+    }
+    const mHeroPreview = p.match(/^\/heroui\/preview\/([a-z0-9-]+)$/);
+    if (mHeroPreview) {
+      const doc = heroUiPreviewDocument(mHeroPreview[1], {
+        cssHref: "/heroui/css/heroui.min.css",
+        theme: url.searchParams.get("theme") || "light",
+      });
+      return doc
+        ? sendHtml(res, doc, "native")
+        : json(res, 404, { error: "heroui live preview not available for this component", slug: mHeroPreview[1] });
+    }
     const mHeroComp = p.match(/^\/heroui\/component\/([a-z0-9-]+)$/);
     if (mHeroComp) {
       const catalog = await readHeroUiCatalog();
@@ -823,6 +1015,102 @@ const server = createServer(async (req, res) => {
       if (content === null) return json(res, 404, { error: "baseui doc not in cache", path: entry.path });
       const reuiSlugs = await baseUiReuiSlugs();
       return sendHtml(res, baseUiDocHtml(catalog, entry, content, { reuiSlugs }));
+    }
+
+    // ------------------------------------------------------ UI kits (generic)
+    if (p === "/uikits" || p === "/uikits/") {
+      return sendHtml(res, uikitsIndexHtml(await readUikitsIndex()));
+    }
+    if (p === "/api/uikits") {
+      const q = (url.searchParams.get("q") || "").trim();
+      if (q) {
+        return json(
+          res,
+          200,
+          await searchUikits({
+            query: q,
+            kit: url.searchParams.get("kit") || "",
+            kind: url.searchParams.get("kind") || "",
+            limit: url.searchParams.get("limit") || 20,
+          }),
+        );
+      }
+      return json(res, 200, await readUikitsIndex());
+    }
+    const mUikitApiCatalog = p.match(/^\/api\/uikits\/([a-z0-9-]+)\/catalog\.json$/);
+    if (mUikitApiCatalog) {
+      const catalog = await readUikitCatalog(mUikitApiCatalog[1]);
+      if (!catalog) return json(res, 404, { error: "uikit catalog not in cache" });
+      return json(res, 200, catalog);
+    }
+    // The baked file manifest. design_uikit_get_source reads it to resolve a
+    // path suffix, so remote mode needs it mirrored like the catalog.
+    const mUikitApiFiles = p.match(/^\/api\/uikits\/([a-z0-9-]+)\/files\.json$/);
+    if (mUikitApiFiles) {
+      const manifest = await readUikitFiles(mUikitApiFiles[1]);
+      if (!manifest) return json(res, 404, { error: "uikit file manifest not in cache" });
+      return json(res, 200, manifest);
+    }
+    const mUikitApiFile = p.match(/^\/api\/uikits\/([a-z0-9-]+)\/file\/([\w./-]+)$/);
+    if (mUikitApiFile) {
+      const content = await readUikitFile(mUikitApiFile[1], mUikitApiFile[2]);
+      if (content === null) return json(res, 404, { error: "uikit file not in cache" });
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+      return res.end(content);
+    }
+    const mUikitKit = p.match(/^\/uikits\/([a-z0-9-]+)\/?$/);
+    if (mUikitKit) {
+      const catalog = await readUikitCatalog(mUikitKit[1]);
+      if (!catalog) return json(res, 404, { error: "uikit kit not in cache" });
+      return sendHtml(res, uikitKitHtml(catalog));
+    }
+    const mUikitRaw = p.match(/^\/uikits\/([a-z0-9-]+)\/raw\/([\w./-]+)$/);
+    if (mUikitRaw) {
+      // Baked asset bytes for preview pages: css under assets/ only.
+      if (!mUikitRaw[2].startsWith("assets/") || !mUikitRaw[2].endsWith(".css")) {
+        return json(res, 404, { error: "only baked css assets are served raw" });
+      }
+      const content = await readUikitFile(mUikitRaw[1], mUikitRaw[2]);
+      if (content === null) return json(res, 404, { error: "uikit file not in cache" });
+      res.writeHead(200, { "content-type": "text/css; charset=utf-8" });
+      return res.end(content);
+    }
+    const mUikitPreview = p.match(/^\/uikits\/([a-z0-9-]+)\/preview\/([a-z0-9-]+)$/);
+    if (mUikitPreview) {
+      const catalog = await readUikitCatalog(mUikitPreview[1]);
+      if (!catalog) return json(res, 404, { error: "uikit kit not in cache" });
+      const item = findUikitItem(catalog, mUikitPreview[2]);
+      if (!item || !item.previewable) return json(res, 404, { error: "no live preview for this item" });
+      const cssRel = (item.source || []).find((f) => f.startsWith("assets/") && f.endsWith(".css"));
+      if (!cssRel) return json(res, 404, { error: "no css asset for this item" });
+      const cssText = await readUikitFile(catalog.kit, cssRel);
+      return sendHtml(res, uikitPreviewHtml(catalog, { ...item, _cssText: cssText || "" }, cssRel));
+    }
+    const mUikitItem = p.match(/^\/uikits\/([a-z0-9-]+)\/item\/([a-z0-9-]+)$/);
+    if (mUikitItem) {
+      const catalog = await readUikitCatalog(mUikitItem[1]);
+      if (!catalog) return json(res, 404, { error: "uikit kit not in cache" });
+      const item = findUikitItem(catalog, mUikitItem[2]);
+      if (!item) return json(res, 404, { error: "uikit item not in catalog" });
+      const manifest = await readUikitFiles(catalog.kit);
+      const wanted = [...(item.docs || []), ...(item.source || []), ...(item.demo || []), ...(item.registry || [])];
+      const itemFiles = Object.entries(manifest?.files || {})
+        .filter(([path]) => wanted.includes(path))
+        .map(([path, bytes]) => ({ path, bytes }));
+      let docsContent = "";
+      if (item.docs.length) {
+        const primary = item.primaryDoc && item.docs.includes(item.primaryDoc) ? item.primaryDoc : item.docs[0];
+        docsContent = (await readUikitFile(catalog.kit, primary)) || "";
+      }
+      return sendHtml(res, uikitItemHtml(catalog, item, docsContent, itemFiles));
+    }
+    const mUikitFile = p.match(/^\/uikits\/([a-z0-9-]+)\/file\/([\w./-]+)$/);
+    if (mUikitFile) {
+      const catalog = await readUikitCatalog(mUikitFile[1]);
+      if (!catalog) return json(res, 404, { error: "uikit kit not in cache" });
+      const content = await readUikitFile(catalog.kit, mUikitFile[2]);
+      if (content === null) return json(res, 404, { error: "uikit file not in cache" });
+      return sendHtml(res, uikitFileHtml(catalog, mUikitFile[2], content));
     }
 
     // ---------------------------------------------------- Mantine UI catalog
@@ -939,6 +1227,67 @@ const server = createServer(async (req, res) => {
       return sendHtml(res, daisyuiComponentHtml(catalog, detail, daisyuiHelpers()));
     }
 
+    // ---------------------------------------------------- Refero Styles
+    // The curated per-site design-system profiles behind refero.design/styles,
+    // served from the baked layer: mirrored SVG/WebP previews, no live frames.
+    const referoStylesHelpers = () => ({
+      assetPath: (file) => `/refero-styles/asset/${file}`,
+      designLink: (domain) => designIdForDomain(domain),
+    });
+    // domain -> main-catalog id, built once from the rows already in memory so
+    // a style page can cross-link the same site's classic catalog entry.
+    let designByDomain = null;
+    function designIdForDomain(domain) {
+      if (!designByDomain) {
+        designByDomain = new Map();
+        for (const row of catalog) {
+          try {
+            const host = new URL(row.url || "").hostname.replace(/^www\./, "");
+            if (host && !designByDomain.has(host)) designByDomain.set(host, row.id);
+          } catch {}
+        }
+      }
+      return designByDomain.get(String(domain || "").replace(/^www\./, "")) || null;
+    }
+    if (p === "/refero-styles" || p === "/refero-styles/") {
+      const [catalogRs, provenance] = await Promise.all([readReferoStylesCatalog(), readReferoStylesProvenance()]);
+      return sendHtml(res, referoStylesCatalogHtml(catalogRs, referoStylesHelpers()));
+    }
+    const mRsAsset = p.match(/^\/refero-styles\/asset\/([\w.-]+)$/);
+    if (mRsAsset) {
+      const buf = await readReferoStylesAsset(`assets/${mRsAsset[1]}`);
+      if (!buf) return json(res, 404, { error: "refero-styles asset not in cache", file: mRsAsset[1] });
+      res.writeHead(200, {
+        "content-type": contentTypeFor(mRsAsset[1]),
+        "content-length": buf.length,
+        "cache-control": "public, max-age=31536000, immutable",
+      });
+      return res.end(buf);
+    }
+    const mRsApi = p.match(/^\/api\/refero-styles\/style\/([0-9a-fA-F][0-9a-fA-F-]{35})$/);
+    if (mRsApi) {
+      const detail = await readReferoStyle(mRsApi[1]);
+      if (!detail) return json(res, 404, { error: "refero style not in cache", uuid: mRsApi[1] });
+      return json(res, 200, detail);
+    }
+    if (p === "/api/refero-styles") {
+      const q = (url.searchParams.get("q") || "").trim();
+      if (q) return json(res, 200, await searchReferoStyles({ query: q, limit: url.searchParams.get("limit") }));
+      const [catalogRs, provenance] = await Promise.all([readReferoStylesCatalog(), readReferoStylesProvenance()]);
+      return json(res, 200, {
+        ...catalogRs,
+        provenance: provenance
+          ? { fetchedAt: provenance.fetchedAt, gaps: (provenance.gaps || []).length }
+          : null,
+      });
+    }
+    const mRsStyle = p.match(/^\/refero-styles\/style\/([0-9a-fA-F][0-9a-fA-F-]{35})$/);
+    if (mRsStyle) {
+      const [catalogRs, detail] = await Promise.all([readReferoStylesCatalog(), readReferoStyle(mRsStyle[1])]);
+      if (!detail) return json(res, 404, { error: "refero style not in cache", uuid: mRsStyle[1] });
+      return sendHtml(res, referoStyleHtml(catalogRs, detail, referoStylesHelpers()));
+    }
+
     // ---------------------------------------------------- Dashboards
     if (p === "/dashboards" || p === "/dashboards/") {
       return sendHtml(res, dashboardsHtml(await readDashboardsIndex()));
@@ -988,9 +1337,43 @@ const server = createServer(async (req, res) => {
       return sendHtml(res, dashboardDetailHtml(rec));
     }
 
-    // ---------------------------------------------------- component library
+    // ---------------------------------------------------- unified component hub & CDN browsers
+    if (p === "/api/components-hub.json") {
+      return json(res, 200, await getComponentsHub());
+    }
     if (p === "/components" || p === "/components/") {
-      return sendHtml(res, componentsHtml(await readComponentsIndex(), frontend.thumbnailPath));
+      const [compIndex, hub] = await Promise.all([readComponentsIndex(), getComponentsHub()]);
+      return sendHtml(
+        res,
+        unifiedComponentsHtml({
+          componentsCatalog: compIndex,
+          hub,
+          thumbnailPath: frontend.thumbnailPath,
+          hubUrl: "/api/components-hub.json",
+        }),
+      );
+    }
+    if (p === "/components/compare" || p === "/components/compare/") {
+      return sendHtml(res, compareIndexHtml(await getComponentsHub()));
+    }
+    const mCompare = p.match(/^\/components\/compare\/([a-z0-9-]+)$/);
+    if (mCompare) {
+      const hub = await getComponentsHub();
+      const concept = (hub.concepts || []).find((c) => c.slug === mCompare[1]);
+      if (!concept) return json(res, 404, { error: "generic component not found", slug: mCompare[1] });
+      return sendHtml(res, compareConceptHtml(concept, hub));
+    }
+    if (p === "/components/icons" || p === "/components/icons/") {
+      const hub = await getComponentsHub();
+      return sendHtml(res, iconsBrowserHtml({ manifest: frontend.publicManifest, counts: { concepts: hub.concepts.length } }));
+    }
+    if (p === "/components/charts" || p === "/components/charts/") {
+      const hub = await getComponentsHub();
+      return sendHtml(res, chartsBrowserHtml({ manifest: frontend.publicManifest, counts: { concepts: hub.concepts.length } }));
+    }
+    if (p === "/components/fonts" || p === "/components/fonts/") {
+      const hub = await getComponentsHub();
+      return sendHtml(res, fontsBrowserHtml({ manifest: frontend.publicManifest, counts: { concepts: hub.concepts.length } }));
     }
 
     if (["/tailwind", "/tailwind/", "/tailwind/hyperui", "/tailwind/shadcn"].includes(p)) {

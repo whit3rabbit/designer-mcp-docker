@@ -45,32 +45,245 @@ This is the core invariant. Every change is measured against it.
 
 ## Rule 2: the gallery is the pick-and-choose webserver
 
-`scripts/preview.mjs` is the only webserver. A user picks assets from it at
-these routes, all served from the local cache:
+`scripts/preview.mjs` is the only webserver, and `scripts/build-static.mjs`
+compiles the same UI into a 100% self-contained static site for GitHub Pages
+and GitLab Pages. A user picks assets from these routes, all served from the
+local cache and built frontend with zero outbound network calls:
 
 | Route | What a user picks from |
 |---|---|
-| `/` and `/design/:id` | 1,540 design systems: screenshot, tokens, type scale, DESIGN.md |
-| `/components` and `/component/:slug` | 109 AI components with full TSX source, plus the vendored Slopstrap entry (HTML examples with self-contained native previews and a thumbnail) |
+| `/` and `/api/designs-index.json` | Unified Design Systems gallery: **1,747 unique `DESIGN.md` systems** merging Classic Refero (1,342 — 588 joined by domain with Refero Styles deep profiles), standalone Refero Styles (200), OpenDesign (198), and vendored System Templates (7), with multi-facet client-side filtering (theme, 10 hue swatches, custom brand hex distance matcher, ground tone, palette feel, typography, industry, mood, surface, deliverables, URL query sync) |
+| `/design/:id` | Classic Refero or OpenDesign detail page: screenshot or live OpenDesign / Claude Design preview, tokens, type scale, `DESIGN.md`, copyable `designer:<source>:<id>` theme reference, and a direct Deep Style Profile banner when a matching Refero Styles record exists |
+| `/refero-styles` and `/refero-styles/style/:uuid` | 788 Refero Styles: per-site deep design-system profiles with named color tokens, surfaces, component CSS recipes, typography with substitutes, dos/donts, mirrored SVG/WebP assets (`/refero-styles/asset/:file`), Refero-authored `DESIGN.md`, and cross-link back to `/design/:id`; `/api/refero-styles*` serves JSON |
+| `/components` and `/api/components-hub.json` | Unified Components Hub: **2,035 components across 25 libraries** with explicit Library, Stack, and Live/Docs badges, library filter bar (GradientDeck AI, shadcn/ui, ReUI, HeroUI v3, Mantine, daisyUI, HyperUI, Base UI, plus all 16 UI kits), stack filter, and cross-library spotlight; initial SSR renders the 110 GradientDeck AI + Slopstrap cards with thumbnails |
+| `/components/compare` and `/components/compare/:slug` | Cross-Library Component Comparator: **49 canonical generic UI primitives** (Button, Dialog, Tabs, Accordion, Table, Card, Input, Select, Tooltip, Badge, Alert, Drawer, etc.) with an interactive Library Switcher tab bar framing live offline previews and docs side by side |
+| `/components/icons` | Offline Icons Browser: searchable 1,500+ Lucide icons rendered directly from cached `lucide.min.js` with size/stroke/color sliders and one-click Copy SVG, React JSX, and HTML |
+| `/components/charts` | Offline Charts & Data Viz showcase: live interactive Chart.js, Apache ECharts, ApexCharts, D3.js, and Tabulator Data Grid examples powered by local `/assets/.../starter/vendor/` bundles with copyable embed snippets |
+| `/components/fonts` | Offline Local Fonts specimen tester: live editable previewer for all 11 baked `@fontsource` woff2 families (`fonts.css`) with size/weight controls and copyable CSS |
+| `/component/:slug` | Individual GradientDeck AI (109) or Slopstrap (1) component detail page: live preview iframe + full TSX/HTML source per variant |
 | `/reui` and `/reui/:category` | 1,264 ReUI components in 87 categories: live previews, Radix + Base UI TSX |
+| `/heroui`, `/heroui/component/:slug`, `/heroui/guide/:slug`, `/heroui/preview/:slug` | 73 HeroUI v3 components (baked `@heroui/react` docs), 16 guides, oklch theme variables, per-component `@heroui/styles` CSS, plus **24 live offline CSS previews** rendered via `/heroui/css/heroui.min.css` (Light/Dark toggle); `/api/heroui*` serves JSON |
+| `/mantine` and `/mantine/category/:slug`, `/mantine/component/:slug` | 123 ui.mantine.dev ready-made components: full TSX + CSS module source, category illustrations, demo images; `/mantine/preview/:slug` frames the live offline preview rendered from the vendored `@mantine` packages; `/api/mantine*` serves JSON |
+| `/baseui` and `/baseui/doc/:section/:slug` | 37 Base UI (`@base-ui/react`) headless component docs and 42 guides (overview, handbook, utilities), baked from first-party `llms.txt` docs; docs-only, cross-linked to the ReUI gallery's Base UI variants; `/api/baseui*` serves JSON |
+| `/uikits`, `/uikits/:kit`, `/uikits/:kit/item/:slug`, `/uikits/:kit/file/:path`, `/uikits/:kit/preview/:slug` | 16 UI kits in one generic layer: Chakra UI, Material UI, Ant Design, PrimeReact 10 (MIT line), coss ui, Magic UI, Motion Primitives, UnoCSS, Panda CSS, vanilla-extract, StyleX, Open Props, Ark UI baked (docs + demo/component source + registry JSONs + css assets); React Bits, Aceternity UI and 21st.dev as licence-restricted `llms.txt` pointer kits; Open Props token sheets render live previews against baked css; `/api/uikits*` serves JSON |
+| `/daisyui` and `/daisyui/component/:slug` | 68 daisyUI 5 components with upstream agent docs, class tables and copyable example HTML; `/daisyui/preview/:slug` (+`?theme=`) frames the native offline preview rendered by the vendored compiled css (all 35 themes); `/api/daisyui*` serves JSON |
+| `/tailwind`, `/tailwind/shadcn`, `/tailwind/:source/:slug` | HyperUI (68 HTML/Tailwind groups, light/dark) and shadcn/ui (9 React/Tailwind groups) rendered live offline from cached bundles |
+| `/starters` | Unified Starters hub combining Offline Dashboard Starters, Design System Starter Kits, and Slopstrap |
 | `/dashboards` and `/dashboard/:slug` | 2 dashboard starters with offline zips and bundled fonts |
-| `/heroui` and `/heroui/component/:slug`, `/heroui/guide/:slug` | 73 HeroUI v3 components (baked @heroui/react docs), 16 guides, oklch theme variables, per-component @heroui/styles CSS; `/api/heroui*` serves the same catalog as JSON |
-| `/mantine` and `/mantine/category/:slug`, `/mantine/component/:slug` | 123 ui.mantine.dev ready-made components: full TSX + CSS module source, category illustrations, demo images; `/mantine/preview/:slug` frames the live offline preview rendered from the vendored @mantine packages; `/api/mantine*` serves the same catalog as JSON |
-| `/baseui` and `/baseui/doc/:section/:slug` | 37 Base UI (`@base-ui/react`) headless component docs and 42 guides (overview, handbook, utilities), baked from the first-party llms.txt docs; docs-only, cross-linked to the ReUI gallery's Base UI variants; `/api/baseui*` serves the same catalog as JSON |
-| `/daisyui` and `/daisyui/component/:slug` | 68 daisyUI 5 components with the upstream agent docs, class tables and copyable example HTML; `/daisyui/preview/:slug` (+`?theme=`) frames the native offline preview rendered by the vendored compiled css (all 35 themes); `/api/daisyui*` serves the same catalog as JSON |
-| `/presets` and `/presets/:kind` | gradients, patterns, glass effects with real CSS |
-| `/templates` and `/template/:slug` | 7 vendored design-system templates: tokens, theme knobs, manifest, files (loam ships the slide-first deck starter) |
-| `/slopstrap` | the vendored Slopstrap joke framework rendered live: zip download, attribution for Mike Lacher (MIT), slop-level switcher |
-| `/api/designs`, `/api/search?q=`, `/api/facets` | JSON for programmatic picking |
-| `/api/libraries` and `/api/library/:id` | install manifests for the common frontend stack: react, tailwind, shadcn, fonts, icons (JSON only, no HTML page) |
-| `/assets` | built frontend assets as a local CDN: offline starter (zip + page), browser modules, tailwind examples, template files, thumbnails, import map |
-| `/assets/importmap.json` | the offline import map: bare specifiers (react, motion, radix-ui, shadcn/*) resolved to content-addressed module URLs on this origin |
-| `/thumb/:id` | local WebP thumbnail bytes (jpg/png also accepted) |
-| `/skill` and `/skill/marketplace.zip` | the plugin skills zip for offline download (five skills), and the same plugin as a local marketplace for offline `claude plugin marketplace add` |
+| `/templates` and `/template/:slug` | 7 vendored design-system templates: tokens, theme knobs, manifest, files, live Landing & Deck previews (loam ships the slide-first deck starter) |
+| `/slopstrap` | The vendored Slopstrap joke framework rendered live: zip download, attribution for Mike Lacher (MIT), slop-level switcher |
+| `/presets` and `/presets/:kind` | 159 background patterns, gradients, and Liquid Glass effects with real CSS |
+| `/assets` and `/assets/importmap.json` | Offline frontend CDN (`manifest.json`, `importmap.json`, starter ZIP, vendor JS/CSS, fonts), **Library Install Manifests** rendered from `data/libraries/`, quick links to Icons/Charts/Fonts, and UI SDK Docs |
+| `/docs` | Offline `@ui-sdk/core`, `@ui-sdk/react`, and `@ui-sdk/web` markdown docs viewer (`/api/ui-sdk-docs*`) |
+| `/api/designs`, `/api/search?q=`, `/api/facets`, `/api/libraries`, `/api/library/:id` | JSON endpoints for programmatic picking and MCP remote mode |
+| `/api/picks` and `/api/picks/:ref` | Live `GET`/`POST`/`DELETE` MCP Picks queue on `preview.mjs` (`DESIGN_PICKS_FILE`, default `~/.designer-mcp/picks.json`), powering the floating **MCP Picks Tray** and `+ Send to MCP` buttons (disabled cleanly on static Pages builds via `data-picks-api=""`) |
+| `/thumb/:id` | Local WebP thumbnail bytes (jpg/png/SVG fallback; never redirects to a CDN) |
+| `/skill` and `/skill/marketplace.zip` | The plugin skills zip for offline download (five skills), and the same plugin as a local marketplace for offline `claude plugin marketplace add` |
 
 - New pages/routes must be answerable from the cache alone (Rule 1).
-- Keep the DESIGN.md output byte-identical to what `refero_design_md` returns.
+- Keep the `DESIGN.md` output byte-identical to what `refero_design_md` returns.
   Both must call the upstream package's own `renderDesignMd`.
+
+## Webserver, Static Hosting & UI Architecture
+
+Read this before modifying any HTML/CSS/JS in `scripts/lib/*-ui.mjs`,
+`scripts/preview.mjs`, or `scripts/build-static.mjs`.
+
+### Three hosting modes, one offline contract
+
+The exact same web interface runs in three environments with **zero outbound
+network requests**:
+
+1. **Local Node dev**: `DESIGN_CACHE_DIR="$PWD/bake" node scripts/preview.mjs`
+   on `127.0.0.1:8787`, reading `bake/` and `dist/frontend/`.
+2. **Docker container (air-gapped)**: `docker run --rm --network none -p 127.0.0.1:8787:8787 ghcr.io/whit3rabbit/designer-mcp:latest`,
+   reading baked `/cache` and `/app/frontend-cache`.
+3. **Static site (GitHub Pages & GitLab Pages)**: compiled to plain HTML, CSS,
+   JS, images, and `api/*.json` by `node scripts/build-static.mjs --out <dir>`
+   (previewable locally with `node scripts/static-serve.mjs`).
+   - `.github/workflows/pages.yml` builds GitHub Pages by running
+     `ghcr.io/whit3rabbit/designer-mcp:latest` with `--network none`,
+     bind-mounting the checked-out `scripts/` over `/app/scripts:ro`, and
+     writing into `/out` (`public/`).
+   - `.gitlab-ci.yml` runs `node /app/scripts/build-static.mjs --out public`
+     inside the same image.
+   - **No MCP runs on Pages**: GitHub/GitLab Pages hosts only static HTML,
+     cached assets, skill zips, and `api/*.json` endpoints.
+
+### Navigation, unified shell, and adaptive theming
+
+- **One shared shell**: `scripts/lib/ui.mjs` owns `BASE_CSS`, `NAV_CSS`,
+  `themeHead()`, `nav(active)`, and `subnav(items, active)`.
+  `scripts/lib/kit-ui.mjs` delegates `kitNav()` and `KIT_CSS` to `ui.mjs` so
+  `/` and `/design/:id` match every other page.
+- **5-pillar top navigation**: Historically, every new layer added a top-level
+  tab (reaching 16 scrolling tabs on subpages while `/` had an out-of-sync
+  7-tab nav). The nav is intentionally collapsed into **5 task-oriented
+  pillars**: `Design Systems`, `Components`, `Starters`, `Effects & Presets`,
+  and `Assets & Docs`, plus a Light/Dark toggle and `⬇ Skill` link. Section
+  sub-pages use `subnav()` strips below the main bar, and **every legacy
+  library URL** (`/refero-styles`, `/templates`, `/reui`, `/heroui`,
+  `/mantine`, `/daisyui`, `/baseui`, `/uikits`, `/tailwind`, `/dashboards`,
+  `/slopstrap`, `/docs`) stays mounted so bookmarks, MCP links, and tests
+  never break.
+- **Adaptive Light/Dark theme**: `<meta name="color-scheme" content="light dark">`
+  plus a tiny inline FOUC-prevention script (`themeHead()`) and CSS
+  `light-dark(...)` tokens (`--bg`, `--panel`, `--panel2`, `--line`, `--fg`,
+  `--strong`, `--text`, `--muted`, `--chip`, `--accent`, `--accent-bg`,
+  `--accent-line`, `--code-bg`, `--code-fg`, `--ok-fg`). The header toggle is
+  a two-state control that persists overrides to `localStorage("color-scheme")`
+  and deletes the key when reverting to the OS preference, syncing across tabs
+  via `storage` events. Never hardcode dark-only text/background hexes (like
+  `#c7cdd6` or `#262d46`) in UI modules; always use the CSS variables.
+
+### Why Design Systems and Components are unified
+
+- **Design Systems (`scripts/lib/designs-index.mjs`, `scripts/lib/designs-ui.mjs`)**:
+  Refero Classic, Refero Styles, OpenDesign, and System Templates all ship
+  `DESIGN.md` + color/type tokens. Splitting them across `/`,
+  `/refero-styles`, and `/templates` hid 588 overlapping sites and 200 unique
+  Refero Styles. `buildUnifiedDesignsIndex()` joins Classic Refero and Refero
+  Styles by domain, includes standalone Refero Styles, OpenDesign, and the 7
+  Templates, and computes offline filter facets (theme polarity, 10 hue
+  families, ground tone, luminance, temperature, contrast, font style/pairing,
+  moods, deliverables). Both `preview.mjs` and `build-static.mjs` serve the
+  same `unifiedDesignsHtml()` reading `api/designs-index.json`, avoiding
+  1,700+ inline DOM cards on initial paint.
+- **Components (`scripts/lib/components-index.mjs`, `scripts/lib/components-ui.mjs`)**:
+  Previously `/components` showed 109 unlabeled GradientDeck AI components
+  while general UI primitives were scattered across 7 other tabs, with 49+
+  concepts (Button, Dialog, Tabs, Accordion, Table, etc.) duplicated across
+  4–12 libraries. Now every card is explicitly badged with **Library + Stack +
+  Live/Docs**, users can filter in-place by any of the 25 libraries via
+  `api/components-hub.json`, or click any generic component to open
+  `/components/compare/:slug` and switch live offline previews across
+  libraries.
+- **Cached CDN Visual Browsers (`scripts/lib/cdn-ui.mjs`, `scripts/lib/heroui-preview.mjs`)**:
+  The frontend build already bakes `lucide.min.js` (1,500+ icons),
+  `chart.umd.min.js`, `echarts.min.js`, `apexcharts.min.js`, `d3.min.js`,
+  `tabulator.min.js`, 11 `@fontsource` woff2 families (`fonts.css`), and
+  `bake/heroui/styles/heroui.min.css` locally. `/components/icons`,
+  `/components/charts`, `/components/fonts`, and `/heroui/preview/:slug` turn
+  those already-cached bytes into live offline pickers with zero new build
+  dependencies.
+
+### MCP ↔ Webserver integration
+
+The MCP servers (`scripts/mcp-server.mjs`, `scripts/mcp-entry.mjs`) are **stdio
+JSON-RPC processes** — they never listen on an HTTP port and never require
+`preview.mjs` to be running. They integrate with the webserver/static site in
+five concrete ways:
+
+1. **"Send to MCP" Picks Queue & Universal `designer:*` Reference System**:
+   - **Shared URI grammar (`scripts/lib/picks.mjs`)**: Every pickable gallery
+     entity has a canonical `designer:<kind>:<id>` URI validated by
+     `parseDesignerRef()`:
+     `designer:refero:<uuid>`, `designer:opendesign:<slug>`,
+     `designer:style:<uuid>`, `designer:template:<slug>`,
+     `designer:component:<slug>[:<variant>]`, `designer:heroui:<slug>`,
+     `designer:mantine:<slug>`, `designer:daisyui:<slug>[?theme=<t>]`,
+     `designer:baseui:<slug>`, `designer:uikit:<kit>:<slug>`,
+     `designer:preset:<kind>:<id>`, `designer:reui:<cat>[:<item>]`,
+     `designer:dashboard:<slug>`, `designer:compare:<concept>`,
+     `designer:icon:<set>:<name>`, `designer:font:<slug>`,
+     `designer:chart:<lib>`, and `designer:library:<id>`.
+   - **Browser UI (`scripts/lib/ui.mjs`)**: Every page's top nav carries the
+     `⚡ MCP` tray button and floating **MCP Picks Tray** (`#mcp-tray`), plus
+     `+ Send to MCP` buttons (`mcpButton()` / `[data-mcp-ref]`) across Design
+     Systems cards & detail pages, Refero Styles, Templates, Components, the
+     Cross-Library Comparator (tracking the active library tab & daisyUI theme),
+     HeroUI, Mantine, daisyUI, Base UI, UI Kits, ReUI, Dashboards, Presets,
+     Icons, Charts, and Fonts. Each queued pick supports an inline user note and
+     1-click **Copy MCP Prompt** / **Copy IDs**.
+   - **Two-tier delivery (Live Sync vs Static Pages)**:
+     - On **`preview.mjs`** (local Node or Docker), `#mcp-tray` has
+       `data-picks-api="/api/picks"`. Clicking `+ Send to MCP` or editing a note
+       syncs live via same-origin `GET`/`POST`/`DELETE /api/picks`, persisted
+       atomically to `DESIGN_PICKS_FILE` (default `~/.designer-mcp/picks.json` —
+       intentionally **outside** `/cache` so read-only `/cache` mounts work).
+     - On **GitHub/GitLab Pages**, `build-static.mjs`'s `relativizeHtml()`
+       rewrites `data-picks-api="/api/picks"` to `data-picks-api=""` so static
+       pages **never fire a 404** and cleanly run in `Static · Copy Prompt` mode
+       backed by `localStorage`.
+   - **MCP tools & resource (`scripts/mcp-server.mjs`)**:
+     - `design_picks` (`action`: `list` | `add` | `remove` | `clear`,
+       `resolve`: boolean) reads the queue (from `DESIGN_GALLERY_URL/api/picks`
+       when configured, otherwise from `DESIGN_PICKS_FILE`) so the user can pick
+       items in the browser and tell their agent *"use what I sent from
+       Designer"*. Also exposed as MCP Resource `designer://picks`.
+     - `design_resolve` (`ref: "designer:..."`) resolves any canonical URI
+       across all 17 kinds into a compact summary + `nextTools` hints, handling
+       both live picks and prompts pasted from GitHub Pages.
+   - **Docker-to-Docker bridge**: If `preview.mjs` and `mcp-server.mjs` run in
+     two separate containers, share picks either by bind-mounting the same host
+     file (`-v ~/.designer-mcp:/state -e DESIGN_PICKS_FILE=/state/picks.json`)
+     or setting `DESIGN_GALLERY_URL=http://host.docker.internal:8787` on the MCP
+     container.
+2. **Remote Mode (`DESIGN_REMOTE_URL` / `--url`)**: `mcp-server.mjs` can read
+   its catalog, `DESIGN.md` files, and every layer (HeroUI, Mantine, daisyUI,
+   Base UI, UI kits, Refero Styles, templates, libraries, presets, UI SDK docs)
+   over HTTP from a hosted static site (GitHub Pages or GitLab Pages) or a
+   running gallery. Every remote read goes through `remoteJson`, `remoteText`,
+   and `remoteOr` in `scripts/lib/cache.mjs`, reading the static `api/*` tree
+   and falling back to local disk with `remoteNote` if unreachable.
+3. **Shared offline CDN (`design_assets`)**: `design_assets` and
+   `design_assets` read `DESIGN_FRONTEND_DIR`
+   (`/app/frontend-cache`), the exact same versioned `/assets/<version>/`
+   bundle and `importmap.json` served by `/assets` on the webserver.
+4. **Human-to-agent handoff**: Design detail pages (`/design/:id`) emit
+   copyable `designer:<source>:<id>` references (accepted directly by
+   `design_get` / `design_get (include: "markdown")`), copy-paste prompts for Open Design and
+   Claude Design, raw `DESIGN.md` downloads, and `/skill` +
+   `/skill/marketplace.zip` archives for air-gapped agent installation.
+5. **Complementary gallery-only surfaces**: ReUI, Dashboards, the Cross-Library
+   Comparator (`/components/compare`), and the CDN visual pickers (Icons,
+   Charts, Fonts) have no dedicated list/search MCP tools — they serve human
+   visual picking and still hand off to MCP via `+ Send to MCP` + `design_resolve`.
+
+### Webserver & static-build gotchas
+
+- **Dual-surface parity is mandatory**: Any new page, preview route, or JSON
+  endpoint added to `scripts/preview.mjs` **must** also be emitted by
+  `scripts/build-static.mjs` and covered in `relativizeHtml()` +
+  `staticHref()`.
+- **Non-root subpath hosting (GitHub/GitLab Pages)**: Pages sites live at
+  `https://<user>.github.io/<repo>/`, NOT `/`. Root-relative URLs
+  (`/api/...`, `/assets/...`, `/design/...`) break on Pages unless rewritten
+  to relative paths matching the file's directory depth (`prefixFor(depth)`).
+  Watch the depth integer closely: e.g., `components/index.html` is depth `1`,
+  `components/icons/index.html` is depth `2`, and
+  `heroui/component/<slug>/index.html` and
+  `components/compare/<slug>/index.html` are depth `3`. Always test static
+  builds served under a fake subpath like `/subpath/` in Playwright.
+- **How `pages.yml` builds**: Because `pages.yml` bind-mounts checked-out
+  `scripts/` over the `:latest` image with `--network none`, changes purely in
+  `scripts/` deploy on the next push to `main`. However, any UI change that
+  depends on new files in `bake/` (`/cache`) or `dist/frontend/`
+  (`/app/frontend-cache`) will not have those assets on Pages until a release
+  tag runs `publish.yml` and updates `:latest`.
+- **Strict CSP & zero off-origin enforcement**: `htmlHeaders(kind)` in
+  `scripts/lib/frontend.mjs` sets a strict Content-Security-Policy. `gallery`
+  pages allow `'self' 'unsafe-inline'` and `connect-src 'self'`; preview
+  iframes (`demo`, `tailwind`, `native`, `mantine`) enforce
+  `sandbox allow-scripts` and `connect-src 'none'`. `frontend/test-browser.mjs`
+  aborts and fails on any off-origin request, CSP violation, HTTP `>= 400`, or
+  `pageerror`. Never add external font/CDN URLs or `fetch()` inside preview
+  iframes.
+- **Keep `/components` SSR-ready**: The initial SSR render of `/components`
+  keeps the 110 GradientDeck AI + Slopstrap cards with real 640px thumbnails
+  and category filter buttons (`Voice`, etc.) directly in HTML (lazy-loading
+  `api/components-hub.json` only when switching to another library or Compare
+  mode). Both `selftest.mjs` (Slopstrap thumbnail check) and
+  `frontend/test-browser.mjs` (`Agent card` + `Voice` + `"voice orb"`) assert
+  this immediate SSR state.
+- **Callback vs string props in UI helpers**: `referoStyleHtml()` receives
+  `designLink` either as a URL string or a `(domain) => id` callback; always
+  resolve functions before interpolating into `href` attributes.
+- **Dockerfile `frontend-build` COPY list**: `scripts/preview.mjs`,
+  `scripts/build-static.mjs`, and `scripts/lib/*-ui.mjs` are copied into the
+  runtime image by `COPY scripts/ ./scripts/`. Only modules imported by
+  `frontend/*.mjs` need to be listed on the `frontend-build` stage's explicit
+  `COPY scripts/lib/...` line.
 
 ## Rule 3: MCP and skill integration
 
@@ -80,33 +293,51 @@ these routes, all served from the local cache:
   component, preset, library, and asset layers and works fully offline. Two
   upstream tools need network and are the documented exceptions:
   `refero_similar`, `refero_refresh`.
-- The `design_asset_*` tools read the built frontend (`DESIGN_FRONTEND_DIR`,
+- The `design_assets` tools read the built frontend (`DESIGN_FRONTEND_DIR`,
   `/app/frontend-cache` in the image), not `/cache`. A checkout without
   `npm run frontend:build` degrades to a graceful note, not an error.
 - The ReUI and dashboard layers are gallery-only: no MCP tools cover them.
   Route those asks to the gallery routes or the static `api/reui.json` /
   `api/dashboards.json` endpoints.
 - The HeroUI layer is gallery **and** MCP covered: the `/heroui` routes above
-  plus eight `design_heroui_*` tools, over the same baked cache
+  plus eight `design_kit_* (kit: "heroui")` tools, over the same baked cache
   (`data/heroui/pin.json` pins the versions; `npm run heroui` refetches).
 - The Mantine layer is gallery **and** MCP covered: the `/mantine` routes
-  above plus three `design_mantine_*` tools, over the same baked cache. The
+  above plus three `design_kit_* (kit: "mantine")` tools, over the same baked cache. The
   live previews esbuild-bundle the vendored npm tarballs in
   `mantine/vendor/` (`data/mantine/pin.json` pins them; `npm run mantine`
   refetches). A demo that fails to bundle ships source-only — never claim a
   preview that does not exist.
 - The daisyUI layer is gallery **and** MCP covered: the `/daisyui` routes
-  above plus three `design_daisyui_*` tools, over the same baked cache. The
+  above plus three `design_kit_* (kit: "daisyui")` tools, over the same baked cache. The
   vendored compiled css carries every component class and theme, so the
   native previews are plain HTML documents — no React, no Tailwind install
   (`data/daisyui/pin.json` pins the versions; `npm run daisyui` refetches).
   Component groups and the rendered examples are authored by this repo
   (upstream ships no machine-readable grouping); provenance records that.
 - The Base UI layer is gallery **and** MCP covered: the `/baseui` routes
-  above plus four `design_baseui_*` tools, over the same baked cache. Base UI
+  above plus four `design_kit_* (kit: "baseui")` tools, over the same baked cache. Base UI
   is headless, so the layer is docs-only: there are no previews to build, and
   the gallery cross-links ReUI for the rendered version
   (`data/baseui/pin.json` pins the licence ref; `npm run baseui` refetches).
+- The UI kits layer is gallery **and** MCP covered: the `/uikits` routes above
+  plus four generic `design_kit_*` tools, over the same baked cache
+  (`data/uikits/pins.json` pins every kit's source and licence;
+  `npm run uikits` refetches). One fetcher, one reader pair and one tool
+  family cover all the kits: add a kit by pinning it, never by forking the
+  layer. Kit licences are read from each kit's own archive at fetch time and
+  a mismatch skips the kit. React Bits (Commons Clause), Aceternity UI and
+  21st.dev are pointer kits by licence: their component code stays upstream,
+  only the first-party llms.txt index is baked.
+- The Refero Styles layer is gallery **and** MCP covered: the `/refero-styles`
+  routes above plus four `design_search / design_get` tools, over the same baked cache.
+  It is Refero's curated per-site design-system profiles (named tokens,
+  surfaces, component recipes with CSS, dos/donts, DESIGN.md export), fetched
+  from the public `/v1/styles` API that backs refero.design/styles under the
+  robots-permitted read `docs/DATA-SOURCE.md` classifies; records and assets
+  are incremental and content-addressed, so `npm run refero-styles` refetches
+  only what is new. Screenshots are baked as local WebP; the video previews
+  are not fetched.
 - Every `design_*` reply lands in a model's context. Keep replies inside the
   byte budgets `selftest.mjs` asserts (section 6), and keep `tools/list`
   inside its budget too. Rows are summaries with `detail: "full"` as the
@@ -179,7 +410,7 @@ these routes, all served from the local cache:
   - The `@ui-sdk/*` offline docs live under
     `plugins/designer-mcp/skills/designer-ui/ui-sdk/` (not `designer-mcp/`).
     `scripts/lib/ui-sdk-docs.mjs` and `scripts/build-static.mjs` must point
-    there, and `selftest.mjs` verifies `design_docs_search` / `design_docs_get`.
+    there, and `selftest.mjs` verifies `design_kit_search` / `design_kit_docs`.
   - Relative links inside `plugins/designer-mcp/skills/designer-mcp/references/skill-directory.md`
     resolve from `references/`, so sibling skills need `../../<skill>/SKILL.md`
     (whereas the shell `test -f ../design-system/SKILL.md` check resolves
@@ -254,6 +485,7 @@ these routes, all served from the local cache:
 | `data/design-systems/` | vendored source of the 7 design-system templates, copied into `bake/design-systems/` by `npm run bake` and staged into a live cache by `npm run templates` |
 | `data/libraries/` | hand-authored library install manifests (no fetcher, no network), copied into `bake/libraries.json` + `bake/libraries/` by `npm run bake` |
 | `data/slopstrap/` | vendored Slopstrap framework (upstream zip verbatim, css/js, examples, catalog record, no fetcher), copied into `bake/slopstrap/` by `npm run bake` and staged into a live cache by `npm run slopstrap` |
+| `data/uikits/` | hand-authored pins for the UI kits layer (`pins.json`: 15 kit specs, npm tarball / GitHub tarball / llms.txt sources with licence pins), consumed by `scripts/fetch-uikits.mjs` into `bake/uikits/` |
 | `dist/` | built skill zip |
 
 - Changing cache format or fetchers: run `npm run bake`, then `npm test`
@@ -360,7 +592,7 @@ selftest.
   Storybook files by default for that reason, and only the MCP handler opts
   out.
 - A limit can make a tool useless. The reply-size guard once blocked
-  `design_template_file` for the 135 KB deck stage script, a file the skills
+  `design_file` for the 135 KB deck stage script, a file the skills
   tell agents to copy. Before adding or lowering a limit, sweep every
   record the tool can return (all designs, all component variants, all
   template files), not a few, and give the tool an argument that gets under

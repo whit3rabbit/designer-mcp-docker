@@ -112,7 +112,7 @@ The wrapper exists to fail loudly when the cache is missing: an MCP server
 that starts and serves an empty catalog looks like a working server with no
 data. The error goes to **stderr**, because stdout is the MCP transport.
 
-`scripts/mcp-server.mjs` is the generic server: 44 `design_*` tools across
+`scripts/mcp-server.mjs` is the generic server: 17 `design_*` tools across
 every source, fully offline. It is the recommended integration path.
 
 It keeps the same intent by a different route. It starts even when the

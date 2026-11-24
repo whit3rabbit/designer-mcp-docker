@@ -213,6 +213,8 @@ async function main() {
   await copyDir("mantine");
   await copyDir("daisyui");
   await copyDir("baseui");
+  await copyDir("uikits");
+  await copyDir("refero-styles");
   await copyFile("presets.json");
   await copyDir("presets");
 

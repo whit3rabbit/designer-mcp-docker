@@ -147,7 +147,7 @@ The page expects `vendor/heroui.min.css` beside it, copied from `node_modules/@h
 | Loading                     | `data-pending="true"`                                                         |
 | Overlay animation           | `data-entering="true"` / `data-exiting="true"`, `data-placement="top          | bottom | left | right"` |
 
-4. **Structure matters for compound parts.** Selectors such as `.switch[aria-checked="true"] .switch__control` expect the documented nesting. Mirror the anatomy from the component docs (`design_heroui_get_docs {"components": ["<name>"]}`, or `node scripts/list_component_classes.mjs <name> --css`).
+4. **Structure matters for compound parts.** Selectors such as `.switch[aria-checked="true"] .switch__control` expect the documented nesting. Mirror the anatomy from the component docs (`design_kit_docs {"components": ["<name>"]}`, or `node scripts/list_component_classes.mjs <name> --css`).
 5. **Use real elements.** A `<button>` gets focus, keyboard activation, and `:disabled` for free; a `<div class="button">` gets none of it.
 
 ## Variant functions (any JS framework)

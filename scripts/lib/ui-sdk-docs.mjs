@@ -8,9 +8,9 @@
 
 import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getRemoteUrl, remoteJson, remoteText, REMOTE_DOWN } from "./cache.mjs";
+import { getRemoteUrl, remoteJson, remoteText, REMOTE_DOWN, createBoundedCache } from "./cache.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // SKILL_DIR keeps two legacy meanings: the old single-skill dir (which held
@@ -26,7 +26,7 @@ const DEFAULT_UI_SDK_DIR = resolve(
 );
 
 let cachedIndex = null;
-const docContentCache = new Map();
+const docContentCache = createBoundedCache(64);
 
 async function walkMarkdown(dir, base, out) {
   if (!existsSync(dir)) return;
@@ -76,6 +76,7 @@ export async function readUiSdkDoc(docPath, dir = DEFAULT_UI_SDK_DIR) {
   if (!clean || clean.includes("..") || !/^[a-z0-9._/-]+$/i.test(clean)) return null;
   if (docContentCache.has(clean)) return docContentCache.get(clean);
 
+  let remoteDown = false;
   if (getRemoteUrl()) {
     const text = await remoteText(`api/ui-sdk-docs/${clean}`);
     if (typeof text === "string") {
@@ -84,12 +85,16 @@ export async function readUiSdkDoc(docPath, dir = DEFAULT_UI_SDK_DIR) {
     }
     // A 404 is the host's answer. Only an unreachable host falls back to disk.
     if (text !== REMOTE_DOWN) return null;
+    remoteDown = true;
   }
 
-  const full = resolve(dir, clean);
-  if (!full.startsWith(resolve(dir) + "/") || !existsSync(full)) return null;
+  const base = resolve(dir);
+  const full = resolve(base, clean);
+  if (!full.startsWith(base + sep) || !existsSync(full)) return null;
   const text = await readFile(full, "utf8");
-  docContentCache.set(clean, text);
+  // The local doc stands in while the host is unreachable, but is not
+  // permanently cached: the next call asks the host again.
+  if (!remoteDown) docContentCache.set(clean, text);
   return text;
 }
 

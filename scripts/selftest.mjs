@@ -18,13 +18,17 @@
  *      the `design_daisyui_*` tools
  *  10. the offline Base UI docs layer: baked catalog, gallery endpoints, and
  *      the `design_baseui_*` tools
+ * 10b. the offline UI kits layer: every pinned kit baked clean and the
+ *      `design_uikit_*` tools
+ * 10c. the offline Refero Styles layer: every record swept for its DESIGN.md
+ *      and mirrored assets, gallery pages, and the `design_style_*` tools
  *
  * Usage: node scripts/selftest.mjs [--cache <dir>]
  * Defaults to the baked catalog when available so npm test checks the image inputs.
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -229,11 +233,13 @@ if (!existsSync(thumbsDir)) {
 // ------------------------------------------------------- 4. preview
 section("4. Preview server");
 const PORT = 8799;
+const SELFTEST_PICKS_FILE = join(tmpdir(), `designer-selftest-picks-${process.pid}.json`);
 const preview = spawn("node", [join(HERE, "preview.mjs")], {
   env: {
     ...process.env,
     DESIGN_CACHE_DIR: CACHE_DIR,
     REFERO_CACHE_DIR: CACHE_DIR,
+    DESIGN_PICKS_FILE: SELFTEST_PICKS_FILE,
     PORT: String(PORT),
     HOST: "127.0.0.1",
   },
@@ -260,6 +266,17 @@ try {
 
   const html = await fetch(`http://127.0.0.1:${PORT}/`).then((r) => r.text());
   html.includes("Design Systems") ? ok("gallery HTML served") : bad("gallery HTML wrong");
+
+  // Live MCP Picks HTTP API (/api/picks)
+  const pickPost = await fetch(`http://127.0.0.1:${PORT}/api/picks`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ref: "designer:heroui:button", label: "HeroUI v3 — Button", note: "Primary CTA" }),
+  }).then((r) => r.json());
+  const pickGet = await fetch(`http://127.0.0.1:${PORT}/api/picks`).then((r) => r.json());
+  pickPost.ok && pickGet.live && pickGet.picks?.some((p) => p.ref === "designer:heroui:button" && p.note === "Primary CTA")
+    ? ok("api/picks POST + GET persists live picks to DESIGN_PICKS_FILE")
+    : bad("api/picks POST/GET failed");
 
   // ------------------------------------- asset CDN: import map and revalidation
   const importmap = await fetch(`http://127.0.0.1:${PORT}/assets/importmap.json`).then((r) => r.json());
@@ -585,8 +602,13 @@ try {
 // ------------------------------------------------------- 6. generic MCP
 section("6. Generic MCP server (stdio, design_* tools)");
 await new Promise((r) => setTimeout(r, 800));
-const designMcp = spawn("node", [join(HERE, "mcp-server.mjs")], {
-  env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR, REFERO_CACHE_DIR: CACHE_DIR },
+const designMcp = spawn("node", [join(HERE, "mcp-server.mjs"), "--legacy-tools"], {
+  env: {
+    ...process.env,
+    DESIGN_CACHE_DIR: CACHE_DIR,
+    REFERO_CACHE_DIR: CACHE_DIR,
+    DESIGN_PICKS_FILE: SELFTEST_PICKS_FILE,
+  },
   stdio: ["pipe", "pipe", "pipe"],
 });
 let dbuf = "";
@@ -710,11 +732,57 @@ try {
   // context, so the defaults are held to a budget here. Raise a number only
   // on purpose: a bigger default is a cost every caller pays.
   const replyBytes = (res) => Buffer.byteLength(res?.result?.content?.[0]?.text ?? "");
+  let styleUuidForBudget = null;
+  try {
+    styleUuidForBudget =
+      JSON.parse(readFileSync(join(CACHE_DIR, "refero-styles", "catalog.json"), "utf8")).styles?.[0]?.uuid || null;
+  } catch {}
   const manifestBytes = Buffer.byteLength(JSON.stringify(dtools.result));
-  manifestBytes <= 36_000
-    ? ok(`tools/list is ${manifestBytes} bytes (budget 36000)`)
-    : bad(`tools/list grew to ${manifestBytes} bytes (budget 36000): trim descriptions or drop parameters`);
+  manifestBytes <= 60_000
+    ? ok(`--legacy-tools tools/list is ${manifestBytes} bytes (budget 60000)`)
+    : bad(`--legacy-tools tools/list grew to ${manifestBytes} bytes (budget 60000): trim descriptions or drop parameters`);
 
+  // Picks bridge: section 4 posted designer:heroui:button via preview /api/picks;
+  // verify design_picks, designer://picks resource, and design_resolve all read it.
+  const picksListRes = toolJson(await dcall("tools/call", {
+    name: "design_picks", arguments: { action: "list", resolve: true },
+  }));
+  picksListRes?.picks?.some((p) => p.ref === "designer:heroui:button") &&
+    picksListRes?.resolved?.some((r) => r.ref === "designer:heroui:button" && r.found === true)
+    ? ok("design_picks reads picks sent from preview /api/picks and resolves them")
+    : bad("design_picks did not return or resolve the queued preview pick");
+
+  const picksResource = await dcall("resources/read", { uri: "designer://picks" });
+  const picksResourceJson = JSON.parse(picksResource?.result?.contents?.[0]?.text || "{}");
+  picksResourceJson?.picks?.some((p) => p.ref === "designer:heroui:button")
+    ? ok("designer://picks MCP resource returns the live picks queue")
+    : bad("designer://picks MCP resource missing queued pick");
+
+  const resolvedIcon = toolJson(await dcall("tools/call", {
+    name: "design_resolve", arguments: { ref: "designer:icon:lucide:sparkles" },
+  }));
+  const resolvedDaisy = toolJson(await dcall("tools/call", {
+    name: "design_resolve", arguments: { ref: "designer:daisyui:button?theme=dracula" },
+  }));
+  resolvedIcon?.found === true && resolvedIcon?.data?.component === "Sparkles" &&
+    resolvedDaisy?.found === true && resolvedDaisy?.data?.theme === "dracula"
+    ? ok("design_resolve resolves icons, themed daisyUI components, and cross-layer refs")
+    : bad("design_resolve failed on icon or themed daisyUI ref");
+
+  await dcall("tools/call", { name: "design_picks", arguments: { action: "clear" } });
+  const afterClear = toolJson(await dcall("tools/call", { name: "design_picks", arguments: { action: "list" } }));
+  afterClear?.total === 0
+    ? ok("design_picks clear empties the queue")
+    : bad("design_picks clear did not empty the queue");
+  try { rmSync(SELFTEST_PICKS_FILE, { force: true }); } catch {}
+
+  // The largest kit by item count: its default page is the widest list reply.
+  let biggestUikit = null;
+  try {
+    biggestUikit = JSON.parse(readFileSync(join(CACHE_DIR, "uikits", "index.json"), "utf8")).kits
+      .filter((k) => k.kind !== "pointer" && !k.error)
+      .sort((a, b) => (b.totals?.items || 0) - (a.totals?.items || 0))[0]?.kit;
+  } catch {}
   const budgetChecks = [
     ["design_search", { query: "dark developer tool" }, 14_000],
     ["design_list", {}, 32_000],
@@ -725,6 +793,18 @@ try {
     ["design_mantine_list_components", {}, 40_000],
     ["design_daisyui_list_components", {}, 24_000],
     ["design_baseui_list_components", {}, 32_000],
+    ["design_uikit_list", {}, 8_000],
+    ...(biggestUikit ? [["design_uikit_list", { kit: biggestUikit }, 40_000]] : []),
+    ["design_dashboards_list", {}, 12_000],
+    ["design_style_list", {}, 16_000],
+    ["design_style_search", {}, 14_000],
+    // The per-style tools need a uuid; take the first baked one when present.
+    ...(styleUuidForBudget
+      ? [
+          ["design_style_get", { uuid: styleUuidForBudget }, 24_000],
+          ["design_style_get_md", { uuid: styleUuidForBudget }, 46_000],
+        ]
+      : []),
   ];
   const overBudget = [];
   for (const [tool, args, budget] of budgetChecks) {
@@ -844,7 +924,7 @@ try {
 
     const tg = await dcall("tools/call", {
       name: "design_template_get",
-      arguments: { slug: tslug },
+      arguments: { slug: tslug, detail: "full" },
     });
     const tgr = JSON.parse(tg.result.content[0].text);
     tgr.manifest?.schemaVersion === "design-system-manifest/v1" && tgr.tokens?.length >= 48
@@ -1331,7 +1411,7 @@ if (!existsSync(heroCatPath)) {
 
   // ------------------------------------------ MCP smoke, section 6 idiom
   await new Promise((r) => setTimeout(r, 800));
-  const heroMcp = spawn("node", [join(HERE, "mcp-server.mjs")], {
+  const heroMcp = spawn("node", [join(HERE, "mcp-server.mjs"), "--legacy-tools"], {
     env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR, REFERO_CACHE_DIR: CACHE_DIR },
     stdio: ["pipe", "pipe", "pipe"],
   });
@@ -1595,7 +1675,7 @@ if (!existsSync(mantineCatPath)) {
 
   // ------------------------------------------ MCP smoke, section 6 idiom
   await new Promise((r) => setTimeout(r, 800));
-  const mantMcp = spawn("node", [join(HERE, "mcp-server.mjs")], {
+  const mantMcp = spawn("node", [join(HERE, "mcp-server.mjs"), "--legacy-tools"], {
     env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR, REFERO_CACHE_DIR: CACHE_DIR },
     stdio: ["pipe", "pipe", "pipe"],
   });
@@ -1808,7 +1888,7 @@ if (!existsSync(daisyuiCatPath)) {
 
   // ------------------------------------------ MCP smoke, section 6 idiom
   await new Promise((r) => setTimeout(r, 800));
-  const daisyMcp = spawn("node", [join(HERE, "mcp-server.mjs")], {
+  const daisyMcp = spawn("node", [join(HERE, "mcp-server.mjs"), "--legacy-tools"], {
     env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR, REFERO_CACHE_DIR: CACHE_DIR },
     stdio: ["pipe", "pipe", "pipe"],
   });
@@ -1998,7 +2078,7 @@ if (!existsSync(baseuiCatPath)) {
 
   // ------------------------------------------ MCP smoke, section 6 idiom
   await new Promise((r) => setTimeout(r, 800));
-  const baseMcp = spawn("node", [join(HERE, "mcp-server.mjs")], {
+  const baseMcp = spawn("node", [join(HERE, "mcp-server.mjs"), "--legacy-tools"], {
     env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR, REFERO_CACHE_DIR: CACHE_DIR },
     stdio: ["pipe", "pipe", "pipe"],
   });
@@ -2095,19 +2175,859 @@ if (!existsSync(baseuiCatPath)) {
   }
 }
 
+// ------------------------------------------------------- 10b. uikits layer
+section("10b. UI kits layer (generic offline)");
+const uikitsIndexPath = join(CACHE_DIR, "uikits", "index.json");
+if (!existsSync(uikitsIndexPath)) {
+  bad(`no uikits index at ${uikitsIndexPath} — run: npm run uikits && npm run bake`);
+} else {
+  const uikitsIndex = JSON.parse(readFileSync(uikitsIndexPath, "utf8"));
+  // The pinned kit set, matched against data/uikits/pins.json.
+  const pinsPath = join(HERE, "..", "data", "uikits", "pins.json");
+  const pins = JSON.parse(readFileSync(pinsPath, "utf8"));
+  const pinnedKits = pins.kits.map((k) => k.kit).sort();
+  const indexedKits = uikitsIndex.kits.map((k) => k.kit).sort();
+  JSON.stringify(pinnedKits) === JSON.stringify(indexedKits)
+    ? ok(`uikits index covers all ${pinnedKits.length} pinned kits`)
+    : bad(`uikits index kits (${indexedKits.join(", ")}) drift from pins.json (${pinnedKits.join(", ")}) — re-run: npm run uikits`);
+  const failedKits = uikitsIndex.kits.filter((k) => k.error);
+  failedKits.length === 0
+    ? ok("every pinned kit baked clean")
+    : bad(`kits with bake errors: ${failedKits.map((k) => `${k.kit} (${k.error})`).join("; ")} — re-run: npm run uikits`);
+  const pointerKits = uikitsIndex.kits.filter((k) => k.kind === "pointer");
+  pointerKits.length === 3
+    ? ok(`uikits index carries the 3 licence-restricted pointer kits (${pointerKits.map((k) => k.kit).join(", ")})`)
+    : bad(`uikits index carries ${pointerKits.length} pointer kits, expected 3`);
+
+  // Sweep every baked kit: catalog shape, licence, provenance checksums, and
+  // every item's doc and source paths must resolve on disk.
+  let sweptItems = 0;
+  const sweepProblems = [];
+  const kitSummaries = [];
+  for (const row of uikitsIndex.kits) {
+    if (row.kind === "pointer") continue;
+    const kitDir = join(CACHE_DIR, "uikits", row.kit);
+    const catPath = join(kitDir, "catalog.json");
+    if (!existsSync(catPath)) {
+      sweepProblems.push(`${row.kit}: no catalog.json`);
+      continue;
+    }
+    const catalog = JSON.parse(readFileSync(catPath, "utf8"));
+    if (!catalog.items?.length) {
+      sweepProblems.push(`${row.kit}: catalog has no items`);
+      continue;
+    }
+    const provPath = join(kitDir, "provenance.json");
+    if (!existsSync(provPath) || !Object.keys(JSON.parse(readFileSync(provPath, "utf8")).checksums || {}).length) {
+      sweepProblems.push(`${row.kit}: provenance thin`);
+    }
+    if (!catalog.license?.spdx) sweepProblems.push(`${row.kit}: no license in catalog`);
+    for (const item of catalog.items) {
+      sweptItems += 1;
+      for (const d of item.docs || []) {
+        if (!existsSync(join(kitDir, ...d.split("/")))) sweepProblems.push(`${row.kit}: missing doc ${d}`);
+      }
+      for (const s of [...(item.source || []), ...(item.demo || []), ...(item.registry || [])]) {
+        if (!existsSync(join(kitDir, ...s.split("/")))) sweepProblems.push(`${row.kit}: missing source ${s}`);
+      }
+    }
+    // Hygiene: every listed path must pass the readers' path rule, nothing
+    // binary or test-like may be baked, and no item may be an empty answer.
+    for (const rel of Object.keys(JSON.parse(readFileSync(join(kitDir, "files.json"), "utf8")).files)) {
+      if (!/^[\w./-]+$/.test(rel)) sweepProblems.push(`${row.kit}: unreadable path ${rel}`);
+      else if (/\.(?:test|spec)\.[\w]+$/.test(rel)) sweepProblems.push(`${row.kit}: test file baked ${rel}`);
+      else if (/\.(?:woff2?|ttf|otf|eot|png|gif|jpe?g|webp|ico|svg|pdf|mp4|webm|zip)$/i.test(rel)) {
+        sweepProblems.push(`${row.kit}: binary baked ${rel}`);
+      }
+    }
+    for (const item of catalog.items) {
+      if (!item.docs.length && !item.source.length && !(item.demo || []).length && !(item.registry || []).length) {
+        sweepProblems.push(`${row.kit}: empty item ${item.slug}`);
+      }
+    }
+    kitSummaries.push(`${row.kit} ${catalog.items.length}`);
+  }
+  sweepProblems.length === 0
+    ? ok(`swept every baked kit (${kitSummaries.join(", ")}) — all item paths resolve`)
+    : bad(`kit sweep found ${sweepProblems.length} problem(s): ${sweepProblems.slice(0, 6).join("; ")}`);
+  sweptItems >= 1300
+    ? ok(`uikits layer carries ${sweptItems} baked items`)
+    : bad(`uikits layer carries ${sweptItems} baked items, expected 1300+ — re-run: npm run uikits`);
+  // Pointers must carry their llms.txt and licence note, no component code.
+  for (const row of pointerKits) {
+    const kitDir = join(CACHE_DIR, "uikits", row.kit);
+    existsSync(join(kitDir, "pointer", "llms.txt"))
+      ? ok(`pointer kit ${row.kit} carries llms.txt`)
+      : bad(`pointer kit ${row.kit} has no llms.txt — re-run: npm run uikits`);
+    const cat = JSON.parse(readFileSync(join(kitDir, "catalog.json"), "utf8"));
+    cat.license?.note
+      ? ok(`pointer kit ${row.kit} records its licence note`)
+      : bad(`pointer kit ${row.kit} catalog carries no licence note`);
+  }
+
+  // Pins name commits, not branches: the bake must be reproducible from the
+  // pins alone, and the fetcher must not need an API host to resolve them.
+  const shaPinned = pins.kits.filter((k) => k.source?.type === "github");
+  const unpinned = shaPinned.filter((k) => !/^[0-9a-f]{40}$/.test(k.source.ref));
+  const offPin = shaPinned.filter((k) => {
+    const provPath = join(CACHE_DIR, "uikits", k.kit, "provenance.json");
+    return !existsSync(provPath) || JSON.parse(readFileSync(provPath, "utf8")).github?.sha !== k.source.ref;
+  });
+  const fetcherUsesApi = /api\.github\.com/.test(readFileSync(join(HERE, "fetch-uikits.mjs"), "utf8"));
+  unpinned.length === 0 && offPin.length === 0 && !fetcherUsesApi
+    ? ok(`github kits are pinned to commit shas and the bake is the pinned commit (${shaPinned.length} kits, no API call in the fetcher)`)
+    : bad(`github pins drifted: unpinned [${unpinned.map((k) => k.kit)}], bake differs from pin [${offPin.map((k) => k.kit)}]${fetcherUsesApi ? ", fetcher calls api.github.com" : ""}`);
+
+  // -------------------------------------- gallery endpoints, section 4 idiom
+  const UIKITS_PORT = 8804;
+  const uikPreview = spawn("node", [join(HERE, "preview.mjs")], {
+    env: {
+      ...process.env,
+      DESIGN_CACHE_DIR: CACHE_DIR,
+      REFERO_CACHE_DIR: CACHE_DIR,
+      PORT: String(UIKITS_PORT),
+      HOST: "127.0.0.1",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let uikPreviewErr = "";
+  uikPreview.stderr.on("data", (d) => (uikPreviewErr += d.toString()));
+
+  await new Promise((r) => setTimeout(r, 2500));
+  try {
+    const api = await fetch(`http://127.0.0.1:${UIKITS_PORT}/api/uikits`).then((r) => r.json());
+    (api.kits?.length || 0) === pinnedKits.length
+      ? ok(`api/uikits lists ${api.kits.length} kits`)
+      : bad(`api/uikits lists ${api.kits?.length ?? 0} kits, expected ${pinnedKits.length}`);
+
+    const kitHtml = await fetch(`http://127.0.0.1:${UIKITS_PORT}/uikits`).then((r) => r.text());
+    kitHtml.includes("UI kits") && kitHtml.includes("Chakra UI")
+      ? ok("uikits gallery page renders")
+      : bad("uikits gallery page wrong");
+
+    const chakraItemHtml = await fetch(`http://127.0.0.1:${UIKITS_PORT}/uikits/chakra/item/accordion`).then((r) => r.text());
+    chakraItemHtml.includes("uik-doc-body") && chakraItemHtml.includes("<h1>Accordion</h1>")
+      ? ok("uikit item page renders (chakra/accordion)")
+      : bad("uikit item page wrong");
+
+    const antdItemHtml = await fetch(`http://127.0.0.1:${UIKITS_PORT}/uikits/antd/item/button`).then((r) => r.text());
+    antdItemHtml.includes("uik-filelist") && antdItemHtml.includes("demo/basic.tsx")
+      ? ok("uikit item page lists baked demo files (antd/button)")
+      : bad("uikit item page carries no file list");
+
+    const previewHtml = await fetch(`http://127.0.0.1:${UIKITS_PORT}/uikits/openprops/preview/easings`).then((r) => r.text());
+    previewHtml.includes("/uikits/openprops/raw/assets/") && previewHtml.includes("uik-easing")
+      ? ok("openprops live token preview renders with the baked css linked")
+      : bad("openprops preview page wrong");
+
+    const rawCss = await fetch(`http://127.0.0.1:${UIKITS_PORT}/uikits/openprops/raw/assets/easings.min.css`).then((r) => r.text());
+    rawCss.includes("--ease-")
+      ? ok("raw css endpoint serves the baked token sheet")
+      : bad("raw css endpoint did not serve easings.min.css");
+
+    const pointerHtml = await fetch(`http://127.0.0.1:${UIKITS_PORT}/uikits/reactbits/item/catalog`).then((r) => r.text());
+    pointerHtml.includes("Commons Clause") || pointerHtml.includes("llms.txt")
+      ? ok("pointer kit item page shows its licence note")
+      : bad("pointer kit item page carries no licence note");
+
+    const REMOTE_RESOURCE = /(?:src="https?:\/\/|<link[^>]+href="https?:\/\/|url\(["']?https?:\/\/)/i;
+    const uikRemote = [kitHtml, chakraItemHtml, antdItemHtml, previewHtml, pointerHtml].filter((t) =>
+      REMOTE_RESOURCE.test(t),
+    );
+    uikRemote.length === 0
+      ? ok("uikits pages load no remote resources")
+      : bad("uikits pages load a remote resource");
+
+    // Every item page with a doc, not a sample: upstream docs embed badges
+    // and screenshots from CDNs, and a sample of five missed all of them.
+    const itemPagePaths = [];
+    for (const row of uikitsIndex.kits) {
+      const catPath = join(CACHE_DIR, "uikits", row.kit, "catalog.json");
+      if (!existsSync(catPath)) continue;
+      for (const item of JSON.parse(readFileSync(catPath, "utf8")).items) {
+        if (item.docs?.length) itemPagePaths.push(`/uikits/${row.kit}/item/${item.slug}`);
+      }
+    }
+    const remoteItemPages = [];
+    for (let i = 0; i < itemPagePaths.length; i += 24) {
+      const slice = itemPagePaths.slice(i, i + 24);
+      const pages = await Promise.all(slice.map((p) => fetch(`http://127.0.0.1:${UIKITS_PORT}${p}`).then((r) => r.text())));
+      // Code samples are shown as text: a doc that teaches `url(https://…)`
+      // is not a page that loads it.
+      pages.forEach((t, j) => {
+        if (REMOTE_RESOURCE.test(t.replace(/<pre\b[\s\S]*?<\/pre>/gi, ""))) remoteItemPages.push(slice[j]);
+      });
+    }
+    remoteItemPages.length === 0
+      ? ok(`all ${itemPagePaths.length} uikit item pages load no remote resources`)
+      : bad(`uikit item pages load a remote resource: ${remoteItemPages.slice(0, 5).join(", ")}`);
+
+    // The licence badge once printed "[object Object]" for every kit.
+    kitHtml.includes("licence <b>MIT</b>") && !kitHtml.includes("[object Object]")
+      ? ok("uikits licence badge prints the SPDX id")
+      : bad("uikits licence badge does not print an SPDX id");
+
+    // A directory is not a file: 404, never a 500 from reading it as text.
+    (await fetch(`http://127.0.0.1:${UIKITS_PORT}/uikits/chakra/file/docs`)).status === 404
+      ? ok("a directory path under /uikits is a 404")
+      : bad("/uikits/chakra/file/docs did not return 404");
+
+    // Remote mode resolves path suffixes against this manifest.
+    const servedFiles = await fetch(`http://127.0.0.1:${UIKITS_PORT}/api/uikits/chakra/files.json`).then((r) =>
+      r.ok ? r.json() : null,
+    );
+    JSON.stringify(servedFiles) === JSON.stringify(JSON.parse(readFileSync(join(CACHE_DIR, "uikits", "chakra", "files.json"), "utf8")))
+      ? ok("api/uikits/<kit>/files.json serves the baked manifest")
+      : bad("api/uikits/<kit>/files.json is missing or differs from disk");
+  } catch (e) {
+    bad(`uikits preview failed: ${e.message}${uikPreviewErr ? ` | ${uikPreviewErr.slice(0, 200)}` : ""}`);
+  } finally {
+    uikPreview.kill();
+  }
+
+  // ------------------------------------------ MCP smoke, section 6 idiom
+  await new Promise((r) => setTimeout(r, 800));
+  const uikMcp = spawn("node", [join(HERE, "mcp-server.mjs"), "--legacy-tools"], {
+    env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR, REFERO_CACHE_DIR: CACHE_DIR },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let ubuf = "";
+  const upending = new Map();
+  uikMcp.stdout.on("data", (d) => {
+    ubuf += d.toString();
+    let i;
+    while ((i = ubuf.indexOf("\n")) >= 0) {
+      const line = ubuf.slice(0, i).trim();
+      ubuf = ubuf.slice(i + 1);
+      if (!line) continue;
+      try {
+        const m = JSON.parse(line);
+        const p = upending.get(m.id);
+        if (p) {
+          upending.delete(m.id);
+          p(m);
+        }
+      } catch {}
+    }
+  });
+  let uid = 0;
+  const ucall = (method, params) =>
+    new Promise((resolve, reject) => {
+      rpcDeadline(reject, method);
+      const myId = ++uid;
+      upending.set(myId, resolve);
+      uikMcp.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: myId, method, params }) + "\n");
+    });
+
+  try {
+    await ucall("initialize", {
+      protocolVersion: "2024-11-05",
+      capabilities: {},
+      clientInfo: { name: "selftest", version: "1" },
+    });
+    const uikTools = await ucall("tools/list", {});
+    const uikNames = ["design_uikit_list", "design_uikit_search", "design_uikit_get_docs", "design_uikit_get_source"];
+    const uikMissing = uikNames.filter((t) => !(uikTools.result?.tools || []).some((x) => x.name === t));
+    uikMissing.length === 0
+      ? ok(`exposes all ${uikNames.length} design_uikit_* tools`)
+      : bad(`missing uikit tools: ${uikMissing.join(", ")}`);
+
+    const uikList = toolJson(await ucall("tools/call", { name: "design_uikit_list", arguments: {} }));
+    (uikList.kits?.length || 0) === pinnedKits.length
+      ? ok(`design_uikit_list returns all ${pinnedKits.length} kits`)
+      : bad(`design_uikit_list returned ${uikList.kits?.length ?? 0} kits, expected ${pinnedKits.length}`);
+
+    // Per-kit sweep over the four tools: every kit lists, every kit's first
+    // item reads (docs where the kit has them), every pointer kit returns its
+    // licence note instead of code.
+    const kitProblems = [];
+    for (const row of uikList.kits) {
+      const items = toolJson(await ucall("tools/call", {
+        name: "design_uikit_list", arguments: { kit: row.kit, limit: 150 },
+      }));
+      if (!items.items?.length) { kitProblems.push(`${row.kit}: list empty`); continue; }
+      const first = items.items[0];
+      if (row.kind === "pointer") {
+        const src = toolJson(await ucall("tools/call", {
+          name: "design_uikit_get_source", arguments: { kit: row.kit, item: first.slug },
+        }));
+        if (src.available !== false || !/licence|license|Install/i.test(src.note || "")) {
+          kitProblems.push(`${row.kit}: pointer did not return its licence note`);
+        }
+        continue;
+      }
+      if (items.totals?.docs) {
+        const withDocs = items.items.find((i) => i.docs);
+        const doc = toolJson(await ucall("tools/call", {
+          name: "design_uikit_get_docs", arguments: { kit: row.kit, item: withDocs.slug },
+        }));
+        if (doc.error || !doc.content) kitProblems.push(`${row.kit}: get_docs ${withDocs.slug} -> ${doc.error || "empty"}`);
+      }
+      if (items.totals?.source) {
+        const withSource = items.items.find((i) => i.source);
+        const src = toolJson(await ucall("tools/call", {
+          name: "design_uikit_get_source", arguments: { kit: row.kit, item: withSource.slug },
+        }));
+        if (!src.files?.length) kitProblems.push(`${row.kit}: get_source ${withSource.slug} -> no files`);
+      }
+    }
+    kitProblems.length === 0
+      ? ok(`design_uikit_* serves every one of the ${uikList.kits.length} kits`)
+      : bad(`uikit tools failed for some kits: ${kitProblems.slice(0, 6).join("; ")}`);
+
+    const uikSearch = toolJson(await ucall("tools/call", {
+      name: "design_uikit_search", arguments: { query: "dialog", limit: 5 },
+    }));
+    (uikSearch.total || 0) >= 1 && uikSearch.results?.length
+      ? ok(`design_uikit_search finds ${uikSearch.total} matches for 'dialog'`)
+      : bad(`design_uikit_search found ${uikSearch.total ?? 0} matches for 'dialog'`);
+
+    const uikFile = toolJson(await ucall("tools/call", {
+      name: "design_uikit_get_source",
+      arguments: { kit: "antd", item: "button", path: "demo/basic.tsx" },
+    }));
+    uikFile.content?.includes("Button")
+      ? ok(`design_uikit_get_source resolves item-relative paths (${uikFile.content.length} bytes for antd/button demo)`)
+      : bad(`design_uikit_get_source did not resolve demo/basic.tsx: ${uikFile.error || "empty"}`);
+
+    const uikUnknown = await ucall("tools/call", {
+      name: "design_uikit_get_docs", arguments: { kit: "chakra", item: "definitely-not-a-thing" },
+    });
+    toolFailed(uikUnknown) && /unknown item/.test(uikUnknown.result.content[0].text)
+      ? ok("design_uikit_get_docs rejects unknown items with a hint")
+      : bad("design_uikit_get_docs did not reject an unknown item");
+
+    // Item paging: rows, never cut JSON. The largest kit pages by default,
+    // the pages concatenate to the catalog in order, and an offset past the
+    // end is an error rather than an empty page that reads as "nothing here".
+    const readCatalog = (kit) => JSON.parse(readFileSync(join(CACHE_DIR, "uikits", kit, "catalog.json"), "utf8"));
+    const biggestKit = uikList.kits
+      .filter((k) => k.kind !== "pointer" && !k.error)
+      .map((k) => ({ kit: k.kit, items: k.totals?.items || 0 }))
+      .sort((a, b) => b.items - a.items)[0];
+    const biggestSlugs = readCatalog(biggestKit.kit).items.map((i) => i.slug);
+    const firstPage = toolJson(await ucall("tools/call", { name: "design_uikit_list", arguments: { kit: biggestKit.kit } }));
+    const pagedSlugs = firstPage.items.map((i) => i.slug);
+    let nextOffset = firstPage.nextOffset;
+    for (let guard = 0; nextOffset !== undefined && guard < 20; guard++) {
+      const page = toolJson(
+        await ucall("tools/call", { name: "design_uikit_list", arguments: { kit: biggestKit.kit, offset: nextOffset } }),
+      );
+      pagedSlugs.push(...page.items.map((i) => i.slug));
+      nextOffset = page.nextOffset;
+    }
+    JSON.stringify(pagedSlugs) === JSON.stringify(biggestSlugs) &&
+    firstPage.returned === firstPage.items.length &&
+    firstPage.returned < biggestSlugs.length &&
+    firstPage.totals?.items === biggestSlugs.length
+      ? ok(`design_uikit_list pages items (${firstPage.returned} of ${biggestSlugs.length} in ${biggestKit.kit}, pages concatenate in order)`)
+      : bad("design_uikit_list paging lost, repeated or reordered items");
+    const pastEnd = await ucall("tools/call", {
+      name: "design_uikit_list", arguments: { kit: biggestKit.kit, offset: biggestSlugs.length },
+    });
+    toolFailed(pastEnd) && /past the end/.test(pastEnd.result.content[0].text)
+      ? ok("design_uikit_list rejects an offset past the end")
+      : bad("design_uikit_list answered an offset past the end with an empty page");
+
+    // `total` is every match on disk; `results` is the first `limit` of them.
+    const dialogOnDisk = uikList.kits.reduce(
+      (n, k) =>
+        n +
+        readCatalog(k.kit).items.filter((i) =>
+          `${i.title} ${i.slug} ${i.group} ${i.kind} ${i.summary}`.toLowerCase().includes("dialog"),
+        ).length,
+      0,
+    );
+    uikSearch.total === dialogOnDisk && uikSearch.results.length === 5 && dialogOnDisk > 5
+      ? ok(`design_uikit_search total counts every match (${dialogOnDisk}), not the ${uikSearch.results.length} returned`)
+      : bad(`design_uikit_search total is ${uikSearch.total}, but ${dialogOnDisk} items match 'dialog' on disk`);
+
+    // A path suffix must sit on a "/" boundary and name exactly one file.
+    const uikSuffix = toolJson(await ucall("tools/call", {
+      name: "design_uikit_get_source", arguments: { kit: "antd", item: "button", path: "basic.tsx" },
+    }));
+    uikSuffix.path === "components/button/demo/basic.tsx" && uikSuffix.matchedBy === "suffix"
+      ? ok("design_uikit_get_source resolves a unique path suffix and marks it (matchedBy)")
+      : bad("design_uikit_get_source suffix match is wrong or unmarked");
+    const uikBare = await ucall("tools/call", {
+      name: "design_uikit_get_source", arguments: { kit: "antd", item: "button", path: "x.tsx" },
+    });
+    toolFailed(uikBare) && /no baked file 'x\.tsx'/.test(uikBare.result.content[0].text)
+      ? ok("design_uikit_get_source refuses a bare name that is only the tail of a file name")
+      : bad("design_uikit_get_source matched 'x.tsx' to index.tsx");
+    // A suffix that names several baked files and none of the item's own is
+    // ambiguous: refuse and list candidates, never pick the first.
+    let ambiguous = null;
+    search: for (const row of uikList.kits) {
+      if (row.kind === "pointer" || row.error) continue;
+      const baked = Object.keys(JSON.parse(readFileSync(join(CACHE_DIR, "uikits", row.kit, "files.json"), "utf8")).files);
+      const byBase = new Map();
+      for (const p of baked) {
+        const base = p.slice(p.lastIndexOf("/") + 1);
+        byBase.set(base, [...(byBase.get(base) || []), p]);
+      }
+      const matchesOutside = (item) => {
+        const own = [...(item.source || []), ...(item.demo || []), ...(item.registry || [])];
+        return [...byBase].find(([base, paths]) => paths.length > 1 && !own.some((f) => f.endsWith(`/${base}`)));
+      };
+      const item = readCatalog(row.kit).items.find((i) => matchesOutside(i));
+      if (!item) continue;
+      ambiguous = { kit: row.kit, slug: item.slug, base: matchesOutside(item)[0] };
+      break search;
+    }
+    const uikAmbiguous = ambiguous
+      ? await ucall("tools/call", {
+          name: "design_uikit_get_source",
+          arguments: { kit: ambiguous.kit, item: ambiguous.slug, path: ambiguous.base },
+        })
+      : null;
+    uikAmbiguous && toolFailed(uikAmbiguous) && /matches \d+ baked files/.test(uikAmbiguous.result.content[0].text)
+      ? ok(`design_uikit_get_source refuses an ambiguous suffix and lists candidates (${ambiguous.kit}/${ambiguous.slug} '${ambiguous.base}')`)
+      : bad(ambiguous ? "design_uikit_get_source guessed on an ambiguous path suffix" : "no ambiguous path suffix available to probe");
+  } catch (e) {
+    bad(`uikits MCP smoke failed: ${e.message}`);
+  } finally {
+    uikMcp.kill();
+  }
+}
+
+// ------------------------------------------ 10c. Refero Styles layer
+section("10c. Refero Styles layer (offline)");
+const rsCatalogPath = join(CACHE_DIR, "refero-styles", "catalog.json");
+if (!existsSync(rsCatalogPath)) {
+  bad(`no refero-styles catalog at ${rsCatalogPath} — run: npm run refero-styles && npm run bake`);
+} else {
+  const rsCatalog = JSON.parse(readFileSync(rsCatalogPath, "utf8"));
+  rsCatalog.styles?.length >= 700
+    ? ok(`refero-styles catalog carries ${rsCatalog.styles.length} styles`)
+    : bad(`refero-styles catalog carries ${rsCatalog.styles?.length ?? 0} styles, expected 700+ — re-run: npm run refero-styles`);
+
+  // Sweep every catalog row: the detail record must exist with a DESIGN.md
+  // export and the analysis blocks, and every referenced asset must be on
+  // disk. "Test every catalog entry, not one."
+  const rsProblems = [];
+  let rsWithMd = 0;
+  for (const row of rsCatalog.styles) {
+    const recPath = join(CACHE_DIR, "refero-styles", "styles", `${row.uuid}.json`);
+    if (!existsSync(recPath)) {
+      rsProblems.push(`${row.name || row.uuid}: no record file`);
+      continue;
+    }
+    let rec;
+    try {
+      rec = JSON.parse(readFileSync(recPath, "utf8"));
+    } catch {
+      rsProblems.push(`${row.name || row.uuid}: record does not parse`);
+      continue;
+    }
+    if (typeof rec.views?.design_md !== "string" || !rec.views.design_md.length) rsProblems.push(`${row.name}: no DESIGN.md`);
+    else rsWithMd += 1;
+    if (!rec.data?.colors || !Array.isArray(rec.data?.typography)) rsProblems.push(`${row.name}: thin analysis`);
+    for (const f of [row.preview, row.fontsPreview, row.favicon, ...(row.screenshots || [])]) {
+      if (f && !existsSync(join(CACHE_DIR, "refero-styles", "assets", f))) rsProblems.push(`${row.name}: missing asset ${f}`);
+    }
+  }
+  rsProblems.length === 0
+    ? ok(`swept all ${rsCatalog.styles.length} records — DESIGN.md (${rsWithMd}), analysis and assets resolve`)
+    : bad(`refero-styles sweep found ${rsProblems.length} problem(s): ${rsProblems.slice(0, 6).join("; ")}`);
+  rsCatalog.totals?.withDesignMd === rsWithMd
+    ? ok("catalog withDesignMd total matches the sweep")
+    : bad(`catalog totals.withDesignMd (${rsCatalog.totals?.withDesignMd}) != sweep (${rsWithMd}) — re-run: npm run refero-styles`);
+
+  // -------------------------------------- gallery endpoints, section 4 idiom
+  const RS_PORT = 8805;
+  const rsPreview = spawn("node", [join(HERE, "preview.mjs")], {
+    env: {
+      ...process.env,
+      DESIGN_CACHE_DIR: CACHE_DIR,
+      REFERO_CACHE_DIR: CACHE_DIR,
+      PORT: String(RS_PORT),
+      HOST: "127.0.0.1",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let rsPreviewErr = "";
+  rsPreview.stderr.on("data", (d) => (rsPreviewErr += d.toString()));
+
+  await new Promise((r) => setTimeout(r, 2500));
+  try {
+    const rsRow = rsCatalog.styles.find((r) => r.preview && r.screenshots?.length) || rsCatalog.styles[0];
+    const listHtml = await fetch(`http://127.0.0.1:${RS_PORT}/refero-styles`).then((r) => r.text());
+    listHtml.includes("Refero Styles") && listHtml.includes(rsRow.name)
+      ? ok("refero-styles gallery page renders")
+      : bad("refero-styles gallery page wrong");
+
+    const detailHtml = await fetch(`http://127.0.0.1:${RS_PORT}/refero-styles/style/${rsRow.uuid}`).then((r) => r.text());
+    detailHtml.includes("DESIGN.md") && detailHtml.includes("/refero-styles/asset/") &&
+      (detailHtml.includes("Do") || detailHtml.includes("Intent") || detailHtml.includes("Colors"))
+      ? ok("refero-styles detail page renders the analysis with its mirrored assets")
+      : bad("refero-styles detail page wrong (missing analysis or asset references)");
+
+    const assetBuf = await fetch(`http://127.0.0.1:${RS_PORT}/refero-styles/asset/${rsRow.preview}`);
+    assetBuf.ok && (assetBuf.headers.get("content-type") || "").includes("image")
+      ? ok("refero-styles asset endpoint serves mirrored bytes")
+      : bad(`refero-styles asset endpoint wrong (${assetBuf.status})`);
+
+    const rsSearch = await fetch(`http://127.0.0.1:${RS_PORT}/api/refero-styles?q=cursor`).then((r) => r.json());
+    (rsSearch.total || 0) >= 1 && rsSearch.results?.[0]?.uuid
+      ? ok(`api/refero-styles search finds ${rsSearch.total} match(es) for 'cursor'`)
+      : bad(`api/refero-styles search found ${rsSearch.total ?? 0} matches for 'cursor'`);
+
+    const rsPages = [listHtml, detailHtml];
+    const rsRemote = rsPages.filter((t) =>
+      /(?:src="https?:\/\/|<link[^>]+href="https?:\/\/|url\(["']?https?:\/\/)/i.test(t),
+    );
+    rsRemote.length === 0
+      ? ok("refero-styles pages load no remote resources")
+      : bad("refero-styles pages load a remote resource");
+  } catch (e) {
+    bad(`refero-styles preview failed: ${e.message}${rsPreviewErr ? ` | ${rsPreviewErr.slice(0, 200)}` : ""}`);
+  } finally {
+    rsPreview.kill();
+  }
+
+  // ------------------------------------------ MCP smoke, section 6 idiom
+  await new Promise((r) => setTimeout(r, 800));
+  const rsMcp = spawn("node", [join(HERE, "mcp-server.mjs"), "--legacy-tools"], {
+    env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR, REFERO_CACHE_DIR: CACHE_DIR },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let rsBuf = "";
+  const rsPending = new Map();
+  rsMcp.stdout.on("data", (d) => {
+    rsBuf += d.toString();
+    let i;
+    while ((i = rsBuf.indexOf("\n")) >= 0) {
+      const line = rsBuf.slice(0, i).trim();
+      rsBuf = rsBuf.slice(i + 1);
+      if (!line) continue;
+      try {
+        const m = JSON.parse(line);
+        const p = rsPending.get(m.id);
+        if (p) {
+          rsPending.delete(m.id);
+          p(m);
+        }
+      } catch {}
+    }
+  });
+  let rsId = 0;
+  const rcall = (method, params) =>
+    new Promise((resolve, reject) => {
+      rpcDeadline(reject, method);
+      const myId = ++rsId;
+      rsPending.set(myId, resolve);
+      rsMcp.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: myId, method, params }) + "\n");
+    });
+
+  try {
+    await rcall("initialize", {
+      protocolVersion: "2024-11-05",
+      capabilities: {},
+      clientInfo: { name: "selftest", version: "1" },
+    });
+    const rsTools = await rcall("tools/list", {});
+    const rsNames = ["design_style_list", "design_style_search", "design_style_get", "design_style_get_md"];
+    const rsMissing = rsNames.filter((t) => !(rsTools.result?.tools || []).some((x) => x.name === t));
+    rsMissing.length === 0
+      ? ok(`exposes all ${rsNames.length} design_style_* tools`)
+      : bad(`missing style tools: ${rsMissing.join(", ")}`);
+
+    // List: total matches the catalog and nextOffset walks to the end.
+    const rsList = toolJson(await rcall("tools/call", { name: "design_style_list", arguments: {} }));
+    rsList.total === rsCatalog.styles.length && rsList.styles?.length
+      ? ok(`design_style_list reports ${rsList.total} styles (${rsList.styles.length} rows default)`)
+      : bad(`design_style_list returned ${rsList.styles?.length ?? 0} rows, total ${rsList.total}, expected ${rsCatalog.styles.length}`);
+    // Walk the remaining pages (the tool caps a page at 200 rows) and require
+    // the row counts to add up exactly, ending with no dangling nextOffset.
+    let rsRows = rsList.styles.length;
+    let rsWalk = rsList.nextOffset;
+    let rsWalkPages = 0;
+    while (rsWalk !== undefined && rsWalkPages < 10) {
+      const page = toolJson(await rcall("tools/call", {
+        name: "design_style_list", arguments: { offset: rsWalk, limit: 200 },
+      }));
+      rsRows += page.styles?.length || 0;
+      rsWalk = page.nextOffset;
+      rsWalkPages += 1;
+    }
+    rsRows === rsCatalog.styles.length && rsWalk === undefined
+      ? ok(`design_style_list pages to the exact end (${rsRows} rows over ${rsWalkPages + 1} pages, no dangling nextOffset)`)
+      : bad(`design_style_list page walk wrong (${rsRows} of ${rsCatalog.styles.length} rows, walk ended at ${rsWalk})`);
+
+    const rsSearch = toolJson(await rcall("tools/call", {
+      name: "design_style_search", arguments: { query: "cursor" },
+    }));
+    (rsSearch.total || 0) >= 1 && rsSearch.results?.[0]?.uuid
+      ? ok(`design_style_search finds ${rsSearch.total} match(es) for 'cursor'`)
+      : bad(`design_style_search found ${rsSearch.total ?? 0} matches for 'cursor'`);
+
+    const rsRow = rsCatalog.styles.find((r) => r.mdBytes > 0) || rsCatalog.styles[0];
+    const rsGet = toolJson(await rcall("tools/call", { name: "design_style_get", arguments: { uuid: rsRow.uuid } }));
+    Object.keys(rsGet.colors || {}).length > 0 && Array.isArray(rsGet.dos) && Array.isArray(rsGet.donts) && !rsGet.design_md
+      ? ok(`design_style_get returns the full analysis for '${rsGet.name}' (tokens, dos/donts, no inline markdown)`)
+      : bad(`design_style_get reply wrong for ${rsRow.uuid}: ${rsGet.error || "shape"}`);
+
+    // get_md: walk every page; the pages must concatenate to exactly the
+    // record's DESIGN.md, because agents may write it to disk.
+    const rsMd = JSON.parse(readFileSync(join(CACHE_DIR, "refero-styles", "styles", `${rsRow.uuid}.json`), "utf8")).views.design_md;
+    let mdOffset = 0;
+    let mdPages = 0;
+    let mdBytes = 0;
+    let mdFailure = "";
+    while (mdOffset !== undefined && mdPages < 60) {
+      const res = await rcall("tools/call", { name: "design_style_get_md", arguments: { uuid: rsRow.uuid, offset: mdOffset } });
+      const page = toolJson(res);
+      if (toolFailed(res) || typeof page.content !== "string") {
+        mdFailure = page.error || "no content";
+        break;
+      }
+      mdPages += 1;
+      mdBytes += Buffer.byteLength(page.content);
+      mdOffset = page.nextOffset;
+    }
+    !mdFailure && mdBytes === Buffer.byteLength(rsMd) && mdPages > 0
+      ? ok(`design_style_get_md pages '${rsRow.name}' (${Buffer.byteLength(rsMd)} bytes in ${mdPages} page(s))`)
+      : bad(`design_style_get_md paging wrong for '${rsRow.name}': ${mdFailure || `${mdBytes} of ${Buffer.byteLength(rsMd)} bytes`}`);
+
+    const rsUnknown = await rcall("tools/call", {
+      name: "design_style_get", arguments: { uuid: "00000000-0000-4000-8000-000000000000" },
+    });
+    toolFailed(rsUnknown) && /unknown refero style uuid/.test(rsUnknown.result.content[0].text)
+      ? ok("design_style_get rejects an unknown uuid with a hint")
+      : bad("design_style_get did not reject an unknown uuid");
+  } catch (e) {
+    bad(`refero-styles MCP smoke failed: ${e.message}`);
+  } finally {
+    rsMcp.kill();
+  }
+}
+
 // ------------------------------------------------- 11. docs drift check
+// --------------------------------------- 10d. designer-dashboards skill tools
+section("10d. designer-dashboards skill tools");
+{
+  // One stdio server per environment: the real skill, a fixture skill, and
+  // no skill at all. Section 14 covers the skill's own scripts.
+  const startDashServer = async (extraEnv) => {
+    const child = spawn("node", [join(HERE, "mcp-server.mjs"), "--legacy-tools"], {
+      env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR, REFERO_CACHE_DIR: CACHE_DIR, ...extraEnv },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let buffer = "";
+    const waiting = new Map();
+    let nextId = 0;
+    child.stdout.on("data", (d) => {
+      buffer += d.toString();
+      let i;
+      while ((i = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, i).trim();
+        buffer = buffer.slice(i + 1);
+        if (!line) continue;
+        try {
+          const m = JSON.parse(line);
+          if (waiting.has(m.id)) {
+            waiting.get(m.id)(m);
+            waiting.delete(m.id);
+          }
+        } catch {}
+      }
+    });
+    const rpc = (method, params) =>
+      new Promise((resolve, reject) => {
+        rpcDeadline(reject, method);
+        const myId = ++nextId;
+        waiting.set(myId, resolve);
+        child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: myId, method, params }) + "\n");
+      });
+    await rpc("initialize", {
+      protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "selftest", version: "1" },
+    });
+    return {
+      rpc,
+      call: async (name, args) => {
+        const res = await rpc("tools/call", { name, arguments: args });
+        return { failed: toolFailed(res), text: res?.result?.content?.[0]?.text ?? "", body: toolJson(res) };
+      },
+      kill: () => child.kill(),
+    };
+  };
+  const skillDir = process.env.DESIGN_DASHBOARDS_DIR || join(ROOT, "plugins", "designer-mcp", "skills", "designer-dashboards");
+  const fixture = mkdtempSync(join(tmpdir(), "designer-dash-fixture-"));
+  const put = (rel, text) => {
+    mkdirSync(dirname(join(fixture, rel)), { recursive: true });
+    writeFileSync(join(fixture, rel), text);
+  };
+  put(
+    "skill/templates/tech-stacks/catalog.json",
+    JSON.stringify({ profiles: [{ id: "alpha", name: "Alpha", framework: "Next.js", starter: "alpha", useCase: "probe", summary: "probe stack" }] }),
+  );
+  put("skill/templates/design-presets/catalog.json", JSON.stringify({ presets: [] }));
+  put("skill/templates/starters/alpha/files/app.json", '{"app":true}');
+  // A sibling whose name merely starts with the starter's is outside it.
+  put("skill/templates/starters/alpha-probe/secret.json", '{"secret":true}');
+  put("skill/init/SKILL.md", "---\nname: dashboards-init\n---\nprobe\n");
+  const real = await startDashServer({ DESIGN_DASHBOARDS_DIR: skillDir });
+  const staged = await startDashServer({ DESIGN_DASHBOARDS_DIR: join(fixture, "skill") });
+  const bare = await startDashServer({ DESIGN_DASHBOARDS_DIR: join(fixture, "nowhere") });
+  try {
+    const names = (await real.rpc("tools/list", {})).result.tools.map((t) => t.name);
+    names.includes("design_dashboards_list") && names.includes("design_dashboards_get") && !names.includes("design_dashboards_search")
+      ? ok("the dashboards skill exposes design_dashboards_list and design_dashboards_get only")
+      : bad("the dashboards tool set is not list and get");
+
+    // Sweep the real skill: every id the list names reads, and so does every
+    // file of every starter and framework kit. One unreadable file fails it.
+    const index = (await real.call("design_dashboards_list", {})).body;
+    const dashProblems = [];
+    let dashReads = 0;
+    const readArtifact = async (args) => {
+      const r = await real.call("design_dashboards_get", args);
+      if (r.failed || r.body?.available === false || r.body?.content === undefined) {
+        dashProblems.push(`${args.kind}/${args.id}${args.path ? `:${args.path}` : ""} -> ${r.text.slice(0, 80)}`);
+      } else {
+        dashReads += 1;
+      }
+    };
+    for (const s of index.stacks || []) await readArtifact({ kind: "stack", id: s.id });
+    for (const p of index.presets || []) await readArtifact({ kind: "preset", id: p.slug });
+    for (const v of index.verticals || []) await readArtifact({ kind: "vertical", id: v });
+    for (const r of index.references || []) await readArtifact({ kind: "reference", id: r });
+    for (const s of [...(index.subskills || []), "designer-dashboards"]) await readArtifact({ kind: "skill", id: s });
+    for (const [kind, ids] of [
+      ["starter", index.starters],
+      ["framework", index.frameworks],
+    ]) {
+      for (const id of ids || []) {
+        const listing = await real.call("design_dashboards_get", { kind, id });
+        if (listing.failed || !Array.isArray(listing.body?.files) || !listing.body.files.length) {
+          dashProblems.push(`${kind}/${id}: no file list -> ${listing.text.slice(0, 80)}`);
+          continue;
+        }
+        for (const path of listing.body.files) await readArtifact({ kind, id, path });
+      }
+    }
+    dashProblems.length === 0
+      ? ok(`design_dashboards_get reads every artifact of the skill (${dashReads} reads: stacks, presets, verticals, references, sub-skills, every starter and framework file)`)
+      : bad(`design_dashboards_get failed ${dashProblems.length} read(s): ${dashProblems.slice(0, 5).join("; ")}`);
+
+    // The keyword query replaced the old search tool.
+    const firstStarter = (index.starters || [])[0];
+    const hits = (await real.call("design_dashboards_list", { query: firstStarter, kind: "starters" })).body;
+    hits?.total >= 1 && Array.isArray(hits.results) && hits.results.every((r) => r.kind === "starter")
+      ? ok("design_dashboards_list filters by keyword inside a category")
+      : bad("design_dashboards_list keyword filter is wrong");
+
+    // Bad arguments are errors that name the problem and never print the
+    // host path. Each one returned a file, a 500 or a leaked path once.
+    const probe = async (label, args, expected) => {
+      const r = await real.call("design_dashboards_get", args);
+      r.failed && expected.test(r.text) && !r.text.includes(ROOT)
+        ? ok(`design_dashboards_get refuses ${label}`)
+        : bad(`design_dashboards_get probe "${label}" passed or leaked a host path: ${r.text.slice(0, 90)}`);
+    };
+    await probe("an id that is a file name (the catalog)", { kind: "stack", id: "catalog" }, /Unknown stack/);
+    await probe("a file that sits beside the starters", { kind: "starter", id: "nav-ir.schema.json" }, /Unknown starter/);
+    await probe("a traversal id", { kind: "stack", id: "../../package" }, /Unknown stack/);
+    await probe("a traversal sub-skill id", { kind: "skill", id: "../../designer-mcp" }, /Unknown sub-skill/);
+    await probe("an unknown kind", { kind: "widget", id: "x" }, /kind must be one of/);
+    if (firstStarter) {
+      await probe("a traversal file path", { kind: "starter", id: firstStarter, path: "../../tech-stacks/catalog.json" }, /outside root/);
+      await probe("an absolute file path", { kind: "starter", id: firstStarter, path: "/etc/hosts" }, /outside root/);
+      await probe("a missing file", { kind: "starter", id: firstStarter, path: "no-such-file.tsx" }, /not found in starter/);
+    }
+
+    // The sibling probe needs a real sibling directory, so it runs against
+    // the fixture. A prefix check without a separator read this file.
+    const sibling = await staged.call("design_dashboards_get", {
+      kind: "starter", id: "alpha", path: "../alpha-probe/secret.json",
+    });
+    sibling.failed && /outside root/.test(sibling.text)
+      ? ok("a sibling directory that shares the starter's name prefix is outside the starter")
+      : bad("design_dashboards_get escaped into a sibling directory");
+
+    // No skill directory: say so and keep serving, never "Connection closed".
+    const absent = await bare.call("design_dashboards_list", {});
+    const absentGet = await bare.call("design_dashboards_get", { kind: "stack", id: "x" });
+    const stillServing = await bare.rpc("tools/call", { name: "design_facets", arguments: {} });
+    !absent.failed &&
+    absent.body?.available === false &&
+    /designer-dashboards skill/.test(absent.body.note) &&
+    !absentGet.failed &&
+    absentGet.body?.available === false &&
+    stillServing?.result?.isError !== true
+      ? ok("without the skill directory the dashboards tools say so and the server keeps serving")
+      : bad("a missing skill directory broke the dashboards tools or the server");
+
+    // Remote mode: the static site mirrors each kit's file manifest, and a
+    // path that only the manifest knows resolves against it with nothing on
+    // local disk. A loopback host with the static layout stands in for the
+    // site, and records what it was asked for.
+    const remoteRoot = mkdtempSync(join(tmpdir(), "designer-uikit-remote-"));
+    const asked = [];
+    const staticRel = (url) =>
+      url === "/api/uikits.json"
+        ? "index.json"
+        : url
+            .replace(/^\/api\/uikits\/([a-z0-9-]+)\/(catalog\.json|files\.json)$/, "$1/$2")
+            .replace(/^\/api\/uikits\/([a-z0-9-]+)\/file\/([\w./-]+)$/, "$1/$2");
+    const remoteHost = http.createServer((req, res) => {
+      const url = String(req.url || "").split("?")[0];
+      asked.push(url);
+      const rel = staticRel(url);
+      const file = join(CACHE_DIR, "uikits", rel);
+      if (rel === url || rel.includes("..") || !existsSync(file)) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+      res.end(readFileSync(file));
+    });
+    await new Promise((r) => remoteHost.listen(0, "127.0.0.1", r));
+    const remote = await startDashServer({
+      DESIGN_CACHE_DIR: remoteRoot,
+      REFERO_CACHE_DIR: remoteRoot,
+      DESIGN_REMOTE_URL: `http://127.0.0.1:${remoteHost.address().port}`,
+    });
+    try {
+      // "dialog.json" is not one of the accordion item's own files, so only
+      // the mirrored manifest can name it.
+      const viaManifest = (await remote.call("design_uikit_get_source", { kit: "motion", item: "accordion", path: "dialog.json" })).body;
+      viaManifest?.path === "registry/dialog.json" &&
+      viaManifest?.matchedBy === "suffix" &&
+      !viaManifest?.remoteNote &&
+      asked.includes("/api/uikits/motion/files.json")
+        ? ok("in remote mode a kit-wide path suffix resolves through the mirrored files.json with an empty local cache")
+        : bad(`remote mode did not resolve a kit-wide path suffix: ${JSON.stringify(viaManifest).slice(0, 120)}`);
+    } finally {
+      remote.kill();
+      remoteHost.close();
+      rmSync(remoteRoot, { recursive: true, force: true });
+    }
+  } catch (e) {
+    bad(`dashboards tools check failed: ${e.message}`);
+  } finally {
+    real.kill();
+    staged.kill();
+    bare.kill();
+    rmSync(fixture, { recursive: true, force: true });
+  }
+}
+
 section("11. Docs and skills stay in sync with the server");
 {
   // Static on purpose: this compares files, so it runs without a cache and
   // fails the moment a tool is added or renamed without its docs.
   const serverSource = readFileSync(join(HERE, "mcp-server.mjs"), "utf8");
-  const toolNames = [...new Set([...serverSource.matchAll(/^\s+name: "(design_[a-z_]+)",$/gm)].map((m) => m[1]))];
+  const coreBlock = serverSource.split("const CORE_TOOLS = [")[1]?.split("const CORE_TOOL_NAMES")[0] || "";
+  const toolNames = [...new Set([...coreBlock.matchAll(/^\s+name: "(design_[a-z_]+)",$/gm)].map((m) => m[1]))];
   const skillsDir = join(ROOT, "plugins", "designer-mcp", "skills");
   const toolsDoc = join(skillsDir, "designer-mcp", "references", "mcp-tools.md");
 
-  toolNames.length >= 40
-    ? ok(`found ${toolNames.length} registered design_* tools in mcp-server.mjs`)
-    : bad(`only ${toolNames.length} tool names parsed from mcp-server.mjs; the parser or the file changed`);
+  toolNames.length === 17
+    ? ok(`found ${toolNames.length} registered default design_* tools in mcp-server.mjs`)
+    : bad(`expected 17 default tools in CORE_TOOLS, found ${toolNames.length}`);
 
   // 1. Every registered tool is documented in the full reference.
   const reference = existsSync(toolsDoc) ? readFileSync(toolsDoc, "utf8") : "";
@@ -2155,6 +3075,7 @@ section("11. Docs and skills stay in sync with the server");
   // 3. Stated tool counts match. CHANGELOG is history and is not checked.
   const countFiles = [
     join(ROOT, "README.md"),
+    join(ROOT, "docs", "MCP.md"),
     join(ROOT, "docs", "ARCHITECTURE.md"),
     join(skillsDir, "designer-mcp", "install", "README.md"),
   ].filter((file) => existsSync(file));
@@ -2193,7 +3114,7 @@ section("12. Missing catalog, unreachable remote host, bad input");
   // One stdio client per case: each case needs its own environment.
   const startServer = (script, env) => {
     const child = spawn("node", [join(HERE, script)], {
-      env: { ...process.env, DESIGN_REMOTE_URL: "", ...env },
+      env: { ...process.env, DESIGN_REMOTE_URL: "", DESIGN_LEGACY_TOOLS: "1", ...env },
       stdio: ["pipe", "pipe", "pipe"],
     });
     let out = "";
@@ -2538,7 +3459,7 @@ section("14. Designer Dashboards skill (MCP tools, presets, starters, verifier, 
   const dashDir = join(ROOT, "plugins", "designer-mcp", "skills", "designer-dashboards");
 
   // 14a. MCP tools: design_dashboards_list + design_dashboards_get + traversal checks
-  const ddMcp = spawn("node", [join(HERE, "mcp-server.mjs")], {
+  const ddMcp = spawn("node", [join(HERE, "mcp-server.mjs"), "--legacy-tools"], {
     env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR },
     stdio: ["pipe", "pipe", "pipe"],
   });
@@ -2739,6 +3660,90 @@ section("14. Designer Dashboards skill (MCP tools, presets, starters, verifier, 
       : bad(`generate.mjs smoke failed: genFailed=${genFailed} vr=${vr.status} docker=${hasDockerHygiene} adapters=${hasAdapters}`);
   } finally {
     rmSync(genTmp, { recursive: true, force: true });
+  }
+}
+
+// ------------------------------------------------------------ 15. Consolidated v2 MCP surface (17 tools)
+section("15. Consolidated v2 MCP surface (default 17 tools)");
+{
+  const v2Mcp = spawn("node", [join(HERE, "mcp-server.mjs")], {
+    env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR, DESIGN_REMOTE_URL: "" },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let v2Buf = "";
+  let v2Id = 0;
+  const v2Pending = new Map();
+  v2Mcp.stdout.on("data", (chunk) => {
+    v2Buf += chunk;
+    const lines = v2Buf.split("\n");
+    v2Buf = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const msg = JSON.parse(line);
+      if (msg.id && v2Pending.has(msg.id)) {
+        const res = v2Pending.get(msg.id);
+        v2Pending.delete(msg.id);
+        res(msg);
+      }
+    }
+  });
+  const v2Call = (method, params) =>
+    new Promise((resolve, reject) => {
+      rpcDeadline(reject, method);
+      const myId = ++v2Id;
+      v2Pending.set(myId, resolve);
+      v2Mcp.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: myId, method, params }) + "\n");
+    });
+
+  try {
+    await v2Call("initialize", {
+      protocolVersion: "2024-11-05",
+      capabilities: {},
+      clientInfo: { name: "selftest-v2", version: "1" },
+    });
+    const listResp = await v2Call("tools/list", {});
+    const v2Tools = listResp.result?.tools || [];
+    const v2Bytes = Buffer.byteLength(JSON.stringify(v2Tools));
+    v2Tools.length === 17 && v2Bytes <= 18_000
+      ? ok(`default tools/list exposes 17 consolidated tools (${v2Bytes} bytes, budget 18000)`)
+      : bad(`expected 17 default tools <= 18000 bytes, got ${v2Tools.length} tools (${v2Bytes} bytes)`);
+
+    const facets = toolJson(await v2Call("tools/call", { name: "design_facets", arguments: {} }));
+    Array.isArray(facets.hues) && Array.isArray(facets.grounds)
+      ? ok(`design_facets returns unified hues (${facets.hues.length}) and grounds (${facets.grounds.length})`)
+      : bad("design_facets missing hues/grounds");
+
+    const unified = toolJson(await v2Call("tools/call", { name: "design_search", arguments: { hue: "blue", limit: 5 } }));
+    (unified.designs?.length || 0) > 0
+      ? ok(`design_search filters unified index by hue=blue (${unified.total} total)`)
+      : bad("design_search hue filter returned 0");
+
+    const tpl = toolJson(await v2Call("tools/call", { name: "design_template", arguments: { slug: "loam" } }));
+    tpl.slug === "loam" && tpl.manifest === undefined && Array.isArray(tpl.omitted)
+      ? ok("design_template omits duplicate manifest by default")
+      : bad("design_template should omit manifest by default");
+
+    const kitList = toolJson(await v2Call("tools/call", { name: "design_kit_list", arguments: {} }));
+    (kitList.kits?.length || 0) >= 20
+      ? ok(`design_kit_list returns ${kitList.kits.length} kits`)
+      : bad(`design_kit_list returned ${kitList.kits?.length ?? 0} kits`);
+
+    const magicPage = toolJson(await v2Call("tools/call", { name: "design_kit_list", arguments: { kit: "magic-ui" } }));
+    magicPage.returned === 40
+      ? ok("design_kit_list accepts alias 'magic-ui' and defaults to 40 rows")
+      : bad(`design_kit_list magic-ui returned ${magicPage.returned} rows, expected 40`);
+
+    const docOutline = toolJson(await v2Call("tools/call", { name: "design_kit_docs", arguments: { kit: "baseui", item: "combobox", outline: true } }));
+    Array.isArray(docOutline.outline) && docOutline.outline.length > 0
+      ? ok(`design_kit_docs outline: true returns ${docOutline.outline.length} headings`)
+      : bad("design_kit_docs outline: true failed");
+
+    const resPick = toolJson(await v2Call("tools/call", { name: "design_resolve", arguments: { ref: "designer:heroui:button" } }));
+    Array.isArray(resPick.nextTools) && resPick.nextTools.includes("design_kit_docs")
+      ? ok(`design_resolve recommends consolidated nextTools (${resPick.nextTools.join(", ")})`)
+      : bad("design_resolve did not recommend consolidated nextTools");
+  } finally {
+    v2Mcp.kill();
   }
 }
 

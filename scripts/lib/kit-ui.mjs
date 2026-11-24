@@ -16,6 +16,8 @@
  * page loads no third-party code, no fonts and no images.
  */
 
+import { BASE_CSS, NAV_CSS, nav, themeHead } from "./ui.mjs";
+
 const esc = (s) =>
   String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -24,47 +26,28 @@ const esc = (s) =>
     .replace(/"/g, "&quot;");
 
 /**
- * The page shell.
- *
- * Light by default with a dark scheme for readers who ask for one — the
- * gallery is read for long stretches, so the reader's own preference wins.
+ * The design-system page shell — built on the shared adaptive light/dark tokens from ui.mjs.
  */
-export const KIT_CSS = `
-  :root {
-    color-scheme: light dark;
-    --bg: #ffffff; --panel: #fafafa; --panel2: #f0f0f0; --line: #e3e3e3;
-    --text: #494949; --strong: #202020; --muted: #6b6b6b; --chip: #ededed;
-    --accent: #202020; --accent-ink: #fafafa; --brand: #007106;
-    --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1c1c1c; --panel: #262626; --panel2: #2f2f2f; --line: #3a3a3a;
-      --text: #e3e3e3; --strong: #fafafa; --muted: #a8a8a8; --chip: #333333;
-      --accent: #fafafa; --accent-ink: #202020; --brand: #87ea5c;
-    }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 var(--font); }
-  a { color: inherit; }
-  a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px max(16px, env(safe-area-inset-left)) 64px; }
-  h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; color: var(--strong); margin: 0 0 8px; text-wrap: balance; }
-  h2 { font-size: 20px; color: var(--strong); margin: 32px 0 12px; }
-  .lede { color: var(--muted); max-width: 68ch; margin: 0 0 24px; }
-  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 20px; }
+export const KIT_CSS = `${BASE_CSS}
+  body { font: 15px/1.55 var(--font); color: var(--text); }
+  a { color: var(--accent); }
+  .wrap { max-width: 1220px; margin: 0 auto; padding: 26px max(16px, env(safe-area-inset-left)) 64px; }
+  h1 { font-size: clamp(26px, 3.6vw, 36px); line-height: 1.15; color: var(--strong); margin: 0 0 8px; text-wrap: balance; }
+  h2 { font-size: 18px; color: var(--strong); margin: 28px 0 12px; }
+  .lede { color: var(--muted); max-width: 72ch; margin: 0 0 20px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
   .filters input {
     font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
-    background: var(--bg); color: var(--text); min-width: 220px; flex: 1 1 220px; max-width: 360px;
+    background: var(--panel); color: var(--fg); min-width: 220px; flex: 1 1 220px; max-width: 380px;
   }
   .chip {
-    font: 13px/1 var(--font); padding: 7px 10px; border-radius: 999px; border: 1px solid var(--line);
-    background: var(--bg); color: var(--text); cursor: pointer;
+    font: 12.5px/1 var(--font); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--fg); cursor: pointer;
   }
-  .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; list-style: none; padding: 0; margin: 0; }
-  .card a { display: grid; gap: 10px; text-decoration: none; }
+  .chip:hover { border-color: var(--accent); }
+  .chip[aria-pressed="true"] { background: var(--accent-bg); color: var(--strong); border-color: var(--accent-line); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; list-style: none; padding: 0; margin: 0; }
+  .card a { display: grid; gap: 10px; text-decoration: none; color: inherit; }
   .thumb {
     aspect-ratio: 16 / 10; height: auto; border-radius: 10px; border: 1px solid var(--line);
     overflow: hidden; background: var(--panel); display: block; width: 100%;
@@ -76,77 +59,52 @@ export const KIT_CSS = `
   .card .title { font-weight: 600; color: var(--strong); line-height: 1.3; }
   .card a:hover .title { text-decoration: underline; }
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-  .tags li { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+  .tags li { font-size: 11.5px; padding: 3px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); }
   .empty { color: var(--muted); }
-  .count { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+  .count { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
 
   /* ---------------------------------------------- the design-system spoke */
   .spoke { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
   @media (max-width: 860px) { .spoke { grid-template-columns: minmax(0, 1fr); } }
-  .tabs { display: flex; gap: 4px; margin-bottom: 8px; }
-  .tab {
-    font: 600 14px/1 var(--font); padding: 9px 14px; border-radius: 8px; border: 1px solid var(--line);
-    background: var(--bg); color: var(--muted); cursor: pointer;
+  .tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .tab-btn, .tabs .tab {
+    font: 600 13.5px/1 var(--font); padding: 8px 13px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--muted); cursor: pointer;
   }
-  .tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .frame { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+  .tab-btn[aria-selected="true"], .tabs .tab[aria-selected="true"] {
+    background: var(--accent-bg); color: var(--strong); border-color: var(--accent-line);
+  }
+  .frame { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); }
   .frame iframe { display: block; width: 100%; height: min(78vh, 820px); border: 0; }
-  aside { display: grid; gap: 18px; }
-  aside section { border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 10px; background: var(--panel); }
-  aside h2 { margin: 0; font-size: 15px; }
-  aside p { margin: 0; font-size: 14px; }
+  aside { display: grid; gap: 16px; }
+  aside section { border: 1px solid var(--line); border-radius: 10px; padding: 15px; display: grid; gap: 10px; background: var(--panel); }
+  aside h2 { margin: 0; font-size: 14.5px; }
+  aside p { margin: 0; font-size: 13.5px; }
   .btn {
-    display: inline-flex; justify-content: center; gap: 8px; font: 600 14px/1 var(--font);
-    padding: 10px 14px; border-radius: 8px; border: 1px solid var(--accent);
+    display: inline-flex; justify-content: center; align-items: center; gap: 8px; font: 600 13.5px/1 var(--font);
+    padding: 9px 14px; border-radius: 8px; border: 1px solid var(--accent);
     background: var(--accent); color: var(--accent-ink); cursor: pointer; text-decoration: none;
   }
-  .btn.secondary { background: transparent; color: var(--strong); border-color: var(--line); }
+  .btn.secondary { background: var(--panel); color: var(--strong); border-color: var(--line); }
+  .btn.secondary:hover { border-color: var(--accent); }
   .prompt {
-    font: 13px/1.45 var(--mono); background: var(--bg); border: 1px solid var(--line);
+    font: 12.5px/1.45 var(--mono); background: var(--code-bg); color: var(--code-fg); border: 1px solid var(--line);
     border-radius: 6px; padding: 8px 10px; white-space: pre-wrap; word-break: break-word; margin: 0;
   }
-  ul.files { margin: 0; padding-left: 18px; font-size: 14px; }
+  ul.files { margin: 0; padding-left: 18px; font-size: 13.5px; }
   .note { font-size: 13px; color: var(--muted); }
-  .swatches { display: flex; }
+  .swatches { display: flex; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
   .swatches span { flex: 1; height: 8px; }
   footer { margin-top: 48px; font-size: 13px; color: var(--muted); }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 `;
 
-/** The shared nav bar. */
+/** The unified top nav bar (delegates directly to ui.mjs nav). */
 export function kitNav(active) {
-  const tab = (href, label, key) =>
-    `<a class="tab${active === key ? " on" : ""}" href="${href}">${label}</a>`;
-  return `<nav class="kitnav">
-  <a class="brand" href="/">▣ Designer</a>
-  ${tab("/", "Designs", "designs")}
-  ${tab("/components", "Components", "components")}
-  ${tab("/tailwind", "Tailwind", "tailwind")}
-  ${tab("/presets", "Gradients &amp; Patterns", "presets")}
-  ${tab("/templates", "System templates", "templates")}
-  ${tab("/docs", "UI SDK Docs", "docs")}
-  ${tab("/assets", "Assets", "assets")}
-  <span class="spacer"></span>
-  <a class="dl" href="/skill">⬇ Skill</a>
-</nav>`;
+  return nav(active);
 }
 
-export const KIT_NAV_CSS = `
-  .kitnav {
-    position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 4px;
-    background: var(--bg); border-bottom: 1px solid var(--line); padding: 0 16px; height: 46px;
-    overflow-x: auto; scrollbar-width: thin;
-  }
-  .kitnav .brand { font-weight: 700; color: var(--strong); text-decoration: none; margin-right: 14px; letter-spacing: -0.01em; }
-  .kitnav .tab { color: var(--muted); text-decoration: none; padding: 6px 11px; border-radius: 7px; font-size: 13px; white-space: nowrap; }
-  .kitnav .tab:hover { color: var(--strong); background: var(--panel2); }
-  .kitnav .tab.on { color: var(--strong); background: var(--panel2); box-shadow: inset 0 0 0 1px var(--line); }
-  .kitnav .spacer { flex: 1; }
-  .kitnav .dl {
-    font-size: 13px; color: var(--strong); text-decoration: none; border: 1px solid var(--line);
-    background: var(--panel2); border-radius: 7px; padding: 5px 11px; white-space: nowrap;
-  }
-`;
+export const KIT_NAV_CSS = NAV_CSS;
+export { themeHead };
 
 /**
  * The gallery index.
@@ -281,6 +239,7 @@ export function designDetailHtml({ design, views = [], main = "", aside = "", ta
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${themeHead()}
 <title>${esc(design.siteName)} — Design Systems</title>
 <style>${KIT_CSS}${KIT_NAV_CSS}</style>
 </head>

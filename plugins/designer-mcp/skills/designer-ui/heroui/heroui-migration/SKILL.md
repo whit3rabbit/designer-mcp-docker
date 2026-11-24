@@ -1,6 +1,6 @@
 ---
 name: heroui-migration
-description: "HeroUI v2 to v3 migration guide for agents. Use when migrating HeroUI v2 apps to v3, upgrading components, or accessing migration documentation. Keywords: HeroUI migration, v2 to v3, migration guide, upgrade HeroUI."
+description: "HeroUI v2 to v3 migration guide for upgrading components and adapting to breaking changes."
 metadata:
   author: heroui
   version: "2.0.0"
@@ -17,7 +17,7 @@ Adapted from HeroUI's official agent skills (Apache-2.0) for fully offline use i
 
 ## Offline Sources
 
-The migration guides come from the baked designer-mcp layer (`<cache>/heroui/migration`, pinned to an upstream tag). Set `HEROUI_MIGRATION_DIR` to override, or register the designer-mcp MCP server and use the `design_heroui_migration_guide` tool.
+The migration guides come from the baked designer-mcp layer (`<cache>/heroui/migration`, pinned to an upstream tag). Set `HEROUI_MIGRATION_DIR` to override, or register the designer-mcp MCP server and use the `design_kit_docs` tool.
 
 ---
 
@@ -65,7 +65,7 @@ node scripts/get_hooks_migration_guide.mjs
 
 ### MCP Tool
 
-When the designer-mcp MCP server is registered, `design_heroui_migration_guide` serves the same guides: `{"name": "index"}` lists them, `{"name": "agent-guide-full"}`, `{"name": "styling"}`, `{"name": "hooks"}`, or a component slug like `{"name": "button"}` reads one.
+When the designer-mcp MCP server is registered, `design_kit_docs` serves the same guides: `{"name": "index"}` lists them, `{"name": "agent-guide-full"}`, `{"name": "styling"}`, `{"name": "hooks"}`, or a component slug like `{"name": "button"}` reads one.
 
 ---
 

@@ -12,7 +12,10 @@ decision does and does not cover.
 | `styles.refero.design/sitemaps/styles.xml` | allowed | 200 | **Read** |
 | `styles.refero.design/sitemaps/collections.xml` | allowed | 200 | **Read** |
 | `styles.refero.design/<collection>` | allowed | 200 | **Read** |
-| `images.refero.design/...` | allowed (only `GPTBot` disallowed) | 200 | **Linked** (thumbnails) |
+| `refero.design/<page>` | allowed for generic agents (only `GPTBot` disallowed) | 200 | **Read** (SPA shell only, no data embedded) |
+| `api.refero.design/v1/styles` | allowed (robots.txt is empty) | 200 | **Read** (Refero Styles layer) |
+| `api.refero.design/v1/search/styles` | allowed | 200 | Not fetched (the layer bakes all records; search is local) |
+| `images.refero.design/...` | allowed (only `GPTBot` disallowed) | 200 | **Read** (Refero Styles: mirrored, compressed previews) and **Linked** (classic-catalog thumbnails) |
 | `api.refero.design/mcp` | — | OAuth + paid plan | Optional, separate server |
 
 ### The wall, not a bug
@@ -34,9 +37,51 @@ HTML (Next.js RSC flight stream) — no special access required. Each public pag
 also ships a **"Download DESIGN.md"** button, so the export is a first-class
 product feature, not an extraction loophole.
 
+### The Refero Styles layer
+
+`refero.design/styles` is Refero's curated per-site design-system product:
+788 profiles (Cursor, Linear, Notion, teenage engineering, …) with a written
+intent, essentials, named color tokens with usage notes, surfaces,
+component recipes with CSS and declared states, typography recipes, font
+substitutes, dos and donts, and a Refero-authored DESIGN.md (~35 KB) the
+public page lets anyone download.
+
+The pages are a client-side React SPA. The structured data is not embedded in
+the HTML. It is served by the same public, unauthenticated REST API the page
+itself calls, with `Access-Control-Allow-Origin: *`:
+
+- `GET /v1/styles?page=N` lists the catalog, 24 records per page.
+- `GET /v1/styles/<uuid>` returns one full record.
+- `GET /v1/search/styles?query=` powers the site's filter chips. This fetcher
+  bakes all records and searches locally, so it is not requested.
+
+The compliance case, and how it differs from the blocked endpoint:
+
+- **robots.txt permits it.** `refero.design/robots.txt` allows every agent
+  except GPTBot, `api.refero.design/robots.txt` is empty (allow-all), and
+  `images.refero.design` allows generic agents. The fetcher reads all three
+  robots.txt files first and aborts loudly if the paths become disallowed.
+- **It is the public backing API of a public page.** No account, no paywall,
+  no auth of any kind, CORS-open, and the pages carry `index, follow`, so
+  search engines index the same data through the same endpoints.
+- **The DESIGN.md download is a first-class export feature.** Every public
+  style page offers it. Consuming the export is not extraction.
+- **It is throttled and honest.** 400 ms between record fetches, an
+  identifying User-Agent, incremental refetches, provenance with per-file
+  checksums, and attribution baked as NOTICE.md. Data is cached locally and
+  not redistributed, per the Licensing section below.
+
+The paid MCP server (`api.refero.design/mcp`, OAuth) is the sanctioned
+automated path and covers much more (screens, flows). This layer takes the
+public read of the styles dataset only. The blocked endpoint
+(`styles.refero.design/api/styles`, robots-disallowed, 403) is a different
+surface and stays never-requested.
+
 ## What is read, and how much
 
 - **1,342 styles**, each from one public page.
+- **788 Refero Styles**, from the public `/v1/styles` API that backs
+  refero.design/styles (see "The Refero Styles layer" below).
 - **52 collection pages**, used only to cross-check completeness.
 - **2 sitemap XML files**, for the canonical id list.
 - **198 OpenDesign design systems**, from two public git repositories under
@@ -124,11 +169,15 @@ and the previous bake is left in place.
 
 ## What is not requested
 
-- The live API, ever.
+- The blocked API, ever: `styles.refero.design/api/styles`, which robots.txt
+  disallows and which answers 403 to every client. The Refero Styles layer's
+  public read of `api.refero.design/v1/*` is classified separately above and
+  is fetched only while robots.txt keeps permitting it.
 - Any named-bot-disallowed path. `styles.refero.design` disallows
   `ClaudeBot`, `GPTBot`, `anthropic-ai`, and others entirely — this project
   identifies as a generic agent and stays on permitted paths.
 - Any authenticated endpoint.
+- Video preview mp4s: the mirrored keyframes cover the previews.
 
 ## Throttling
 
@@ -138,9 +187,14 @@ styles already cached. A full cold fetch of 1,342 styles takes ~2.5 minutes.
 
 ## Thumbnails
 
-Screenshots are **linked, not downloaded**. The gallery issues a 302 to
-`images.refero.design`, whose robots.txt permits generic agents. Nothing is
-mirrored, and the images stay on Refero's CDN.
+The classic catalog's screenshots are **linked, not downloaded**: the gallery
+issues a 302 to `images.refero.design`, whose robots.txt permits generic
+agents. Nothing is mirrored, and the images stay on Refero's CDN.
+
+The Refero Styles layer is the exception: its screenshot keyframes, type
+preview SVGs and favicons are mirrored into the local cache and the keyframes
+are compressed to WebP, because the layer's pages must render with zero
+network (Rule 1) and no page shell exists to link against.
 
 ## The upstream package
 

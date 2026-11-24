@@ -2,7 +2,7 @@
 
 Ready-made MCP registration for the designer-mcp servers. Pick your harness in
 the table, open its file, and paste the snippet. Every snippet registers the
-generic `design_*` server: 44 tools across both sources and the component,
+generic `design_*` server: 17 tools across both sources and the component,
 preset, template, and UI library layers, fully offline.
 
 The upstream `refero_*` server (`scripts/mcp-entry.mjs`) is an optional
@@ -35,11 +35,13 @@ npm run fetch && npm run opendesign && npm run components && npm run presets
 npm run templates
 # the UI library layers; skip any you do not need
 npm run heroui && npm run mantine && npm run daisyui && npm run baseui
+# the per-site style profiles (refero.design/styles)
+npm run refero-styles
 ```
 
-Without that last line the `design_heroui_*`, `design_mantine_*`,
-`design_daisyui_*`, and `design_baseui_*` tools still register, and answer
-`available: false` with the command to run.
+Without those last lines the `design_kit_* (kit: "heroui")`, `design_kit_* (kit: "mantine")`,
+`design_kit_* (kit: "daisyui")`, `design_kit_* (kit: "baseui")`, and `design_search / design_get` tools still
+register, and answer `available: false` with the command to run.
 
 The fetchers and the server share one cache default (`~/.design-cache`), so no
 environment variables are needed. `npm run all` adds thumbnails and serves the
@@ -73,7 +75,7 @@ docker pull ghcr.io/whit3rabbit/designer-mcp:latest
 ```
 
 To stay on one release instead, replace `:latest` with a version tag such as
-`:v1.9.1`. The plugin install does that for you in its `.mcp.json`.
+`:v2.0.0`. The plugin install does that for you in its `.mcp.json`.
 
 On an air-gapped host Docker cannot pull, so the tag a snippet names must
 already be loaded (`docker save` elsewhere, `docker load` there). The

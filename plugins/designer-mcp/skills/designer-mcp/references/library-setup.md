@@ -20,8 +20,8 @@ library is, what it depends on, the exact install steps (npm packages, CLI
 commands, CDN snippets), and the setup files with their full contents.
 
 It answers the question "the user wants shadcn: what files would they need?"
-with real files, not from memory. `design_library_search` lists what is
-cached. `design_library_get` returns one entry in full.
+with real files, not from memory. `design_library` (without `id`) searches/lists what is
+cached, and `design_library` (with `id`) returns one entry in full.
 
 The starter set covers the stack the rest of the catalog assumes: react,
 tailwind, shadcn, radix-ui, lucide, heroicons, motion, google-fonts, and
@@ -32,15 +32,14 @@ animation, fonts.
 
 When the user asks to install, set up, or wire in a library or font:
 
-1. `design_library_search` with the name (skip it when the ask names an
-   id you already know).
-2. `design_library_get` for the entry. Read `requires` first: pull those
+1. `design_library` with `query` (skip to step 2 when you already know the `id`).
+2. `design_library` with `id` for the entry. Read `requires` first: pull those
    entries too, they install first.
 3. Write the entry's `files` into the user's project at the given paths,
    then run the ordered `install.steps`. The file contents are complete,
    so write them as-is unless the project disagrees with them.
-4. Chain into the component layer for the actual UI: `design_component_search`
-   for shadcn-style components, `design_component_code` for the variant
+4. Chain into the component layer for the actual UI: `design_kit_search`
+   for shadcn-style components (`kit: "gradientdeck"`), `design_kit_code` for the variant
    source. The entry's `related` field names the tools that pair with it.
 5. Say what you installed and what each file is for. The user should be able
    to check every change.
@@ -69,7 +68,7 @@ you recommend one over the other.
 
 A third option lives in the gallery itself. The built browser modules
 (react, motion, gsap, lucide, phosphor, radix-ui, cn, and the shadcn
-components) are served as a local CDN: `design_asset_importmap` returns the
+components) are served as a local CDN: `design_assets` returns the
 import map, embed it in the page, and those bare imports load from the
 running gallery with zero outbound network. Mention it when the user already
 runs the gallery, or when a prototype must make no external request at all.
@@ -80,16 +79,16 @@ runs the gallery, or when a prototype must make no external request at all.
 
 The ask: "set up shadcn". Two prerequisites, then the CLI:
 
-1. `design_library_get` for `tailwind` and `react` first, shadcn requires
+1. `design_library` for `tailwind` and `react` first, shadcn requires
    both. Install and wire them if the project lacks them.
-2. `design_library_get` for `shadcn`. The entry carries `components.json`,
+2. `design_library` for `shadcn`. The entry carries `components.json`,
    `lib/utils.ts` (the `cn` helper), and `src/app.css` with the full neutral
    theme for Tailwind v4.
 3. Run the steps. `npx shadcn@latest init` works when the CLI is available
    (it writes those files itself and installs the dependencies). Otherwise
    write the files from the entry and install the npm list yourself.
 4. For real components, use the component layer rather than inventing them:
-   `design_component_search` for the 109 shadcn-style components with full
+   `design_kit_search` for the 109 shadcn-style components with full
    TSX, and the gallery's `/reui` pages (1,264 components, gallery-only) when
    the user wants more than those.
 

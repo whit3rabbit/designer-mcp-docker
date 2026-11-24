@@ -6,7 +6,7 @@
  *   - /reui/:category  Live interactive component grid + slide-over Radix/Base code sheet
  */
 
-import { BASE_CSS, NAV_CSS, nav } from "./ui.mjs";
+import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -59,7 +59,7 @@ const REUI_CSS = `
     background: transparent; color: var(--muted); border: 0; border-radius: 5px;
     padding: 4px 9px; font: inherit; font-size: 12px; cursor: pointer;
   }
-  .reui-seg button[aria-pressed="true"] { background: #262d46; color: var(--fg); font-weight: 500; }
+  .reui-seg button[aria-pressed="true"] { background: var(--accent-bg); color: var(--strong); font-weight: 500; }
   .reui-count { font-size: 12px; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
   .reui-cat-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;
@@ -303,7 +303,10 @@ ${nav("reui")}
     <div class="reui-crumb"><a href="/reui">ReUI Components</a> / ${esc(category.label)}</div>
     <div class="reui-header">
       <div>
-        <h1>${esc(category.label)}</h1>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+          <h1>${esc(category.label)}</h1>
+          ${mcpButton(`designer:reui:${category.slug}`, `ReUI — ${category.label}`)}
+        </div>
         ${category.description ? `<p>${esc(category.description)}</p>` : ""}
       </div>
     </div>

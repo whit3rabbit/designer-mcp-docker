@@ -1,6 +1,6 @@
 ---
 name: ui-sdk
-description: Builds interfaces with ui-sdk in React, Vue, Svelte, Solid or web components. Covers choosing and composing its components, building a component or behavior it doesn't ship from @ui-sdk/core (like a stepper, splitter, transfer list or emoji picker), making the interface usable by agents through createAgent, agent tools and WebMCP, and testing keyboard, focus, ARIA, server rendering and right to left, including writing tests for an existing component. Use whenever a project has @ui-sdk/* installed or the user mentions ui-sdk.
+description: "Build accessible interfaces with @ui-sdk/* behaviors, keyboard navigation, and ARIA across frameworks."
 ---
 
 # Build with ui-sdk
@@ -11,7 +11,7 @@ ui-sdk is a library of UI behaviors: keyboard navigation, focus, selection, dism
 
 The docs for the bundled version ship offline in this skill and in `node_modules/@ui-sdk/<framework>/docs/`:
 
-- **MCP tools (when connected to `designer-mcp`):** Call `design_docs_search` and `design_docs_get` to search and read `ui-sdk` docs without needing internet access or local `node_modules`.
+- **MCP tools (when connected to `designer-mcp`):** Call `design_kit_search` and `design_kit_docs` to search and read `ui-sdk` docs without needing internet access or local `node_modules`.
 - **Local files:** `docs/<framework>/llms.txt` (`core`, `react`, or `web`) is the index. Read it first, then read only the pages your task needs, like `docs/react/components/select.md` or `docs/web/components/dialog.md`. Don't read the whole `docs/` folder; it's large.
 - An interface built from our components doesn't need `docs/core/core.md`. Only path 2 below does, and even then you search it by heading: it's over 300 KB. `docs/<framework>/rendering.md` sits next to it in the same `docs/` folder.
 - Don't read compiled JavaScript in `dist/*.js`, even to debug. The docs and the `.d.ts` types are the API; when they don't answer, write a small test that tries it.

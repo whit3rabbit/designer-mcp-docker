@@ -17,56 +17,475 @@ const esc = (s) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+/**
+ * FOUC-prevention head snippet for adaptive light/dark theme.
+ * Place immediately after <meta name="viewport"> in <head>.
+ */
+export function themeHead() {
+  return `<meta name="color-scheme" content="light dark">
+<script>try{var s=localStorage.getItem("color-scheme");if(s==="light"||s==="dark")document.querySelector('meta[name="color-scheme"]').content=s;}catch(e){}</script>`;
+}
+
 export const BASE_CSS = `
   :root {
-    --bg: #0d0f12; --panel: #16191e; --panel2: #1d2127; --line: #2a2f37;
-    --fg: #e6e9ee; --muted: #9aa3b0; --accent: #7c8cff;
-    --code-bg: #0a0c0f;
+    color-scheme: light dark;
+    --bg: light-dark(#f7f8fa, #0d0f12);
+    --panel: light-dark(#ffffff, #16191e);
+    --panel2: light-dark(#eef1f5, #1d2127);
+    --line: light-dark(#dce1e8, #2a2f37);
+    --fg: light-dark(#181c23, #e6e9ee);
+    --strong: light-dark(#0c0f14, #f7f8fa);
+    --text: light-dark(#3b4250, #d4d9e1);
+    --muted: light-dark(#5b6472, #9aa3b0);
+    --chip: light-dark(#e9edf3, #232832);
+    --accent: light-dark(#4452e0, #7c8cff);
+    --accent-ink: #ffffff;
+    --accent-bg: light-dark(#eceeff, #232a44);
+    --accent-line: light-dark(#b2baf9, #5362a1);
+    --code-bg: light-dark(#f2f4f8, #0a0c0f);
+    --code-fg: light-dark(#1d2432, #d7dbe3);
+    --ok-fg: light-dark(#147a42, #7ee2a8);
+    --nav-bg: light-dark(rgba(255,255,255,.92), rgba(13,15,18,.94));
+    --brand: light-dark(#15733a, #7ee2a8);
+    --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
+  :root:has(> head > meta[name="color-scheme"][content="dark"]) { color-scheme: dark; }
+  :root:has(> head > meta[name="color-scheme"][content="light"]) { color-scheme: light; }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg);
-    font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { margin:0; background:var(--bg); color:var(--fg); font: 14px/1.5 var(--font); }
   a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
 `;
 
-/** The top nav bar shared by every page. */
+const PILLAR_FOR = {
+  designs: "designs",
+  "refero-styles": "designs",
+  templates: "designs",
+  components: "components",
+  reui: "components",
+  baseui: "components",
+  heroui: "components",
+  mantine: "components",
+  daisyui: "components",
+  uikits: "components",
+  tailwind: "components",
+  icons: "components",
+  charts: "components",
+  fonts: "components",
+  starters: "starters",
+  dashboards: "starters",
+  slopstrap: "starters",
+  presets: "presets",
+  assets: "assets",
+  docs: "assets",
+};
+
+/**
+ * Reusable "+ Send to MCP" button wired automatically by the shared nav script.
+ */
+export function mcpButton(ref, label, { compact = false, extraClass = "" } = {}) {
+  const cls = `mcp-send-btn${compact ? " compact" : ""}${extraClass ? ` ${extraClass}` : ""}`;
+  return `<button type="button" class="${cls}" data-mcp-ref="${esc(ref)}" data-mcp-label="${esc(label)}" aria-pressed="false" title="Send ${esc(ref)} to MCP">${compact ? "+ MCP" : "+ Send to MCP"}</button>`;
+}
+
+/**
+ * The unified 5-pillar top navigation bar shared by every page,
+ * plus the adaptive light/dark two-state scheme toggle and the floating MCP Picks Tray.
+ */
 export function nav(active) {
-  const tab = (href, label, key) =>
-    `<a class="tab${active === key ? " on" : ""}" href="${href}">${label}</a>`;
-  return `<nav class="nav">
-    <span class="brand">▣ Designer</span>
-    ${tab("/", "Designs", "designs")}
+  const pillar = PILLAR_FOR[active] || active;
+  const tab = (href, label, key) => {
+    const isOn = pillar === key;
+    return `<a class="tab${isOn ? " on" : ""}" href="${href}"${isOn ? ' aria-current="page"' : ""}>${label}</a>`;
+  };
+  return `<header class="site-header">
+  <nav class="nav" aria-label="Primary">
+    <a class="brand" href="/">▣ Designer</a>
+    ${tab("/", "Design Systems", "designs")}
     ${tab("/components", "Components", "components")}
-    ${tab("/reui", "ReUI", "reui")}
-    ${tab("/baseui", "Base UI", "baseui")}
-    ${tab("/heroui", "HeroUI", "heroui")}
-    ${tab("/mantine", "Mantine", "mantine")}
-    ${tab("/daisyui", "daisyUI", "daisyui")}
-    ${tab("/tailwind", "Tailwind", "tailwind")}
-    ${tab("/presets", "Gradients &amp; Patterns", "presets")}
-    ${tab("/templates", "System templates", "templates")}
-    ${tab("/dashboards", "Dashboards", "dashboards")}
-    ${tab("/slopstrap", "Slop", "slopstrap")}
-    ${tab("/docs", "UI SDK Docs", "docs")}
-    ${tab("/assets", "Assets", "assets")}
+    ${tab("/starters", "Starters", "starters")}
+    ${tab("/presets", "Effects &amp; Presets", "presets")}
+    ${tab("/assets", "Assets &amp; Docs", "assets")}
     <span class="spacer"></span>
+    <button type="button" class="mcp-tray-btn" id="mcp-tray-btn" aria-expanded="false" aria-controls="mcp-tray" title="Open MCP Picks Tray">
+      <span aria-hidden="true">⚡</span> MCP <span class="mcp-tray-cnt" id="mcp-tray-cnt" hidden>0</span>
+    </button>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle color theme" title="Toggle light/dark theme">
+      <span class="theme-icon-light" aria-hidden="true">☀</span>
+      <span class="theme-icon-dark" aria-hidden="true">☾</span>
+    </button>
     <a class="dl" href="/skill">⬇ Skill</a>
-  </nav>`;
+  </nav>
+</header>
+<aside id="mcp-tray" class="mcp-tray" data-picks-api="/api/picks" aria-label="MCP Picks Tray" hidden>
+  <div class="mcp-tray-head">
+    <div class="mcp-tray-title">
+      <strong>MCP Picks Tray</strong>
+      <span id="mcp-tray-mode" class="mcp-mode">Static · Copy Prompt</span>
+    </div>
+    <button type="button" id="mcp-tray-close" class="mcp-icon-btn" aria-label="Close MCP tray">×</button>
+  </div>
+  <div id="mcp-tray-list" class="mcp-tray-list"></div>
+  <p id="mcp-tray-empty" class="mcp-tray-empty">Click <strong>+ Send to MCP</strong> on any design system, component, icon, font, or preset to queue its ID for your AI agent.</p>
+  <div class="mcp-tray-foot">
+    <button type="button" id="mcp-copy-prompt" class="mcp-act primary">Copy MCP Prompt</button>
+    <button type="button" id="mcp-copy-ids" class="mcp-act">Copy IDs</button>
+    <button type="button" id="mcp-clear-all" class="mcp-act">Clear</button>
+    <span id="mcp-tray-status" class="mcp-status" role="status"></span>
+  </div>
+</aside>
+<script>
+(function(){
+  var meta = document.querySelector('meta[name="color-scheme"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.name = 'color-scheme';
+    meta.content = 'light dark';
+    document.head.appendChild(meta);
+  }
+  function applyStored() {
+    try {
+      var s = localStorage.getItem('color-scheme');
+      meta.content = (s === 'light' || s === 'dark') ? s : 'light dark';
+    } catch (e) {}
+  }
+  applyStored();
+  var btn = document.getElementById('theme-toggle');
+  if (btn && !btn.dataset.wired) {
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', function() {
+      var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var cur = meta.content === 'dark' ? 'dark' : meta.content === 'light' ? 'light' : (sysDark ? 'dark' : 'light');
+      var target = cur === 'dark' ? 'light' : 'dark';
+      var sys = sysDark ? 'dark' : 'light';
+      try {
+        if (target === sys) localStorage.removeItem('color-scheme');
+        else localStorage.setItem('color-scheme', target);
+      } catch (e) {}
+      meta.content = target === sys ? 'light dark' : target;
+    });
+    window.addEventListener('storage', function(ev) {
+      if (ev.key === 'color-scheme') applyStored();
+    });
+  }
+
+  // ---- Shared MCP Picks Tray & [data-mcp-ref] button wiring ----
+  var STORAGE_KEY = 'designer-mcp-picks';
+  var tray = document.getElementById('mcp-tray');
+  var trayBtn = document.getElementById('mcp-tray-btn');
+  var trayCnt = document.getElementById('mcp-tray-cnt');
+  var trayMode = document.getElementById('mcp-tray-mode');
+  var trayList = document.getElementById('mcp-tray-list');
+  var trayEmpty = document.getElementById('mcp-tray-empty');
+  var trayStatus = document.getElementById('mcp-tray-status');
+  if (!tray || !trayBtn || tray.dataset.wired) return;
+  tray.dataset.wired = '1';
+
+  var apiBase = (tray.getAttribute('data-picks-api') || '').trim();
+  var liveSync = false;
+  var picks = [];
+
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function loadLocal() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return Array.isArray(raw) ? raw.filter(function(p){ return p && typeof p.ref === 'string'; }) : [];
+    } catch (e) { return []; }
+  }
+  function saveLocal() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(picks)); } catch (e) {}
+  }
+  function setStatus(msg) {
+    if (!trayStatus) return;
+    trayStatus.textContent = msg;
+    if (msg) setTimeout(function(){ if (trayStatus.textContent === msg) trayStatus.textContent = ''; }, 2000);
+  }
+  function syncButtons() {
+    var set = new Set(picks.map(function(p){ return p.ref; }));
+    document.querySelectorAll('[data-mcp-ref]').forEach(function(el){
+      var ref = el.getAttribute('data-mcp-ref') || '';
+      var on = Boolean(ref && set.has(ref));
+      el.setAttribute('aria-pressed', String(on));
+      var compact = el.classList.contains('compact');
+      el.textContent = on ? (compact ? '✓ MCP' : '✓ Sent to MCP') : (compact ? '+ MCP' : '+ Send to MCP');
+    });
+  }
+  function renderTray() {
+    trayCnt.textContent = String(picks.length);
+    trayCnt.hidden = picks.length === 0;
+    trayBtn.classList.toggle('has-picks', picks.length > 0);
+    trayMode.textContent = liveSync ? 'Live MCP Sync' : 'Static · Copy Prompt';
+    trayMode.classList.toggle('live', liveSync);
+    trayEmpty.hidden = picks.length > 0;
+    trayList.innerHTML = picks.map(function(p, idx){
+      return '<div class="mcp-item" data-idx="' + idx + '">' +
+        '<div class="mcp-item-top">' +
+          '<div class="mcp-item-meta"><strong>' + escHtml(p.label || p.ref) + '</strong><code>' + escHtml(p.ref) + '</code></div>' +
+          '<button type="button" class="mcp-rm" data-rm="' + escHtml(p.ref) + '" aria-label="Remove ' + escHtml(p.label || p.ref) + '">×</button>' +
+        '</div>' +
+        '<input type="text" class="mcp-note" data-note-ref="' + escHtml(p.ref) + '" value="' + escHtml(p.note || '') + '" placeholder="Optional note for agent (e.g. use dark palette)…" aria-label="Note for ' + escHtml(p.label || p.ref) + '">' +
+      '</div>';
+    }).join('');
+    syncButtons();
+  }
+  function buildPrompt() {
+    if (!picks.length) return '';
+    var lines = ['Use these picks from Designer MCP:'];
+    picks.forEach(function(p){
+      lines.push('- ' + p.ref + (p.label ? ' (' + p.label + ')' : '') + (p.note ? ' — ' + p.note : ''));
+    });
+    lines.push(liveSync
+      ? 'Call design_picks (or design_resolve on each reference) to inspect tokens, docs, and source before implementing.'
+      : 'Call design_resolve on each reference to inspect tokens, docs, and source before implementing.');
+    return lines.join('\\n');
+  }
+  async function addOrUpdate(entry) {
+    if (!entry || !entry.ref) return;
+    var existing = picks.find(function(p){ return p.ref === entry.ref; });
+    var next = {
+      ref: entry.ref,
+      label: entry.label || (existing && existing.label) || entry.ref,
+      note: entry.note !== undefined ? entry.note : (existing ? (existing.note || '') : ''),
+      pickedAt: new Date().toISOString()
+    };
+    picks = [next].concat(picks.filter(function(p){ return p.ref !== entry.ref; })).slice(0, 50);
+    saveLocal();
+    renderTray();
+    if (liveSync && apiBase) {
+      try {
+        var r = await fetch(apiBase, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(next)
+        });
+        if (r.ok) {
+          var d = await r.json();
+          if (Array.isArray(d.picks)) { picks = d.picks; saveLocal(); renderTray(); }
+        }
+      } catch (e) {}
+    }
+  }
+  async function removeOne(ref) {
+    picks = picks.filter(function(p){ return p.ref !== ref; });
+    saveLocal();
+    renderTray();
+    if (liveSync && apiBase) {
+      try {
+        var r = await fetch(apiBase + '/' + encodeURIComponent(ref), { method: 'DELETE' });
+        if (r.ok) {
+          var d = await r.json();
+          if (Array.isArray(d.picks)) { picks = d.picks; saveLocal(); renderTray(); }
+        }
+      } catch (e) {}
+    }
+  }
+  async function clearAll() {
+    picks = [];
+    saveLocal();
+    renderTray();
+    if (liveSync && apiBase) {
+      try { await fetch(apiBase, { method: 'DELETE' }); } catch (e) {}
+    }
+    setStatus('Cleared');
+  }
+  function setOpen(open) {
+    tray.hidden = !open;
+    trayBtn.setAttribute('aria-expanded', String(open));
+  }
+
+  trayBtn.addEventListener('click', function(){ setOpen(tray.hidden); });
+  document.getElementById('mcp-tray-close').addEventListener('click', function(){ setOpen(false); });
+  document.getElementById('mcp-clear-all').addEventListener('click', clearAll);
+  document.getElementById('mcp-copy-prompt').addEventListener('click', async function(){
+    if (!picks.length) return setStatus('Tray is empty');
+    try { await navigator.clipboard.writeText(buildPrompt()); setStatus('Prompt copied'); }
+    catch (e) { setStatus('Clipboard blocked'); }
+  });
+  document.getElementById('mcp-copy-ids').addEventListener('click', async function(){
+    if (!picks.length) return setStatus('Tray is empty');
+    try { await navigator.clipboard.writeText(picks.map(function(p){ return p.ref; }).join('\\n')); setStatus('IDs copied'); }
+    catch (e) { setStatus('Clipboard blocked'); }
+  });
+  trayList.addEventListener('click', function(e){
+    var rm = e.target.closest('[data-rm]');
+    if (rm) removeOne(rm.getAttribute('data-rm'));
+  });
+  trayList.addEventListener('change', function(e){
+    var inp = e.target.closest('[data-note-ref]');
+    if (!inp) return;
+    var ref = inp.getAttribute('data-note-ref');
+    var cur = picks.find(function(p){ return p.ref === ref; });
+    if (cur) addOrUpdate({ ref: ref, label: cur.label, note: inp.value });
+  });
+
+  document.addEventListener('click', function(e){
+    var target = e.target.closest('[data-mcp-ref]');
+    if (!target) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var ref = target.getAttribute('data-mcp-ref');
+    var label = target.getAttribute('data-mcp-label') || ref;
+    if (!ref) return;
+    var exists = picks.some(function(p){ return p.ref === ref; });
+    if (exists) removeOne(ref);
+    else {
+      addOrUpdate({ ref: ref, label: label });
+      setStatus('Sent to MCP');
+    }
+  });
+  window.addEventListener('storage', function(ev){
+    if (ev.key === STORAGE_KEY) { picks = loadLocal(); renderTray(); }
+  });
+
+  window.DesignerMCP = {
+    list: function(){ return picks.slice(); },
+    send: addOrUpdate,
+    remove: removeOne,
+    clear: clearAll,
+    open: function(){ setOpen(true); },
+    close: function(){ setOpen(false); },
+    syncButtons: syncButtons
+  };
+
+  picks = loadLocal();
+  renderTray();
+  if (apiBase) {
+    fetch(apiBase).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+      if (d && d.live) {
+        liveSync = true;
+        if (Array.isArray(d.picks)) { picks = d.picks; saveLocal(); }
+        renderTray();
+      }
+    }).catch(function(){});
+  }
+})();
+</script>`;
+}
+
+/** Optional contextual secondary strip shown under the main nav on hub sub-pages. */
+export function subnav(items, active) {
+  const links = items
+    .map(({ href, label, key, count }) => {
+      const on = active === key;
+      const badge = count !== undefined && count !== null ? ` <span class="sub-cnt">${esc(count)}</span>` : "";
+      return `<a class="sub-tab${on ? " on" : ""}" href="${esc(href)}"${on ? ' aria-current="page"' : ""}>${esc(label)}${badge}</a>`;
+    })
+    .join("");
+  return `<nav class="subnav" aria-label="Section">${links}</nav>`;
 }
 
 export const NAV_CSS = `
-  .nav { position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:4px;
-    background:rgba(13,15,18,.94); backdrop-filter:blur(10px);
-    border-bottom:1px solid var(--line); padding:0 16px; height:46px; overflow-x:auto; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
-  .brand { flex:none; white-space:nowrap; font-weight:650; margin-right:14px; letter-spacing:-.01em; color:var(--fg); }
+  .site-header { position:sticky; top:0; z-index:30; }
+  .nav { display:flex; align-items:center; gap:4px;
+    background:var(--nav-bg); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line); padding:0 16px; height:48px; overflow-x:auto; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+  .brand { flex:none; white-space:nowrap; font-weight:700; margin-right:12px; letter-spacing:-.015em; color:var(--strong); text-decoration:none; font-size:14.5px; }
   .tab { color:var(--muted); text-decoration:none; padding:6px 11px; border-radius:7px;
-    font-size:13px; white-space:nowrap; }
-  .tab:hover { color:var(--fg); background:var(--panel2); }
-  .tab.on { color:var(--fg); background:var(--panel2); box-shadow:inset 0 0 0 1px var(--line); }
-  .spacer { flex:1; }
-  .dl { font-size:13px; color:var(--accent); text-decoration:none; border:1px solid var(--line);
-    background:var(--panel2); border-radius:7px; padding:5px 11px; }
+    font-size:13px; font-weight:500; white-space:nowrap; border:1px solid transparent; }
+  .tab:hover { color:var(--strong); background:var(--panel2); }
+  .tab.on, .tab[aria-current="page"] { color:var(--strong); background:var(--accent-bg); border-color:var(--accent-line); font-weight:600; }
+  .spacer { flex:1; min-width:8px; }
+  .theme-toggle { flex:none; display:inline-flex; align-items:center; justify-content:center; width:32px; height:30px;
+    background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:7px; cursor:pointer; font-size:14px; padding:0; }
+  .theme-toggle:hover { border-color:var(--accent); color:var(--strong); }
+  .theme-icon-light { display:none; }
+  .theme-icon-dark { display:inline; }
+  @media (prefers-color-scheme: dark) {
+    :root:not(:has(> head > meta[name="color-scheme"][content="light"])) .theme-icon-light { display:inline; }
+    :root:not(:has(> head > meta[name="color-scheme"][content="light"])) .theme-icon-dark { display:none; }
+  }
+  :root:has(> head > meta[name="color-scheme"][content="dark"]) .theme-icon-light { display:inline; }
+  :root:has(> head > meta[name="color-scheme"][content="dark"]) .theme-icon-dark { display:none; }
+  :root:has(> head > meta[name="color-scheme"][content="light"]) .theme-icon-light { display:none; }
+  :root:has(> head > meta[name="color-scheme"][content="light"]) .theme-icon-dark { display:inline; }
+  .dl { flex:none; font-size:12.5px; font-weight:550; color:var(--accent); text-decoration:none; border:1px solid var(--line);
+    background:var(--panel2); border-radius:7px; padding:5px 11px; white-space:nowrap; }
   .dl:hover { border-color:var(--accent); }
+  .subnav { display:flex; align-items:center; gap:6px; overflow-x:auto; padding:8px 16px;
+    background:var(--panel); border-bottom:1px solid var(--line); scrollbar-width:thin; }
+  .sub-tab { color:var(--muted); text-decoration:none; font-size:12.5px; padding:4px 10px;
+    border-radius:999px; border:1px solid transparent; white-space:nowrap; }
+  .sub-tab:hover { color:var(--strong); background:var(--panel2); }
+  .sub-tab.on, .sub-tab[aria-current="page"] { color:var(--strong); background:var(--panel2); border-color:var(--line); font-weight:600; }
+  .sub-cnt { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+  .mcp-tray-btn {
+    flex:none; display:inline-flex; align-items:center; gap:5px; height:30px; padding:0 10px;
+    background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:7px;
+    font:600 12px var(--font); cursor:pointer; white-space:nowrap;
+  }
+  .mcp-tray-btn:hover, .mcp-tray-btn.has-picks { border-color:var(--accent-line); background:var(--accent-bg); color:var(--strong); }
+  .mcp-tray-cnt {
+    display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 4px;
+    border-radius:999px; background:var(--accent); color:var(--accent-ink); font-size:10.5px; font-weight:700;
+  }
+  .mcp-tray-cnt[hidden], .mcp-tray[hidden], .mcp-tray-empty[hidden] { display:none !important; }
+  .mcp-tray {
+    position:fixed; right:16px; top:56px; z-index:70; width:min(400px, calc(100vw - 24px));
+    max-height:calc(100dvh - 76px); display:flex; flex-direction:column;
+    background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 16px 48px rgba(0,0,0,.28); overflow:hidden;
+  }
+  .mcp-tray-head {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:10px 14px; border-bottom:1px solid var(--line); background:var(--panel2);
+  }
+  .mcp-tray-title { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .mcp-tray-title strong { font-size:13.5px; color:var(--strong); }
+  .mcp-mode {
+    font-size:10.5px; padding:1px 7px; border-radius:999px; border:1px solid var(--line);
+    background:var(--panel); color:var(--muted);
+  }
+  .mcp-mode.live { color:var(--ok-fg); border-color:color-mix(in srgb, var(--ok-fg) 45%, var(--line)); }
+  .mcp-icon-btn {
+    background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:6px;
+    width:26px; height:26px; cursor:pointer; font-size:16px; line-height:1; padding:0;
+  }
+  .mcp-icon-btn:hover { color:var(--strong); border-color:var(--accent); }
+  .mcp-tray-list { overflow-y:auto; padding:8px 12px; display:flex; flex-direction:column; gap:8px; max-height:52dvh; }
+  .mcp-tray-empty { margin:0; padding:18px 14px; font-size:12.5px; color:var(--muted); line-height:1.5; }
+  .mcp-item { border:1px solid var(--line); border-radius:9px; padding:8px 10px; background:var(--panel2); display:flex; flex-direction:column; gap:6px; }
+  .mcp-item-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .mcp-item-meta { min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .mcp-item-meta strong { font-size:12.5px; color:var(--strong); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mcp-item-meta code { font-size:11px; color:var(--accent); font-family:var(--mono); word-break:break-all; }
+  .mcp-rm { background:transparent; border:0; color:var(--muted); cursor:pointer; font-size:15px; line-height:1; padding:2px 4px; border-radius:4px; }
+  .mcp-rm:hover { color:var(--strong); background:var(--panel); }
+  .mcp-note {
+    width:100%; padding:5px 8px; border-radius:6px; border:1px solid var(--line);
+    background:var(--panel); color:var(--fg); font:inherit; font-size:11.5px;
+  }
+  .mcp-tray-foot {
+    display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+    padding:10px 12px; border-top:1px solid var(--line); background:var(--panel2);
+  }
+  .mcp-act {
+    padding:5px 10px; border-radius:7px; border:1px solid var(--line); background:var(--panel);
+    color:var(--strong); font:550 12px var(--font); cursor:pointer;
+  }
+  .mcp-act:hover { border-color:var(--accent); }
+  .mcp-act.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .mcp-status { font-size:11.5px; color:var(--ok-fg); margin-left:auto; }
+  .mcp-send-btn {
+    display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border-radius:7px;
+    border:1px solid var(--accent-line); background:var(--accent-bg); color:var(--strong);
+    font:600 12px var(--font); cursor:pointer; white-space:nowrap;
+  }
+  .mcp-send-btn:hover { border-color:var(--accent); }
+  .mcp-send-btn[aria-pressed="true"] {
+    background:var(--accent); border-color:var(--accent); color:var(--accent-ink);
+  }
+  .mcp-send-btn.compact { padding:2px 8px; font-size:11px; border-radius:999px; }
+  @media (forced-colors: active) {
+    .tab[aria-current="page"], .sub-tab[aria-current="page"] { outline: 2px solid Highlight; }
+  }
 `;
 
 const SHARED_CSS = `
@@ -82,7 +501,7 @@ const SHARED_CSS = `
   h1 span { color:var(--muted); font-weight:400; }
 `;
 
-export function assetsHtml(manifest, importMap = null, origin = "") {
+export function assetsHtml(manifest, importMap = null, origin = "", libraries = []) {
   const packages = manifest?.packages ?? [];
   const packageRows = packages.filter(({ group }) => group !== "dependency").map(({ name, version, license, notices, group }) => `<li>
     <strong>${esc(name)}</strong> ${esc(version)} <span>${esc(license)}</span>
@@ -99,40 +518,68 @@ export function assetsHtml(manifest, importMap = null, origin = "") {
   const groups = manifest?.groups ?? {};
   const slop = manifest?.slopstrap ?? null;
   const groupRows = [
-    ["previews", "Bundled browser modules behind every live component preview", "/components and /reui"],
+    ["previews", "Bundled browser modules behind every live component preview", "/components"],
     ["starter", "The offline starter: page, sources, compiled modules", manifest?.archive?.url ?? "/assets/starter.zip"],
     ["tailwind", "HyperUI and shadcn example sources, offline", "/tailwind"],
     ["templates", "Vendored design-system template files", "/templates"],
     ["slopstrap", "The vendored Slopstrap joke framework: zip, css, js", "/slopstrap"],
     ["thumbnails", "Per-variant preview thumbnails", ""],
-    ["fonts", "Shared webfont binaries (woff2)", ""],
+    ["fonts", "Shared webfont binaries (woff2) — live specimens", "/components/fonts"],
   ].map(([key, what, href]) => {
     const count = groups[key];
     if (count === undefined) return "";
     const body = href ? `<a href="${esc(href)}">${esc(what)}</a>` : esc(what);
     return `<tr><td><strong>${count}</strong></td><td>${body}</td><td class="muted">${esc(key)}</td></tr>`;
   }).join("");
-  // The import map, as text the user can copy. Compose absolute URLs when
-  // the serving origin is known; otherwise show site-root relative paths.
   const mapImports = importMap?.imports ?? {};
   const mapJson = importMap ? JSON.stringify(
     Object.fromEntries(Object.entries(mapImports).map(([specifier, path]) => [specifier, `${origin}${path}`])),
     null, 1,
   ) : "";
   const mapCount = Object.keys(mapImports).length;
+  const libCards = (libraries || []).map((lib) => {
+    const install = lib.install?.npm || lib.install?.pnpm || lib.install?.cli || (typeof lib.install === "string" ? lib.install : "");
+    return `<div class="lib-card">
+      <div class="lib-head"><strong>${esc(lib.name || lib.id)}</strong><span class="lib-cat">${esc(lib.category || "")}</span></div>
+      ${lib.summary || lib.description ? `<p class="lib-desc">${esc(lib.summary || lib.description)}</p>` : ""}
+      ${install ? `<pre class="lib-cmd"><code>${esc(install)}</code></pre>` : ""}
+      <div class="lib-links"><a href="/api/library/${encodeURIComponent(lib.id)}">JSON manifest</a></div>
+    </div>`;
+  }).join("");
+  const secNav = subnav([
+    { href: "/assets", label: "Offline CDN & Assets", key: "assets" },
+    { href: "/docs", label: "UI SDK Offline Docs", key: "docs" },
+    { href: "/components/icons", label: "Icons Browser", key: "icons" },
+    { href: "/components/charts", label: "Charts & Data Viz", key: "charts" },
+    { href: "/components/fonts", label: "Local Fonts", key: "fonts" },
+  ], "assets");
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Offline frontend assets</title>
+${themeHead()}
+<title>Assets &amp; Docs — Offline CDN</title>
 <style>
 ${BASE_CSS}
 ${NAV_CSS}
-main { max-width:820px; padding:20px; }
-h1 { font-size:20px; margin:0 0 12px; }
-h2 { font-size:15px; margin:24px 0 8px; }
-.actions { display:flex; flex-wrap:wrap; gap:10px; }
+main { max-width:980px; margin:0 auto; padding:22px 20px 64px; }
+h1 { font-size:22px; margin:0 0 12px; color:var(--strong); }
+h2 { font-size:15px; margin:26px 0 10px; color:var(--strong); }
+.actions { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.cdn-tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:10px; margin:16px 0 22px; }
+.cdn-tile { display:flex; flex-direction:column; gap:4px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); text-decoration:none; color:var(--fg); }
+.cdn-tile:hover { border-color:var(--accent); }
+.cdn-tile strong { color:var(--strong); font-size:13.5px; }
+.cdn-tile span { color:var(--muted); font-size:12px; }
+.lib-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(270px, 1fr)); gap:10px; margin:10px 0 18px; }
+.lib-card { border:1px solid var(--line); border-radius:10px; background:var(--panel); padding:12px 14px; display:flex; flex-direction:column; gap:6px; }
+.lib-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.lib-head strong { color:var(--strong); font-size:13.5px; }
+.lib-cat { font-size:11px; color:var(--muted); background:var(--panel2); border:1px solid var(--line); border-radius:999px; padding:1px 7px; }
+.lib-desc { margin:0; font-size:12px; color:var(--muted); line-height:1.45; }
+.lib-cmd { margin:2px 0 0; padding:7px 9px; font-size:11.5px; background:var(--code-bg); color:var(--code-fg); border:1px solid var(--line); border-radius:7px; overflow-x:auto; }
+.lib-links { font-size:11.5px; margin-top:auto; }
 ul { padding-left:20px; overflow-wrap:anywhere; }
 li { padding:3px 0; }
 li span { color:var(--muted); margin:0 4px; }
@@ -142,20 +589,28 @@ th { text-align:left; padding:0 10px 6px 0; color:var(--muted); font-weight:norm
 td { padding:5px 10px 5px 0; border-top:1px solid var(--line); vertical-align:top; }
 td:first-child { white-space:nowrap; }
 .muted, p.muted { color:var(--muted); }
-pre { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:12px; overflow-x:auto; overflow-wrap:normal; font-size:12px; line-height:1.5; margin:8px 0; }
-code { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; }
+pre { background:var(--code-bg); color:var(--code-fg); border:1px solid var(--line); border-radius:8px; padding:12px; overflow-x:auto; overflow-wrap:normal; font-size:12px; line-height:1.5; margin:8px 0; }
+code { font-family:var(--mono); }
 </style>
 </head>
 <body>
 ${nav("assets")}
+${secNav}
 <main>
-<h1>Offline frontend assets</h1>
+<h1>Offline frontend assets &amp; docs</h1>
+<div class="cdn-tiles">
+  <a class="cdn-tile" href="/components/icons"><strong>Icons Browser</strong><span>Search &amp; copy 1,500+ Lucide icons from local vendor bundle</span></a>
+  <a class="cdn-tile" href="/components/charts"><strong>Charts &amp; Data Viz</strong><span>Live Chart.js, ECharts, ApexCharts, D3, Tabulator &amp; Gridstack</span></a>
+  <a class="cdn-tile" href="/components/fonts"><strong>Local Fonts</strong><span>Live type specimens for all 11 baked @fontsource families</span></a>
+  <a class="cdn-tile" href="/docs"><strong>UI SDK Offline Docs</strong><span>Browse @ui-sdk/core, react &amp; web markdown references</span></a>
+</div>
 ${manifest ? `
 <div class="actions">
   <a class="dl" href="${esc(manifest.archive.url)}" download>Download starter ZIP</a>
   <a class="dl" href="${esc(manifest.starter)}">Open starter example</a>
   <a class="dl" href="/assets/manifest.json">Asset manifest</a>
   <a class="dl" href="/assets/importmap.json">Import map (JSON)</a>
+  <a class="dl" href="/skill/marketplace.zip" download>Marketplace ZIP</a>
   ${slop ? `<a class="dl" href="${esc(slop.zip.url)}" download>Download Slopstrap ZIP</a>` : ""}
 </div>
 <p class="muted">Build version <code>${esc(manifest.version)}</code>, content-addressed: every file is served under
@@ -178,6 +633,8 @@ ${esc(mapJson)}
 <p class="muted">${origin ? `URLs are absolute against <code>${esc(origin)}</code>. The JSON form is at <a href="/assets/importmap.json">/assets/importmap.json</a>.` : "Paths are site-root relative. A running gallery also serves this map with absolute URLs at <code>/assets/importmap.json</code>."}</p>
 ` : "<p class=\"muted\">This build predates the import map. Rebuild the frontend to publish it.</p>"}
 
+${libCards ? `<h2>Library install manifests</h2><p class="muted">Offline install commands and setup specs served at <code>/api/libraries</code>.</p><div class="lib-grid">${libCards}</div>` : ""}
+
 <h2>Dashboard &amp; Visualization JS / CSS</h2>
 <ul>${vendorFiles}</ul>
 ${slop ? `
@@ -198,6 +655,105 @@ or see it live on the <a href="/slopstrap">Slop examples page</a>.</p>
 </html>`;
 }
 
+/**
+ * The Starters pillar hub: brings Dashboards, Design System Starter Kits, and Slopstrap under one roof.
+ */
+export function startersHtml({ dashboards = [], templates = [], slopstrap = null } = {}) {
+  const dashCards = dashboards.map((d) => `<a class="st-card" href="/dashboard/${encodeURIComponent(d.slug)}">
+    <span class="st-visual"><img src="/dashboard/${encodeURIComponent(d.slug)}/cover" alt="${esc(d.name)}" loading="lazy" decoding="async"></span>
+    <span class="st-meta">
+      <span class="st-top"><strong>${esc(d.name)}</strong><span class="st-pill">Dashboard ZIP</span></span>
+      ${d.description ? `<span class="st-desc">${esc(d.description)}</span>` : ""}
+      <span class="st-badges">${(d.stack || d.frameworks || []).slice(0, 4).map((t) => `<span class="st-tag">${esc(t)}</span>`).join("")}</span>
+    </span>
+  </a>`).join("");
+
+  const tmplCards = templates.map((t) => {
+    const swatches = [t.ground, t.text, t.accent].filter(Boolean)
+      .map((c) => `<span class="sw" style="background:${esc(c)}"></span>`).join("");
+    const starters = (t.starterTemplates || []).map((s) => s.name).join(", ");
+    return `<a class="st-card" href="/template/${encodeURIComponent(t.slug)}">
+      <span class="st-visual"><img src="/template/${encodeURIComponent(t.slug)}/thumb" alt="${esc(t.name)}" loading="lazy" decoding="async"></span>
+      <span class="st-meta">
+        <span class="st-top"><strong>${esc(t.name)}</strong><span class="st-pill">${t.tokensCount || 48} tokens</span></span>
+        ${t.description ? `<span class="st-desc">${esc(t.description)}</span>` : ""}
+        <span class="st-badges">${swatches ? `<span class="sws">${swatches}</span>` : ""}${t.headingFont ? `<span class="st-tag">${esc(t.headingFont)}</span>` : ""}${starters ? `<span class="st-tag">${esc(starters)}</span>` : ""}</span>
+      </span>
+    </a>`;
+  }).join("");
+
+  const secNav = subnav([
+    { href: "/starters", label: "All Starters", key: "starters" },
+    { href: "/dashboards", label: "Dashboards", key: "dashboards", count: dashboards.length },
+    { href: "/templates", label: "System Templates", key: "templates", count: templates.length },
+    { href: "/slopstrap", label: "Slopstrap", key: "slopstrap" },
+  ], "starters");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+${themeHead()}
+<title>Starters — Dashboards, System Templates &amp; Kits</title>
+<style>
+${BASE_CSS}
+${NAV_CSS}
+.st-wrap { max-width:1440px; margin:0 auto; padding:24px clamp(14px, 3vw, 36px) 64px; }
+.st-wrap h1 { font-size:24px; margin:0 0 6px; color:var(--strong); }
+.st-lead { color:var(--muted); margin:0 0 22px; max-width:72ch; }
+.st-sec { margin:28px 0 12px; display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.st-sec h2 { margin:0; font-size:16px; color:var(--strong); }
+.st-sec a { font-size:12.5px; text-decoration:none; }
+.st-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap:14px; }
+.st-card { display:flex; flex-direction:column; border:1px solid var(--line); border-radius:11px; background:var(--panel); text-decoration:none; color:var(--fg); overflow:hidden; }
+.st-card:hover { border-color:var(--accent); }
+.st-visual { aspect-ratio:16/10; background:var(--panel2); border-bottom:1px solid var(--line); overflow:hidden; display:block; }
+.st-visual img { width:100%; height:100%; object-fit:cover; display:block; }
+.st-meta { padding:12px 14px 14px; display:flex; flex-direction:column; gap:6px; }
+.st-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.st-top strong { font-size:14.5px; color:var(--strong); }
+.st-pill { font-size:11px; color:var(--accent); background:var(--accent-bg); border:1px solid var(--accent-line); border-radius:999px; padding:1px 8px; white-space:nowrap; }
+.st-desc { font-size:12.5px; color:var(--muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.st-badges { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:2px; }
+.st-tag { font-size:11px; color:var(--muted); background:var(--panel2); border:1px solid var(--line); border-radius:999px; padding:1px 7px; }
+.sws { display:inline-flex; }
+.sw { width:16px; height:16px; border-radius:4px; border:1px solid var(--line); }
+.sw + .sw { margin-left:-3px; }
+.slop-banner { margin-top:28px; padding:16px 18px; border:1px solid var(--line); border-radius:12px; background:var(--panel); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+.slop-banner h3 { margin:0 0 4px; font-size:15px; color:var(--strong); }
+.slop-banner p { margin:0; font-size:12.5px; color:var(--muted); max-width:66ch; }
+.slop-actions { display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+${nav("starters")}
+${secNav}
+<main class="st-wrap">
+  <h1>Starters &amp; App Kits</h1>
+  <p class="st-lead">Complete multi-page dashboards, copyable design-system starter kits (landing pages &amp; slide decks), and standalone frameworks — all bundled offline with zero CDN dependencies.</p>
+
+  <div class="st-sec"><h2>Offline Dashboard Starters (${dashboards.length})</h2><a href="/dashboards">Open dashboards view →</a></div>
+  <div class="st-grid">${dashCards || '<p class="st-lead">No dashboard starters cached.</p>'}</div>
+
+  <div class="st-sec"><h2>Design System Starter Kits (${templates.length})</h2><a href="/templates">Open system templates →</a></div>
+  <div class="st-grid">${tmplCards || '<p class="st-lead">No system templates cached.</p>'}</div>
+
+  <section class="slop-banner">
+    <div>
+      <h3>Slopstrap v4.2.0 — Satirical AI Design Showcase</h3>
+      <p>Mike Lacher's MIT-licensed CSS &amp; JS joke framework rendered live offline: purple gradients, blinking status dots, border beams, and slop-level switcher.</p>
+    </div>
+    <div class="slop-actions">
+      <a class="dl" href="/slopstrap">Open live Slopstrap →</a>
+      ${slopstrap?.zip?.url ? `<a class="dl" href="${esc(slopstrap.zip.url)}" download>Download ZIP</a>` : ""}
+    </div>
+  </section>
+</main>
+</body>
+</html>`;
+}
+
 // ------------------------------------------------------------------ components
 const BROWSE_CSS = `
   .browse { max-width: 1540px; margin: 0 auto; padding: 24px clamp(14px, 3vw, 36px) 60px; }
@@ -211,7 +767,7 @@ const BROWSE_CSS = `
   .browse input { width: min(100%, 350px); min-width: 0; padding: 8px 11px; }
   .browse button { cursor: pointer; }
   .browse :focus-visible, .catalog-dialog :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  .browse button[aria-pressed="true"] { color: var(--fg); background: #262d46; border-color: #5362a1; }
+  .browse button[aria-pressed="true"] { color: var(--strong); background: var(--accent-bg); border-color: var(--accent-line); }
   .browse-count { color: var(--muted); font-size: 12px; margin: 13px 0 9px; }
   .browse-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
   .browse-filters button { font-size: 12px; padding: 5px 9px; }
@@ -385,7 +941,7 @@ export function tailwindExampleHtml(source, group, selected, example) {
 .viewport-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; }
 .viewport-bar span { color: var(--muted); font-size: 12px; margin-right: 4px; }
 .viewport-bar button { font: inherit; font-size: 12px; color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
-.viewport-bar button[aria-pressed="true"] { background: #262d46; border-color: #5362a1; }
+.viewport-bar button[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent-line); color: var(--strong); }
 .frame-stage { display: flex; justify-content: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; overflow: auto; }
 .example iframe { display: block; width: 100%; max-width: 100%; height: clamp(280px, 57vh, 540px); border: 1px solid var(--line);
   border-radius: 6px; background: white; transition: width .2s ease; }
@@ -487,8 +1043,8 @@ ${NAV_CSS}
   .lead { color:var(--muted); margin:0 0 14px; font-size:13px; max-width:70ch; line-height:1.6; }
   .home { margin:-8px 0 12px; font-size:12px; overflow-wrap:anywhere; }
   .install { background:var(--code-bg); border:1px solid var(--line); border-radius:8px;
-    padding:9px 12px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size:12px; color:#9fd3a8; overflow-x:auto; margin-bottom:16px; }
+    padding:9px 12px; font-family:var(--mono);
+    font-size:12px; color:var(--ok-fg); overflow-x:auto; margin-bottom:16px; }
   .vtabs { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
   .vtab { background:var(--panel2); border:1px solid var(--line); color:var(--muted);
     border-radius:7px; padding:6px 11px; cursor:pointer; font:inherit; font-size:13px; }
@@ -508,7 +1064,7 @@ ${NAV_CSS}
   .copy:hover { border-color:var(--accent); }
   pre { background:var(--code-bg); border:1px solid var(--line); border-radius:10px;
     padding:14px 16px; overflow-x:auto; font-size:12px; line-height:1.6;
-    font-family:ui-monospace, SFMono-Regular, Menlo, monospace; color:#d7dbe3; }
+    font-family:var(--mono); color:var(--code-fg); }
   .faq { border:1px solid var(--line); border-radius:9px; padding:9px 12px; margin-top:8px;
     background:var(--panel); }
   .faq summary { cursor:pointer; font-size:13px; }
@@ -520,7 +1076,10 @@ ${NAV_CSS}
 ${nav("components")}
 <div class="wrap">
   <a class="back" href="/components">← All components</a>
-  <h1>${esc(component?.title || component?.slug)}</h1>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:4px 0">
+    <h1>${esc(component?.title || component?.slug)}</h1>
+    ${component?.slug ? mcpButton(`designer:component:${component.slug}`, `${component.title || component.slug}`) : ""}
+  </div>
   <p class="lead">${esc(component?.description || "")}</p>
   ${component?.homepage ? `<p class="home"><a href="${esc(component.homepage)}" rel="noreferrer">${esc(component.homepage)}</a></p>` : ""}
   ${component?.install ? `<div class="install">${esc(component.install)}</div>` : ""}
@@ -991,19 +1550,29 @@ export function presetDetailHtml(catalog) {
       <div class="browse-visual${glass ? " glass-scene" : ""}"><span class="${glass ? "liquid-glass glass-sample" : "swatch"}" id="preset-swatch"></span></div>
       ${glass ? '<label class="glass-compare"><input id="preset-effect" type="checkbox" checked> Show effect</label>' : ""}
       <pre><code id="preset-code"></code></pre>
-      <footer><button type="button" id="preset-copy">${glass ? "Copy CSS" : "Copy code"}</button><span id="preset-status" role="status"></span></footer>
+      <footer><button type="button" id="preset-copy">${glass ? "Copy CSS" : "Copy code"}</button><button type="button" id="preset-mcp" class="mcp-send-btn" data-mcp-ref="" data-mcp-label="">+ Send to MCP</button><span id="preset-status" role="status"></span></footer>
     </dialog>`,
     script: `
 const dialog = document.querySelector('.catalog-dialog');
 const code = document.querySelector('#preset-code');
 const swatch = document.querySelector('#preset-swatch');
 const copy = document.querySelector('#preset-copy');
+const presetMcp = document.querySelector('#preset-mcp');
+const presetKind = ${JSON.stringify(catalog?.kind || "patterns")};
+const presetIds = ${JSON.stringify((catalog?.presets ?? []).map((p) => p.id || p.slug || p.name || ""))};
 const status = document.querySelector('#preset-status');
 const effect = document.querySelector('#preset-effect');
 const description = document.querySelector('#preset-description');
 effect?.addEventListener('change', () => { swatch.hidden = !effect.checked; });
 for (const card of cards) card.addEventListener('click', () => {
-  document.querySelector('#preset-title').textContent = card.querySelector('strong').textContent;
+  const titleText = card.querySelector('strong').textContent;
+  document.querySelector('#preset-title').textContent = titleText;
+  const pid = presetIds[Number(card.dataset.preset)] || '';
+  if (presetMcp && pid) {
+    presetMcp.setAttribute('data-mcp-ref', 'designer:preset:' + presetKind + ':' + pid);
+    presetMcp.setAttribute('data-mcp-label', titleText + ' (' + presetKind + ')');
+    if (window.DesignerMCP) window.DesignerMCP.syncButtons();
+  }
   const style = card.querySelector('[data-material]')?.getAttribute('style');
   swatch.parentElement.hidden = !style;
   swatch.setAttribute('style', style || '');
@@ -1046,11 +1615,19 @@ export function uiSdkDocsHtml(docs = []) {
       <strong>${esc(d.title)}</strong><small>${esc(d.path)}</small>
     </button>`).join("");
 
+  const secNav = subnav([
+    { href: "/assets", label: "Offline CDN & Assets", key: "assets" },
+    { href: "/docs", label: "UI SDK Offline Docs", key: "docs" },
+    { href: "/components/icons", label: "Icons Browser", key: "icons" },
+    { href: "/components/charts", label: "Charts & Data Viz", key: "charts" },
+    { href: "/components/fonts", label: "Local Fonts", key: "fonts" },
+  ], "docs");
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${themeHead()}
 <title>UI SDK Offline Docs (@ui-sdk/core, react, web)</title>
 <style>
 ${BASE_CSS}
@@ -1061,7 +1638,7 @@ ${NAV_CSS}
 .docs-side input { width: 100%; background: var(--panel2); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; font: inherit; }
 .docs-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .docs-chips button { font: inherit; font-size: 12px; color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
-.docs-chips button[aria-pressed="true"] { background: #262d46; border-color: #5362a1; }
+.docs-chips button[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent-line); color: var(--strong); }
 .docs-list { display: flex; flex-direction: column; gap: 4px; max-height: 70vh; overflow: auto; }
 .doc-item { text-align: left; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 2px; }
 .doc-item:hover, .doc-item[aria-current="true"] { border-color: var(--accent); background: var(--panel2); }
@@ -1076,6 +1653,7 @@ ${NAV_CSS}
 </head>
 <body>
 ${nav("docs")}
+${secNav}
 <div class="docs-wrap">
   <aside class="docs-side">
     <h1 style="margin:0;font-size:18px">UI SDK Offline Docs</h1>
@@ -1308,14 +1886,17 @@ ${NAV_CSS}
   ul.files .mono { color:var(--fg); }
   pre { background:var(--code-bg); border:1px solid var(--line); border-radius:10px;
     padding:14px 16px; overflow-x:auto; font-size:11.5px; line-height:1.6; max-height:480px;
-    font-family:ui-monospace, SFMono-Regular, Menlo, monospace; color:#d7dbe3; }
+    font-family:var(--mono); color:var(--code-fg); }
 </style>
 </head>
 <body>
 ${nav("templates")}
 <div class="wrap">
   <a class="back" href="/templates">← All templates</a>
-  <h1>${esc(record?.name || record?.slug)}</h1>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:4px 0">
+    <h1>${esc(record?.name || record?.slug)}</h1>
+    ${record?.slug ? mcpButton(`designer:template:${record.slug}`, `${record.name || record.slug} (Template)`) : ""}
+  </div>
   <p class="lead">${esc(record?.description || "")}</p>
   <h2>Color roles</h2>
   <div class="swroles">${swatches}</div>

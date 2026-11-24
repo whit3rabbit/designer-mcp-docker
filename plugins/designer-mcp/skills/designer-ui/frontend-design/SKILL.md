@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Applies distinctive, intentional visual design craft to web UI: aesthetic direction, typography, color, layout, motion restraint, and interface copywriting that avoids templated AI defaults. Use when building or restyling a webpage, landing page, dashboard, admin panel, or component where visual quality matters. Also use when a design reads as generic and needs a specific point of view. Ships in the designer-ui skill of the designer-mcp plugin as the design-system skill's implementation-craft layer (research first there, apply the craft here). Stays self-sufficient when copied out and used standalone.
+description: "Apply distinctive visual design craft, intentional typography, color, and motion to web UI."
 license: Apache-2.0. LICENSE.txt has complete terms. Adapted for harness-agnostic, designer-mcp-integrated use.
 ---
 

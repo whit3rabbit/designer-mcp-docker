@@ -50,7 +50,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.design-cache
-          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-reui.mjs', 'scripts/fetch-dashboards.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-heroui.mjs', 'scripts/fetch-mantine.mjs', 'scripts/fetch-daisyui.mjs', 'scripts/fetch-baseui.mjs', 'scripts/fetch-thumbs.mjs', 'data/mantine/pin.json', 'data/daisyui/pin.json', 'data/baseui/pin.json') }}
+          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-reui.mjs', 'scripts/fetch-dashboards.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-heroui.mjs', 'scripts/fetch-mantine.mjs', 'scripts/fetch-daisyui.mjs', 'scripts/fetch-baseui.mjs', 'scripts/fetch-uikits.mjs', 'scripts/fetch-thumbs.mjs', 'data/mantine/pin.json', 'data/daisyui/pin.json', 'data/baseui/pin.json', 'data/uikits/pins.json') }}
           restore-keys: |
             catalog-${{ runner.os }}-
 
@@ -70,6 +70,10 @@ jobs:
           node scripts/fetch-mantine.mjs || echo "mantine fetch incomplete"
           node scripts/fetch-daisyui.mjs || echo "daisyui fetch incomplete"
           node scripts/fetch-baseui.mjs || echo "baseui fetch incomplete"
+          # The UI kits fetcher fails the step when a kit cannot be baked or its
+          # licence no longer matches the pin. It used to echo a warning and go
+          # on, which baked a catalog with a hole in it.
+          node scripts/fetch-uikits.mjs
           node scripts/fetch-thumbs.mjs --compress || echo "thumb fetch incomplete"
           node scripts/bake-cache.mjs --cache "$HOME/.design-cache" --out bake
           ls -la bake/
@@ -159,7 +163,7 @@ jobs:
           sleep 12
           docker exec designer-mcp-verify node -e "
             const base = 'http://127.0.0.1:8787';
-            const checks = ['/healthz', '/components', '/presets', '/api/designs', '/heroui', '/api/heroui', '/mantine', '/api/mantine', '/daisyui', '/api/daisyui'];
+            const checks = ['/healthz', '/components', '/presets', '/api/designs', '/heroui', '/api/heroui', '/mantine', '/api/mantine', '/daisyui', '/api/daisyui', '/uikits', '/api/uikits'];
             let bad = 0;
             for (const p of checks) {
               try {

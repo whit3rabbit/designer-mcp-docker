@@ -1,6 +1,6 @@
 {
   "name": "designer-mcp-docker",
-  "version": "1.9.1",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "Containerised design-system MCP server with a live offline thumbnail gallery",
@@ -17,6 +17,8 @@
     "heroui": "node scripts/fetch-heroui.mjs",
     "daisyui": "node scripts/fetch-daisyui.mjs",
     "baseui": "node scripts/fetch-baseui.mjs",
+    "uikits": "node scripts/fetch-uikits.mjs",
+    "refero-styles": "node scripts/fetch-refero-styles.mjs",
     "presets": "node scripts/fetch-presets.mjs",
     "templates": "node scripts/stage-design-systems.mjs",
     "slopstrap": "node scripts/stage-slopstrap.mjs",

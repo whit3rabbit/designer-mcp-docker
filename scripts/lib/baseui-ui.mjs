@@ -12,7 +12,7 @@
  */
 
 import MarkdownIt from "markdown-it";
-import { BASE_CSS, NAV_CSS, nav } from "./ui.mjs";
+import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -130,7 +130,7 @@ const BASEUI_CSS = `
   .baseui-doc-body { font-size: 13.5px; line-height: 1.6; }
   .baseui-doc-body h2 { font-size: 17px; margin: 26px 0 8px; letter-spacing: -.01em; }
   .baseui-doc-body h3 { font-size: 14.5px; margin: 20px 0 6px; }
-  .baseui-doc-body p, .baseui-doc-body li { color: #c7cdd6; }
+  .baseui-doc-body p, .baseui-doc-body li { color: var(--text); }
   .baseui-doc-body code {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
     background: var(--code-bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
@@ -296,7 +296,10 @@ export function baseUiDocHtml(catalog, entry, content, { reuiSlugs } = {}) {
   const main = `
     <div class="baseui-crumb"><a href="/baseui">Base UI</a> / ${esc(SECTION_LABELS[entry.section] || entry.section)}</div>
     <article class="baseui-doc">
-      <h1>${esc(entry.name)}</h1>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px">
+        <h1>${esc(entry.name)}</h1>
+        ${entry.section === "components" ? mcpButton(`designer:baseui:${entry.slug}`, `Base UI — ${entry.name}`) : ""}
+      </div>
       <p class="baseui-doc-sub">${esc(entry.description || "")}</p>
       <div class="baseui-doc-body">${markdown.render(String(content || ""))}</div>
     </article>

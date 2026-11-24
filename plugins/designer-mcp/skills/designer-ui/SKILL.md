@@ -10,23 +10,24 @@ Bundled sub-skills, one job each:
 | Need | Sub-skill |
 |---|---|
 | Distinctive, intentional visual craft for web UI: aesthetic direction, typography, color, layout, motion restraint, interface copy that avoids templated AI defaults | [frontend-design/SKILL.md](frontend-design/SKILL.md) |
-| Headless behavior and accessibility primitives for `@ui-sdk/core`, `@ui-sdk/react`, `@ui-sdk/web`, searchable offline via `design_docs_search` / `design_docs_get` | [ui-sdk/SKILL.md](ui-sdk/SKILL.md) |
-| HeroUI v3 web components (Tailwind v4 + React Aria): building UIs with `@heroui/react`, offline docs via the `design_heroui_*` tools and bundled scripts | [heroui/heroui-react/SKILL.md](heroui/heroui-react/SKILL.md) |
+| Headless behavior and accessibility primitives for `@ui-sdk/core`, `@ui-sdk/react`, `@ui-sdk/web`, searchable offline via `design_kit_search` / `design_kit_docs` | [ui-sdk/SKILL.md](ui-sdk/SKILL.md) |
+| HeroUI v3 web components (Tailwind v4 + React Aria): building UIs with `@heroui/react`, offline docs via the `design_kit_* (kit: "heroui")` tools and bundled scripts | [heroui/heroui-react/SKILL.md](heroui/heroui-react/SKILL.md) |
 | Global HeroUI restyling and complete custom themes with CSS only: tokens, BEM overrides, named light/dark themes | [heroui/heroui-theming/SKILL.md](heroui/heroui-theming/SKILL.md) |
 | HeroUI Native for React Native (Uniwind): docs come from the project's own install, never the network | [heroui/heroui-native/SKILL.md](heroui/heroui-native/SKILL.md) |
 | HeroUI v2 to v3 migrations: workflows, per-component guides, styling and hooks, from the baked layer | [heroui/heroui-migration/SKILL.md](heroui/heroui-migration/SKILL.md) |
 
 ## Other UI libraries in the catalog
 
-Three more libraries are baked into the offline catalog. They have MCP tools
+More libraries (Mantine, daisyUI, Base UI, plus 16 UI kits) are baked into the offline catalog. They have MCP tools
 and gallery pages but no sub-skill here: the tool replies carry the source
 and docs to work from.
 
 | Project uses | Tools | Start with |
 |---|---|---|
-| Mantine (`@mantine/core`) | `design_mantine_*` | `design_mantine_search`, then `design_mantine_get_component` for the full TSX and CSS module |
-| daisyUI 5 (plain HTML classes) | `design_daisyui_*` | `design_daisyui_search`, then `design_daisyui_get_component` for classes and example HTML |
-| Base UI (`@base-ui/react`, headless) | `design_baseui_*` | `design_baseui_get_docs` for a component, `design_baseui_get_guide` for the handbook |
+| Mantine (`@mantine/core`) | `design_kit_* (kit: "mantine")` | `design_kit_search`, then `design_kit_code` for the full TSX and CSS module |
+| daisyUI 5 (plain HTML classes) | `design_kit_* (kit: "daisyui")` | `design_kit_search`, then `design_kit_code` for classes and example HTML |
+| Base UI (`@base-ui/react`, headless) | `design_kit_* (kit: "baseui")` | `design_kit_docs` for a component, `design_kit_docs` for the handbook |
+| 16 UI kits (Chakra, MUI, AntD, PrimeReact, Magic UI, etc.) | `design_kit_*` | `design_kit_search`, then `design_kit_docs` for usage and `design_kit_code` for code |
 
 Use the library the project already depends on. Tool parameters are in the
 designer-mcp skill's
@@ -50,8 +51,8 @@ references or MCP setup go to the
 [designer-mcp](../designer-mcp/SKILL.md) skill.
 
 frontend-design is pure craft guidance. ui-sdk reads its offline docs through
-the `design_docs_*` MCP tools. The heroui sub-skills read the baked HeroUI
+the `design_kit_search` / `design_kit_docs` MCP tools (`kit: "ui-sdk"`). The heroui sub-skills read the baked HeroUI
 layer (npm-package docs, per-component CSS, theme variables, TSX source,
-migration guides) through the `design_heroui_*` MCP tools and their own
+migration guides) through the `design_kit_* (kit: "heroui")` MCP tools and their own
 scripts, with no network access. None needs extra dependencies beyond what
 its task installs.

@@ -2,7 +2,7 @@
  * dashboards-ui.mjs — Dashboards starter templates gallery & setup pages.
  */
 
-import { BASE_CSS, NAV_CSS, nav } from "./ui.mjs";
+import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -49,7 +49,7 @@ const DASH_CSS = `
     font-size: 11px; padding: 2px 8px; border-radius: 999px;
     background: var(--panel2); border: 1px solid var(--line); color: var(--muted);
   }
-  .dash-tag.accent { color: #b7c0ff; border-color: #3c4775; background: #1d2238; }
+  .dash-tag.accent { color: var(--accent); border-color: var(--accent-line); background: var(--accent-bg); }
   .dash-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 6px; }
   .dash-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -103,7 +103,7 @@ const DASH_CSS = `
     font-size: 11.5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .dash-file-btn:hover { color: var(--fg); background: var(--panel2); }
-  .dash-file-btn.on { color: var(--fg); background: #262d46; }
+  .dash-file-btn.on { color: var(--strong); background: var(--accent-bg); }
   .dash-file-view {
     border: 1px solid var(--line); border-radius: 8px; background: var(--code-bg);
     display: flex; flex-direction: column; min-height: 320px; max-height: 440px;
@@ -228,7 +228,10 @@ ${nav("dashboards")}
     ${record.hasCover ? `<img src="/dashboard/${encodeURIComponent(slug)}/cover" alt="${esc(record.name)}">` : ""}
     <div class="dash-hero-info">
       <div>
-        <h1>${esc(record.name)}</h1>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+          <h1>${esc(record.name)}</h1>
+          ${mcpButton(`designer:dashboard:${record.slug}`, `Dashboard — ${record.name}`)}
+        </div>
         <p style="margin:6px 0 0;color:var(--muted);font-size:13.5px;line-height:1.55;">${esc(record.description || record.tagline || "")}</p>
       </div>
       <div class="dash-meta-grid">

@@ -1,6 +1,6 @@
 ---
 name: heroui-react
-description: "HeroUI v3 React component library (Tailwind CSS v4 + React Aria). Use when building UIs with HeroUI: creating Buttons, Modals, Forms, Cards, reading offline component docs, or configuring oklch dark/light themes. Keywords: HeroUI, Hero UI, heroui, @heroui/react, @heroui/styles."
+description: "HeroUI v3 React component library (Tailwind CSS v4 + React Aria) components, docs, and oklch themes."
 metadata:
   author: heroui
   version: "3.0.1"
@@ -71,7 +71,7 @@ import { Card } from "@heroui/react";
 
 Everything this skill needs is on disk, in priority order:
 
-1. **MCP tools** (best): with the designer-mcp MCP server registered, the `design_heroui_*` tools serve the same catalog programmatically: `design_heroui_list_components`, `design_heroui_search`, `design_heroui_get_docs`, `design_heroui_get_guide`, `design_heroui_get_source`, `design_heroui_get_styles`, `design_heroui_get_theme_variables`, `design_heroui_migration_guide`.
+1. **MCP tools** (best): with the designer-mcp MCP server registered, the `design_kit_* (kit: "heroui")` tools serve the same catalog programmatically: `design_kit_list`, `design_kit_search`, `design_kit_docs`, `design_kit_docs`, `design_kit_code`, `design_kit_code`, `design_kit_code`, `design_kit_docs`.
 2. **Installed package**: a project that depends on `@heroui/react` carries version-matched docs in `node_modules/@heroui/react/docs/` (`llms.txt` index, `components/<name>.md`, `guides/<name>.md`).
 3. **Baked layer**: `<cache>/heroui/docs` (`<cache>` is `$DESIGN_CACHE_DIR`, `/cache` in the image, or `~/.design-cache`), plus component source (`heroui/source`), per-component CSS (`heroui/styles`), and theme CSS (`heroui/theme`). Override with `HEROUI_DOCS_DIR`. Bake it with `npm run heroui && npm run bake` in a designer-mcp checkout.
 
@@ -224,6 +224,6 @@ node scripts/get_theme.mjs
 <html class="dark" data-theme="dark"></html>
 ```
 
-For detailed theming, read the offline guide: `node scripts/get_docs.mjs theming` or the `design_heroui_get_guide` MCP tool.
+For detailed theming, read the offline guide: `node scripts/get_docs.mjs theming` or the `design_kit_docs` MCP tool.
 
 **Global customization and custom themes:** to restyle components app-wide (tokens, BEM class overrides, new variants) or author a complete named light/dark theme, use the bundled sibling skill `heroui-theming` (same plugin, under `designer-ui/heroui/heroui-theming/`).

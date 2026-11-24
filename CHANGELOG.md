@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.0 (2026-11-24)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v2.0.0`
+- **MCP consolidation (56 → 17 tools, -66% `tools/list` size):**
+  Consolidated the `design_*` surface into 17 orthogonal tools (`design_search`, `design_facets`, `design_get`, `design_file`, `design_template`, `design_markdown_check`, `design_markdown_render`, `design_kit_list`, `design_kit_search`, `design_kit_docs`, `design_kit_code`, `design_preset`, `design_library`, `design_assets`, `design_dashboards`, `design_picks`, `design_resolve`) backed by `designs-index.mjs` and `components-index.mjs`. Pass `--legacy-tools` or `DESIGN_LEGACY_TOOLS=1` to also expose the 50 pre-v2 granular tool names.
+- **Runtime context optimizations:** Added `Server(..., { instructions })`, `--toolsets` / `DESIGN_TOOLSETS` filtering, `outline: true` + `section` heading-based doc navigation, and slimmer default replies (`UIKIT_PAGE_ROWS=40`, `design_template` omits duplicate `manifest` unless `detail: "full"`, `design_assets` defaults to `summary`).
+- **Skills slimming & splitting:** Trimmed nested `SKILL.md` frontmatters to 1-liners (`8.9 KB → 3.3 KB`), slimmed `designer-mcp/SKILL.md` (`10.9 KB → 2.4 KB`), `design-system/SKILL.md` (`20.1 KB → 4.3 KB`), `pptx/SKILL.md` (`31.9 KB → 2.2 KB` + `references/{create-pptxgenjs,edit-ooxml,qa}.md`), `heroui-theming/SKILL.md` (`14.7 KB → 2.4 KB` + `references/tokens-and-bem.md`), and split `refero_*` legacy docs out of `mcp-tools.md` (`44.6 KB → 6.3 KB`).
+
 ## v1.9.1 (2026-11-23)
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v1.9.1`
@@ -75,6 +83,47 @@
   and four MCP tools: `design_baseui_list_components`, `design_baseui_search`,
   `design_baseui_get_docs`, `design_baseui_get_guide`. The generic server
   now registers 44 tools.
+- Layer: the UI kits layer joins the offline catalog, one generic layer
+  for the frameworks the bespoke layers do not cover.
+  `scripts/fetch-uikits.mjs` bakes thirteen kits from first-party pinned
+  sources only (`data/uikits/pins.json`), reading each kit's licence from
+  its own archive (or its pinned licence file) and skipping the kit on a
+  licence mismatch: Chakra UI
+  (docs + component source), Material UI (docs + 1,600 demo files), Ant
+  Design (docs, demos and component source), PrimeReact pinned to the MIT
+  line (npm 11+ switched to the PrimeUI dual commercial licence and is
+  deliberately not baked), coss ui (docs, source and the 646 shadcn
+  registry JSONs), Magic UI (registry sources + docs), Motion Primitives
+  (registry + sources), UnoCSS, Panda CSS, vanilla-extract and StyleX
+  (docs trees), Open Props (the css token sheets, which render live
+  token previews against the baked css), and Ark UI (the React docs,
+  crawled from its first-party llms.txt pages under the robots gate).
+  React Bits (MIT + Commons Clause),
+  Aceternity UI (no-redistribution terms) and 21st.dev (key-gated
+  user uploads) are pointer kits: only their first-party llms.txt index is
+  baked, no component code. 1,461 items in total, per-kit
+  provenance with resolved commit shas and sha256 checksums.
+- MCP: four generic `design_uikit_*` tools over the layer
+  (`design_uikit_list`, `design_uikit_search`, `design_uikit_get_docs`,
+  `design_uikit_get_source`), so sixteen frameworks are reachable without
+  sixteen bespoke tool families. Pointer kits return their licence note and
+  the upstream install command instead of code. The server registers 51
+  tools.
+- Gallery: `/uikits` browses the kit index (kind, category, licence and
+  count badges), `/uikits/:kit` groups each kit's items,
+  `/uikits/:kit/item/:slug` renders docs with the baked file list,
+  `/uikits/:kit/file/:path` shows any baked file, and
+  `/uikits/:kit/preview/:slug` renders the Open Props token sheets live
+  (colors as swatches, easings as hover demos, animations running against
+  the baked css). Pages load zero remote resources. `/api/uikits*` and the
+  static site mirror everything, one plain-text endpoint per baked file for
+  remote MCP mode.
+- Selftest: section 10b sweeps every baked kit (catalog shape, licence,
+  provenance checksums, every item's doc and source paths on disk, 1,300+
+  items), checks the pointer kits carry llms.txt and their licence notes,
+  exercises the gallery endpoints with the no-remote-resources check, and
+  smokes all four tools against every kit. publish.yml gains a
+  fetch-uikits step and the offline image verification checks `/uikits`.
 - MCP, breaking: replies are sized for a model's context. The defaults of
   four tools that shipped in v1.8.0 are smaller, and `detail: "full"`
   restores the old shape.

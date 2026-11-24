@@ -16,7 +16,7 @@ script paths elsewhere in the plugin.
 | design-system | The research-first design methodology: capture DESIGN.md from a page or document, research references from the offline catalog, lock a direction, craft references (typography, color, motion, icons, copy), quality gate, visual QA | [../../design-system/SKILL.md](../../design-system/SKILL.md) |
 | designer-documents | Document toolchains, one bundled sub-skill per format, with render-and-inspect QA loops | [../../designer-documents/SKILL.md](../../designer-documents/SKILL.md) |
 | designer-ui | Implementation craft for web UI plus headless behavior and accessibility primitives | [../../designer-ui/SKILL.md](../../designer-ui/SKILL.md) |
-| designer-dashboards | Multi-framework dashboard builder & scaffolder (24 starters, 26 tech stacks, 20 UI/CSS framework kits, 21 presets, 16 verticals, `design_dashboards_*` MCP tools) | [../../designer-dashboards/SKILL.md](../../designer-dashboards/SKILL.md) |
+| designer-dashboards | Multi-framework dashboard builder & scaffolder (24 starters, 26 tech stacks, 20 UI/CSS framework kits, 21 presets, 16 verticals, `design_dashboards` MCP tools) | [../../designer-dashboards/SKILL.md](../../designer-dashboards/SKILL.md) |
 | designer-mcp | This skill: catalog tools, MCP setup, install snippets | [SKILL.md](../SKILL.md) |
 
 ## Bundled sub-skills
@@ -30,8 +30,8 @@ script paths elsewhere in the plugin.
 | pdf | designer-documents | PDF creation, form filling, merge, split, watermark, OCR | [../../designer-documents/pdf/SKILL.md](../../designer-documents/pdf/SKILL.md) |
 | pdf-reading | designer-documents | Reading and extracting content from PDFs on disk (text, tables, images, page rasterization) | [../../designer-documents/pdf-reading/SKILL.md](../../designer-documents/pdf-reading/SKILL.md) |
 | frontend-design | designer-ui | Distinctive UI implementation craft: aesthetic direction, typography, color, layout, motion restraint, avoiding templated AI defaults | [../../designer-ui/frontend-design/SKILL.md](../../designer-ui/frontend-design/SKILL.md) |
-| ui-sdk | designer-ui | Headless behavior and accessibility for @ui-sdk/core, @ui-sdk/react, @ui-sdk/web, with offline docs via design_docs_search / design_docs_get | [../../designer-ui/ui-sdk/SKILL.md](../../designer-ui/ui-sdk/SKILL.md) |
-| heroui-react | designer-ui | HeroUI v3 (@heroui/react) UI building: component usage, offline docs, project setup, oklch dark/light basics, via design_heroui_* tools | [../../designer-ui/heroui/heroui-react/SKILL.md](../../designer-ui/heroui/heroui-react/SKILL.md) |
+| ui-sdk | designer-ui | Headless behavior and accessibility for @ui-sdk/core, @ui-sdk/react, @ui-sdk/web, with offline docs via design_kit_search / design_kit_docs | [../../designer-ui/ui-sdk/SKILL.md](../../designer-ui/ui-sdk/SKILL.md) |
+| heroui-react | designer-ui | HeroUI v3 (@heroui/react) UI building: component usage, offline docs, project setup, oklch dark/light basics, via design_kit_* (kit: "heroui") tools | [../../designer-ui/heroui/heroui-react/SKILL.md](../../designer-ui/heroui/heroui-react/SKILL.md) |
 | heroui-theming | designer-ui | HeroUI theming: custom themes, design tokens, BEM class overrides, @heroui/styles on plain HTML and non-React stacks | [../../designer-ui/heroui/heroui-theming/SKILL.md](../../designer-ui/heroui/heroui-theming/SKILL.md) |
 | heroui-native | designer-ui | HeroUI Native for React Native (Uniwind): mobile components, install, dark/light themes | [../../designer-ui/heroui/heroui-native/SKILL.md](../../designer-ui/heroui/heroui-native/SKILL.md) |
 | heroui-migration | designer-ui | HeroUI v2-to-v3 migration: provider removal, compound components, styling, hooks, per-component changes | [../../designer-ui/heroui/heroui-migration/SKILL.md](../../designer-ui/heroui/heroui-migration/SKILL.md) |
@@ -42,9 +42,10 @@ script paths elsewhere in the plugin.
 | pages | designer-dashboards | Unified Nav IR, derived breadcrumbs/titles, 16 industry verticals, 11 app shells, print invoices | [../../designer-dashboards/pages/SKILL.md](../../designer-dashboards/pages/SKILL.md) |
 | audit | designer-dashboards | Token parity, WCAG 2.1 AA 18-point gate, RTL logical properties, dep & secret hygiene | [../../designer-dashboards/audit/SKILL.md](../../designer-dashboards/audit/SKILL.md) |
 
-The Mantine, daisyUI, and Base UI catalog layers have MCP tools
-(`design_mantine_*`, `design_daisyui_*`, `design_baseui_*`) but no sub-skill.
-Route those asks to designer-ui, which names the tools to start with.
+The Mantine, daisyUI, Base UI, Refero Styles, and UI Kits catalog layers have MCP
+tools (`design_kit_* (kit: "mantine")`, `design_kit_* (kit: "daisyui")`, `design_kit_* (kit: "baseui")`,
+`design_search / design_get`, `design_kit_*`) but no sub-skill. Route those asks to
+designer-ui or designer-mcp, which name the tools to start with.
 
 ## How to tell what is installed
 
@@ -113,15 +114,17 @@ Rules:
 
 - "Design a PowerPoint" → designer-documents pptx for the deck mechanics,
   with design-system's research loop and reference lock for the visual
-  direction, and `design_template_get` (loam) when the deck must land
+  direction, and `design_template` (loam) when the deck must land
   on-brand.
 - "Turn this website into a reusable template" → design-system's
   design-template-authoring.
 - "Make this landing page less generic" → design-system's research loop,
   then designer-ui's frontend-design for execution craft.
-- "Install shadcn / tailwind / react" → this skill's `design_library_search`
-  and `design_library_get`.
+- "Install shadcn / tailwind / react" → this skill's `design_library`
+  and `design_library`.
 - "Build this in Mantine / daisyUI / Base UI" → designer-ui, which routes to
-  the `design_mantine_*`, `design_daisyui_*`, or `design_baseui_*` tools.
+  the `design_kit_* (kit: "mantine")`, `design_kit_* (kit: "daisyui")`, or `design_kit_* (kit: "baseui")` tools.
+- "Imitate this product's design language" → the `design_search / design_get` tools for
+  the Refero Styles profile of that site.
 - "What skills do I have for documents?" → walk the directory above and
   report the five skills and their sub-skills with install status.

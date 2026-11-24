@@ -34,7 +34,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile, rename } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 
 /** Cache root. `DESIGN_CACHE_DIR` is the generic name; `REFERO_CACHE_DIR` is
  *  still honoured so existing installs and the upstream package keep working. */
@@ -56,6 +56,43 @@ const REMOTE_TIMEOUT_MS = 15_000;
 // costs one timeout, not one per file a tool happens to read.
 const REMOTE_RETRY_MS = 30_000;
 const REMOTE_CACHE_LIMIT = 400;
+
+/**
+ * A lightweight bounded LRU cache backed by Map.
+ */
+export function createBoundedCache(limit = 64) {
+  const map = new Map();
+  return {
+    get(key) {
+      if (!map.has(key)) return undefined;
+      const val = map.get(key);
+      map.delete(key);
+      map.set(key, val);
+      return val;
+    },
+    set(key, val) {
+      if (map.has(key)) {
+        map.delete(key);
+      } else if (map.size >= limit) {
+        map.delete(map.keys().next().value);
+      }
+      map.set(key, val);
+      return val;
+    },
+    has(key) {
+      return map.has(key);
+    },
+    delete(key) {
+      return map.delete(key);
+    },
+    clear() {
+      map.clear();
+    },
+    get size() {
+      return map.size;
+    },
+  };
+}
 
 /** The host could not be reached or answered badly. Distinct from a 404, which is an answer (null). */
 export const REMOTE_DOWN = Symbol("remote-down");
@@ -216,6 +253,8 @@ export const HEROUI_DIR = join(CACHE_DIR, "heroui");
 export const MANTINE_DIR = join(CACHE_DIR, "mantine");
 export const DAISYUI_DIR = join(CACHE_DIR, "daisyui");
 export const BASEUI_DIR = join(CACHE_DIR, "baseui");
+export const UIKITS_DIR = join(CACHE_DIR, "uikits");
+export const REFERO_STYLES_DIR = join(CACHE_DIR, "refero-styles");
 
 /**
  * The Claude Design layer, one directory per system.
@@ -608,7 +647,7 @@ export async function readDesignSystemFile(slug, relPath) {
   }
   const base = resolve(join(CACHE_DIR, "design-systems", slug));
   const full = resolve(join(base, clean));
-  if (!full.startsWith(base + "/") || !existsSync(full)) return null;
+  if (!full.startsWith(base + sep) || !existsSync(full)) return null;
   return readFile(full, "utf8");
 }
 

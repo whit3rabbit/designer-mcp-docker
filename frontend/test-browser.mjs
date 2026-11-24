@@ -18,7 +18,14 @@ let browser;
 async function startGallery() {
   gallery = spawn(process.execPath, ["scripts/preview.mjs"], {
     cwd: root,
-    env: { ...process.env, PORT: "0", HOST: "127.0.0.1", DESIGN_CACHE_DIR: join(root, "bake"), DESIGN_CATALOG_WAIT_MS: "5000" },
+    env: {
+      ...process.env,
+      PORT: "0",
+      HOST: "127.0.0.1",
+      DESIGN_CACHE_DIR: join(root, "bake"),
+      DESIGN_PICKS_FILE: join(scratch, "picks.json"),
+      DESIGN_CATALOG_WAIT_MS: "5000",
+    },
     stdio: ["ignore", "pipe", "inherit"],
   });
   return new Promise((resolve, reject) => {
@@ -108,20 +115,122 @@ try {
     return response.json();
   };
 
-  for (const path of ["/", "/components", "/presets", "/presets/patterns", "/templates", "/assets"]) {
+  for (const path of ["/", "/components", "/components/compare", "/components/icons", "/components/charts", "/components/fonts", "/starters", "/presets", "/presets/patterns", "/templates", "/assets"]) {
     await page.goto(origin + path);
   }
   await expect(page.getByRole("link", { name: "Download starter ZIP" })).toBeVisible();
+  await expect(page.getByText("Library install manifests")).toBeVisible();
 
+  // Unified Design Systems gallery: multi-facet filtering, color swatches, hex matcher & theme toggle
+  await page.goto(origin + "/");
+  await expect(page.locator("#ds-grid .ds-card").first()).toBeVisible();
+  await expect(page.locator("#ds-count")).toContainText(/17\d\d design systems/);
+  // Toggle light/dark scheme via header button
+  const metaBefore = await page.locator('meta[name="color-scheme"]').getAttribute("content");
+  await page.locator("#theme-toggle").click();
+  const metaAfter = await page.locator('meta[name="color-scheme"]').getAttribute("content");
+  assert.notEqual(metaBefore, metaAfter, "theme toggle should update meta color-scheme");
+  await page.locator("#theme-toggle").click(); // revert back to system default
+  // Filter by theme + accent color + source + advanced drawer
+  await page.locator('[data-theme="dark"]').click();
+  await expect(page.locator("#ds-count")).toContainText(/of 17\d\d design systems/);
+  await page.locator('[data-hue="blue"]').click();
+  await expect(page.locator("#ds-active .active-chip")).toHaveCount(2);
+  await page.locator("#ds-more-btn").click();
+  await expect(page.locator("#ds-drawer")).toBeVisible();
+  await page.locator(".clear-all").click();
+  await page.locator('[data-source="template"]').click();
+  await expect(page.locator("#ds-grid .ds-card")).toHaveCount(7);
+  await page.locator(".clear-all").click();
+  // Custom brand hex matcher
+  await page.locator("#ds-hex-text").fill("#3b82f6");
+  await expect(page.locator("#ds-sort")).toHaveValue("color");
+  await expect(page.locator("#ds-grid .ds-card").first()).toBeVisible();
+  // Send a Design System to MCP from card footer + verify Live MCP Sync tray
+  await page.locator("#ds-grid .ds-card .mcp-send-btn").first().click();
+  await expect(page.locator("#mcp-tray-cnt")).toHaveText("1");
+  const picksAfterDesign = await json("/api/picks");
+  assert.equal(picksAfterDesign.total, 1, "Send to MCP should persist to /api/picks");
+
+  // Unified Components Hub: library filter bar, explicit badges & Cross-Library Comparator
   await page.goto(origin + "/components");
   const card = page.getByRole("link", { name: /^Agent card/ });
   await expect(card).toBeVisible();
+  await expect(card.locator(".cbadge.lib")).toContainText("GradientDeck AI");
   await expect.poll(() => card.locator("img").evaluate((image) => image.naturalWidth)).toBe(640);
   await expect(page.locator("iframe")).toHaveCount(0);
   await page.getByRole("button", { name: /^Voice \d+$/ }).click();
   await page.getByRole("searchbox").fill("voice orb");
   await expect(page.locator(".browse-card:visible")).toHaveCount(1);
   await expect(page.getByRole("link", { name: /^Voice orb/ })).toBeVisible();
+  // Switch library filter to HeroUI v3 and verify live-badged components
+  await page.getByRole("searchbox").fill("");
+  await page.locator('[data-lib="heroui"]').click();
+  await expect(page.locator("#hub-lib-banner")).toContainText("HeroUI v3");
+  await expect(page.locator("#browse-grid .browse-card").first()).toBeVisible();
+  await expect(page.locator("#browse-grid .browse-card .cbadge.lib").first()).toContainText("HeroUI v3");
+  // Switch library filter to shadcn/ui
+  await page.locator('[data-lib="shadcn"]').click();
+  await expect(page.locator("#hub-lib-banner")).toContainText("shadcn/ui");
+  await expect(page.locator("#browse-grid .browse-card")).toHaveCount(9);
+
+  // Cross-Library Comparator (/components/compare/button): live library switcher + HeroUI live CSS preview
+  await page.goto(origin + "/components/compare/button");
+  await expect(page.locator(".cmp-tab").first()).toBeVisible();
+  assert.ok((await page.locator(".cmp-tab").count()) >= 10, "button comparator should list 10+ libraries");
+  await expect(page.locator("#cmp-stage-body iframe")).toBeVisible();
+  await page.locator(".cmp-tab", { hasText: "HeroUI v3" }).click();
+  await expect(page.locator("#cmp-stage-body iframe")).toHaveAttribute("src", /\/heroui\/preview\/button/);
+  await expect(page.locator("#cmp-stage-body iframe").contentFrame().locator("html")).toHaveAttribute("data-preview", "ready");
+  // Send HeroUI Button from comparator to MCP tray and copy prompt
+  await page.locator("#cmp-mcp-btn").click();
+  await expect(page.locator("#mcp-tray-cnt")).toHaveText("2");
+  await page.locator("#mcp-tray-btn").click();
+  await expect(page.locator("#mcp-tray")).toBeVisible();
+  await expect(page.locator("#mcp-tray-mode")).toHaveText("Live MCP Sync");
+  await page.locator("#mcp-copy-prompt").click();
+  const copiedPrompt = await page.evaluate(() => navigator.clipboard.readText());
+  assert.match(copiedPrompt, /designer:heroui:button/);
+  assert.match(copiedPrompt, /design_picks/);
+  await page.locator("#mcp-clear-all").click();
+  await expect(page.locator("#mcp-tray-cnt")).toBeHidden();
+  await page.locator("#mcp-tray-close").click();
+  await page.locator(".cmp-tab", { hasText: "daisyUI 5" }).click();
+  await expect(page.locator("#cmp-daisy-theme")).toBeVisible();
+  await expect(page.locator("#cmp-stage-body iframe")).toHaveAttribute("src", /\/daisyui\/preview\/button/);
+
+  // HeroUI dedicated component page embeds live CSS preview
+  await page.goto(origin + "/heroui/component/button");
+  await expect(page.locator("#heroui-frame")).toBeVisible();
+  await expect(page.locator("#heroui-frame").contentFrame().locator("button.button--primary").first()).toBeVisible();
+
+  // Offline CDN Icons Browser (lucide.min.js)
+  await page.goto(origin + "/components/icons");
+  await expect(page.locator("#ic-count")).toContainText(/\d{3,4} Lucide icons/);
+  await page.locator("#ic-q").fill("rocket");
+  await expect(page.locator("#ic-grid .icon-card").first()).toBeVisible();
+  await page.locator("#ic-grid .icon-card").first().click();
+  await expect(page.locator("#ic-dlg")).toBeVisible();
+  await page.locator("#ic-copy-svg").click();
+  assert.match(await page.evaluate(() => navigator.clipboard.readText()), /<svg /);
+  await page.keyboard.press("Escape");
+
+  // Offline CDN Charts & Data Viz
+  await page.goto(origin + "/components/charts");
+  await expect.poll(() => page.locator("#viz-chartjs").evaluate((c) => Boolean(window.Chart?.getChart(c)))).toBe(true);
+  await expect(page.locator("#viz-d3 svg rect").first()).toBeVisible();
+  await expect(page.locator("#viz-tabulator .tabulator-row").first()).toBeVisible();
+
+  // Offline Local Fonts Specimen Tester
+  await page.goto(origin + "/components/fonts");
+  await expect(page.locator(".font-card")).toHaveCount(11);
+  await checkFonts(page, ["Inter", "Archivo", "Lora"]);
+
+  // Starters Hub & Refero Styles cross-link fix
+  await page.goto(origin + "/starters");
+  await expect(page.getByRole("heading", { name: /Offline Dashboard Starters/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Design System Starter Kits/ })).toBeVisible();
+  console.log("Verified unified Design Systems filters, Components hub, Comparator, HeroUI live previews, Icons, Charts, Fonts & Starters");
 
   await page.goto(origin + "/presets/patterns");
   await expect(page.getByRole("dialog")).toHaveCount(0);
