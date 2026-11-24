@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "slug": "teal-precision",
+  "name": "Teal Precision",
+  "description": "High-density operational dashboard: 13px compact typography in Geist/DM Sans, distinctive teal primary, and tight container-query grids.",
+  "provenance": {
+    "source": "designer-dashboards:preset:teal-precision"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#006D77",
+      "secondary": "#52606D",
+      "success": "#15803D",
+      "info": "#0369A1",
+      "warning": "#B45309",
+      "error": "#C81E1E"
+    },
+    "light": {
+      "canvas": "#F5F7F8",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#DCE4E7",
+      "text": "#1F2933",
+      "textMuted": "#52606D"
+    },
+    "dark": {
+      "canvas": "#141B22",
+      "surface": "#1C2630",
+      "surfaceElevated": "#24313E",
+      "border": "#324252",
+      "text": "#EDF2F7",
+      "textMuted": "#A0B0C0"
+    },
+    "chart": [
+      "#0D9488",
+      "#3B82F6",
+      "#F97316",
+      "#A855F7",
+      "#EAB308",
+      "#EC4899",
+      "#22C55E",
+      "#06B6D4",
+      "#EF4444",
+      "#64748B"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Geist', 'DM Sans', system-ui, -apple-system, sans-serif",
+    "fontMono": "'Geist Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "13px",
+    "compactSize": "12px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "260px",
+    "sidebarCollapsedWidth": "72px",
+    "headerHeight": "60px",
+    "contentMaxWidth": "1520px",
+    "gutter": "20px",
+    "cardPadding": "20px",
+    "cardStyle": "bordered"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "6px",
+    "lg": "8px",
+    "xl": "12px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

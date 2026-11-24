@@ -1,0 +1,82 @@
+@import "tailwindcss";
+@import "../design-system/styles.css";
+@plugin "daisyui";
+
+@plugin "daisyui/theme" {
+  name: "rabbit-light";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: var(--color-surface);
+  --color-base-200: var(--color-canvas);
+  --color-base-300: var(--color-surface-subtle);
+  --color-base-content: var(--color-text);
+  --color-primary: var(--color-primary);
+  --color-primary-content: var(--color-on-solid);
+  --color-secondary: var(--color-info);
+  --color-secondary-content: var(--color-on-solid);
+  --color-accent: var(--color-primary-hover);
+  --color-accent-content: var(--color-on-solid);
+  --color-neutral: var(--color-surface-elevated);
+  --color-neutral-content: var(--color-text);
+  --color-info: var(--color-info);
+  --color-info-content: var(--color-on-solid);
+  --color-success: var(--color-success);
+  --color-success-content: var(--color-on-solid);
+  --color-warning: var(--color-warning);
+  --color-warning-content: var(--color-on-solid);
+  --color-error: var(--color-error);
+  --color-error-content: var(--color-on-solid);
+
+  --radius-selector: var(--radius-md);
+  --radius-field: var(--radius-md);
+  --radius-box: var(--radius-md);
+  --border: 1px;
+}
+
+@plugin "daisyui/theme" {
+  name: "rabbit-dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: var(--color-surface);
+  --color-base-200: var(--color-canvas);
+  --color-base-300: var(--color-surface-subtle);
+  --color-base-content: var(--color-text);
+  --color-primary: var(--color-primary);
+  --color-primary-content: var(--color-on-solid);
+  --color-secondary: var(--color-info);
+  --color-secondary-content: var(--color-on-solid);
+  --color-accent: var(--color-primary-hover);
+  --color-accent-content: var(--color-on-solid);
+  --color-neutral: var(--color-surface-elevated);
+  --color-neutral-content: var(--color-text);
+  --color-info: var(--color-info);
+  --color-info-content: var(--color-on-solid);
+  --color-success: var(--color-success);
+  --color-success-content: var(--color-on-solid);
+  --color-warning: var(--color-warning);
+  --color-warning-content: var(--color-on-solid);
+  --color-error: var(--color-error);
+  --color-error-content: var(--color-on-solid);
+
+  --radius-selector: var(--radius-md);
+  --radius-field: var(--radius-md);
+  --radius-box: var(--radius-md);
+  --border: 1px;
+}
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

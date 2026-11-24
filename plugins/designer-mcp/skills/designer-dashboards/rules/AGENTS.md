@@ -1,0 +1,10 @@
+# Designer Dashboards Engineering Guardrails
+
+These rules apply whenever building or modifying a dashboard with the `designer-dashboards` skill:
+
+1. **Design tokens are the single source of truth.** Never hardcode raw hex colors, raw pixel radii, or ad-hoc font stacks in components. Every visual value must flow from `DESIGN.md` -> `theme.json` -> `styles.css` (`--color-*`, `--radius-*`, `--space-*`, `--z-*`) and pass `_adherence.oxlintrc.json`.
+2. **Nav config is the primary IR.** Define routes, sidebar items, breadcrumbs, page titles, document titles, i18n keys, and RBAC `authority` arrays in one typed `navigation` config. Never duplicate navigation across sidebar, breadcrumb, and route guards.
+3. **One engine per concern.** Ship exactly one icon pipeline (Iconify or Lucide via string-key registry), one chart engine (ApexCharts behind a theme-aware wrapper), one table engine (TanStack Table with server-mode contract), one toast library (Sonner or framework-native), and one form stack (react-hook-form + zod or framework equivalent). Never accumulate redundant libraries.
+4. **WCAG 2.1 AA and RTL from day one.** Use CSS logical properties (`ms-*`, `me-*`, `ps-*`, `pe-*`, `inset-inline-*`) instead of physical `left`/`right`. Emit skip-links, landmarks (`<nav>`, `<main>`, `<header>`), `aria-current="page"`, `:focus-visible` ring tokens, `@media (prefers-reduced-motion: reduce)`, chart `role="img"` + data-table fallbacks, and contrast-verified text/surface pairs.
+5. **No hardcoded secrets, no cosmetic-only production auth.** Every API key, OAuth secret, and DB URL belongs in `.env` with a committed `.env.example`. Clearly separate demo/mock auth adapters from real backend auth (NextAuth/Auth.js + Prisma, Supabase, or Better Auth).
+6. **FOUC-free dark mode.** Persist theme mode (`system | light | dark`) in `localStorage` or SSR cookie, mirror to `<html>` class/data-attribute via an inline pre-paint script, and use navy/slate-tinted dark surfaces—never pure `#000000` backgrounds or `#000000` body text.

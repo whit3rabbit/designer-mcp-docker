@@ -1,0 +1,22 @@
+{
+  "id": "vue-vite-pinia",
+  "name": "Vue 3 + Vite + Pinia Dashboard",
+  "starter": "vue-vite-tailwind",
+  "framework": "vue-vite",
+  "useCase": "vue-ecosystem",
+  "slots": {
+    "framework": "Vue 3 + Vite + Vue Router",
+    "styling": "Tailwind CSS v4 + OpenDesign OKLCH tokens",
+    "charts": "ApexCharts (vue3-apexcharts)",
+    "tables": "TanStack Vue Table",
+    "forms": "VeeValidate + Zod",
+    "state": "Pinia + persistedstate",
+    "i18n": "vue-i18n",
+    "lintFormat": "ESLint / OxLint"
+  },
+  "envVars": {
+    "VITE_API_BASE_URL": "http://localhost:4000/api",
+    "VITE_DATA_MODE": "mock"
+  },
+  "tooling": {}
+}

@@ -66,7 +66,7 @@ these routes, all served from the local cache:
 | `/assets` | built frontend assets as a local CDN: offline starter (zip + page), browser modules, tailwind examples, template files, thumbnails, import map |
 | `/assets/importmap.json` | the offline import map: bare specifiers (react, motion, radix-ui, shadcn/*) resolved to content-addressed module URLs on this origin |
 | `/thumb/:id` | local WebP thumbnail bytes (jpg/png also accepted) |
-| `/skill` and `/skill/marketplace.zip` | the plugin skills zip for offline download (four skills), and the same plugin as a local marketplace for offline `claude plugin marketplace add` |
+| `/skill` and `/skill/marketplace.zip` | the plugin skills zip for offline download (five skills), and the same plugin as a local marketplace for offline `claude plugin marketplace add` |
 
 - New pages/routes must be answerable from the cache alone (Rule 1).
 - Keep the DESIGN.md output byte-identical to what `refero_design_md` returns.
@@ -139,7 +139,7 @@ these routes, all served from the local cache:
   `node_modules/fidgetcoding-refero-mcp`. Adapt in `scripts/` so upstream
   updates drop in cleanly.
 - The plugin (`plugins/designer-mcp/`) ships inside the image, is zipped at
-  build time (`scripts/package-skill.mjs`, four skills under its `skills/`
+  build time (`scripts/package-skill.mjs`, five skills under its `skills/`
   with the bundled sub-skills inside them, manifests at the zip root) and
   served at `/skill`. The Dockerfile runs the packager itself, so the zip
   always matches the tagged checkout.
@@ -191,7 +191,7 @@ these routes, all served from the local cache:
   the Pages output and never packages one.
 - The skills install remotely with the skills CLI
   (`npx skills add whit3rabbit/designer-mcp-docker`). Discovery offers
-  four skills: a shallower `SKILL.md` shadows any nested one, so the
+  five skills: a shallower `SKILL.md` shadows any nested one, so the
   bundled sub-skills ride along inside their parents.
 - Do not publish deeper `SKILL.md` files expecting separate listings.
 - Remote installs serve the last-pushed commit on main. A skill change is
@@ -207,16 +207,19 @@ these routes, all served from the local cache:
   actual servers and their scope honest: no screens/flows layer exists. Route
   those asks to the craft references. Never invent precedent.
 - The designer-mcp skill carries the plugin's skill directory
-  (`skills/designer-mcp/references/skill-directory.md`): the four skills,
+  (`skills/designer-mcp/references/skill-directory.md`): the five skills,
   their bundled sub-skills, trigger phrases, an installed-check, and the
   offer-to-install commands. Keep it in sync when skills move or change
   names. It routes and recommends, and never bundles the other skills.
-- Four skills carry the surface: `design-system` (methodology, capture,
+- Five skills carry the surface: `design-system` (methodology, capture,
   craft references, and the bundled `design-template-authoring/`),
   `designer-mcp` (catalog tools, MCP setup, install snippets),
   `designer-documents` (bundled `docx/`, `pptx/`, `xlsx/`, `pdf/`,
-  `pdf-reading/`), and `designer-ui` (bundled `frontend-design/`,
-  `ui-sdk/`, and the four `heroui/` sub-skills).
+  `pdf-reading/`), `designer-ui` (bundled `frontend-design/`,
+  `ui-sdk/`, and the four `heroui/` sub-skills), and `designer-dashboards`
+  (multi-framework dashboard scaffolder, OpenDesign token compiler, and the
+  six bundled sub-skills `init/`, `design/`, `ui/`, `login/`, `pages/`,
+  `audit/`).
 - Dependency manifests live at the plugin root
   (`plugins/designer-mcp/requirements.txt`, `package.json` there), not per
   skill. They cover the sub-skills' core Node and Python needs, and the

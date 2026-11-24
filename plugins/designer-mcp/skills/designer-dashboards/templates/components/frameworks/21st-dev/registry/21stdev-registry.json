@@ -1,0 +1,109 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "designer-dashboards-21stdev",
+  "homepage": "https://21st.dev",
+  "registryUrl": "https://21st.dev/r/{name}.json",
+  "description": "Designer Dashboards OpenDesign token-mapped registry manifest for AI coding agents using 21st.dev + Base UI.",
+  "tokenMapping": {
+    "description": "Map 21st.dev / shadcn semantic tokens directly to OpenDesign CSS custom properties in design-system/styles.css.",
+    "rules": [
+      "Never emit hardcoded #FFFFFF, #000000, bg-white, bg-black, or palette-specific grays (slate-*, zinc-*, gray-*).",
+      "Use logical spacing/alignment classes (ms-*, me-*, ps-*, pe-*, text-start, text-end) for dir='rtl' compatibility.",
+      "Always include aria-label on icon-only buttons and visible focus rings via :focus-visible.",
+      "Read --chart-1..--chart-10 at runtime for ApexCharts series colors."
+    ],
+    "variables": {
+      "--background": "var(--color-canvas)",
+      "--foreground": "var(--color-text)",
+      "--card": "var(--color-surface)",
+      "--card-foreground": "var(--color-text)",
+      "--popover": "var(--color-surface-elevated)",
+      "--popover-foreground": "var(--color-text)",
+      "--primary": "var(--color-primary)",
+      "--primary-foreground": "var(--color-on-solid)",
+      "--secondary": "var(--color-surface-subtle)",
+      "--secondary-foreground": "var(--color-text)",
+      "--muted": "var(--color-surface-subtle)",
+      "--muted-foreground": "var(--color-text-muted)",
+      "--accent": "var(--color-primary-surface)",
+      "--accent-foreground": "var(--color-text)",
+      "--destructive": "var(--color-error)",
+      "--destructive-foreground": "var(--color-on-solid)",
+      "--border": "var(--color-border)",
+      "--input": "var(--color-border)",
+      "--ring": "var(--color-primary)",
+      "--radius": "var(--radius-md)"
+    }
+  },
+  "items": [
+    {
+      "name": "button",
+      "type": "registry:ui",
+      "dependencies": ["@base-ui/react", "class-variance-authority"],
+      "files": [{ "path": "ui/Button.tsx", "type": "registry:ui" }]
+    },
+    {
+      "name": "card",
+      "type": "registry:ui",
+      "dependencies": [],
+      "files": [{ "path": "ui/Card.tsx", "type": "registry:ui" }]
+    },
+    {
+      "name": "badge",
+      "type": "registry:ui",
+      "dependencies": ["class-variance-authority"],
+      "files": [{ "path": "ui/Badge.tsx", "type": "registry:ui" }]
+    },
+    {
+      "name": "alert",
+      "type": "registry:ui",
+      "dependencies": ["class-variance-authority", "lucide-react"],
+      "files": [{ "path": "ui/Alert.tsx", "type": "registry:ui" }]
+    },
+    {
+      "name": "input",
+      "type": "registry:ui",
+      "dependencies": [],
+      "files": [{ "path": "ui/Input.tsx", "type": "registry:ui" }]
+    },
+    {
+      "name": "select",
+      "type": "registry:ui",
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "files": [{ "path": "ui/Select.tsx", "type": "registry:ui" }]
+    },
+    {
+      "name": "dialog",
+      "type": "registry:ui",
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "files": [{ "path": "ui/Dialog.tsx", "type": "registry:ui" }]
+    },
+    {
+      "name": "tabs",
+      "type": "registry:ui",
+      "dependencies": ["@base-ui/react"],
+      "files": [{ "path": "ui/Tabs.tsx", "type": "registry:ui" }]
+    },
+    {
+      "name": "kpi-card",
+      "type": "registry:block",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["card", "badge"],
+      "files": [{ "path": "ui/KpiCard.tsx", "type": "registry:block" }]
+    },
+    {
+      "name": "data-table",
+      "type": "registry:block",
+      "dependencies": ["@tanstack/react-table", "lucide-react"],
+      "registryDependencies": ["button", "input", "card"],
+      "files": [{ "path": "ui/DataTable.tsx", "type": "registry:block" }]
+    },
+    {
+      "name": "chart-card",
+      "type": "registry:block",
+      "dependencies": ["apexcharts", "react-apexcharts"],
+      "registryDependencies": ["card"],
+      "files": [{ "path": "ui/ChartCard.tsx", "type": "registry:block" }]
+    }
+  ]
+}

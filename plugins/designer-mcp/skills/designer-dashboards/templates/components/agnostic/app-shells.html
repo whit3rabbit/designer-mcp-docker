@@ -1,0 +1,68 @@
+<!-- Designer Dashboards Agnostic App Shell Recipes (List-Detail, Board, Stream, POS, Docs+ScrollSpy) -->
+
+<!-- 1. List-Detail (2/3-pane) -->
+<div class="rd-list-detail" style="display:grid; grid-template-columns: 220px 320px 1fr; min-height:560px; border:1px solid var(--color-border); border-radius:12px; overflow:hidden; background:var(--color-surface);">
+  <aside style="border-inline-end:1px solid var(--color-border); padding:16px;">Folders</aside>
+  <section aria-label="Items list" style="border-inline-end:1px solid var(--color-border); overflow-y:auto;">Items list</section>
+  <section aria-label="Selected item detail" style="padding:24px; overflow-y:auto;">Detail reader</section>
+</div>
+
+<!-- 2. Board (Kanban) -->
+<div class="rd-board" style="display:flex; gap:16px; overflow-x:auto; padding-bottom:8px;">
+  <section style="min-width:288px; flex:1; border:1px solid var(--color-border); border-radius:12px; padding:16px; background:var(--color-surface);">
+    <header style="display:flex; justify-content:space-between; margin-bottom:12px;">
+      <strong>To Do</strong><span>1</span>
+    </header>
+    <div style="border:1px solid var(--color-border); border-radius:8px; padding:12px;">Audit tokens</div>
+  </section>
+</div>
+
+<!-- 3. Threaded Stream (Chat / AI) -->
+<div class="rd-stream" style="display:grid; grid-template-columns: 260px 1fr; min-height:560px; border:1px solid var(--color-border); border-radius:12px; overflow:hidden; background:var(--color-surface);">
+  <aside style="border-inline-end:1px solid var(--color-border); padding:16px;">Conversations</aside>
+  <div style="display:flex; flex-direction:column;">
+    <div style="flex:1; padding:24px; overflow-y:auto;">Messages</div>
+    <form style="border-top:1px solid var(--color-border); padding:12px; display:flex; gap:8px;">
+      <input type="text" placeholder="Write a message..." style="flex:1; padding:8px 12px;" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</div>
+
+<!-- 4. Point of Sale (Catalog + Ticket Cart) -->
+<div class="rd-pos" style="display:grid; grid-template-columns: 2fr 1fr; gap:24px;">
+  <section aria-label="Catalog grid">Product catalog grid</section>
+  <aside aria-label="Order ticket" style="border:1px solid var(--color-border); border-radius:12px; padding:16px; background:var(--color-surface);">
+    Order ticket &amp; checkout
+  </aside>
+</div>
+
+<!-- 5. 3-Column Docs + Sticky Right-Rail ScrollSpy TOC -->
+<div class="rd-docs" style="display:grid; grid-template-columns: 220px 1fr 200px; gap:24px;">
+  <aside style="position:sticky; top:80px; align-self:start;">Docs navigation</aside>
+  <article>Documentation content</article>
+  <aside aria-label="On this page" style="position:sticky; top:80px; align-self:start;">On this page TOC</aside>
+</div>
+
+<!-- 6. Workspace + Right Rail (9+3 Asymmetric Dashboard) -->
+<div class="rd-workspace-rail" style="display:grid; grid-template-columns: 3fr 1fr; gap:24px; align-items:start;">
+  <div>Main dashboard rows</div>
+  <aside style="position:sticky; top:80px;">Summary &amp; activity rail</aside>
+</div>
+
+<!-- 7. Map Split (List + Interactive Map) -->
+<div class="rd-map-split" style="display:grid; grid-template-columns: 5fr 7fr; min-height:560px; border:1px solid var(--color-border); border-radius:12px; overflow:hidden; background:var(--color-surface);">
+  <section aria-label="Locations list" style="border-inline-end:1px solid var(--color-border); padding:16px; overflow-y:auto;">Locations list</section>
+  <section aria-label="Interactive map" style="min-height:360px;">Map canvas</section>
+</div>
+
+<!-- 8. Affix Form (Sticky Section Nav + Form) -->
+<div class="rd-affix-form" style="display:grid; grid-template-columns: 240px 1fr; gap:24px; align-items:start;">
+  <aside style="position:sticky; top:80px; border:1px solid var(--color-border); border-radius:12px; padding:16px; background:var(--color-surface);">Section nav</aside>
+  <div>Form sections</div>
+</div>
+
+<!-- 9. Masonry Grid (Notes / Gallery) -->
+<div class="rd-masonry" style="column-count:3; column-gap:20px;">
+  <article style="break-inside:avoid; margin-bottom:20px; border:1px solid var(--color-border); border-radius:12px; padding:16px; background:var(--color-surface);">Note card</article>
+</div>

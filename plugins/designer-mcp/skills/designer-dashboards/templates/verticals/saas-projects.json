@@ -1,0 +1,36 @@
+{
+  "slug": "saas-projects",
+  "name": "SaaS Projects & Engineering",
+  "description": "Sprint velocity, deployment throughput, team workload, and active deliverables.",
+  "header": {
+    "title": "Projects Overview",
+    "dateRange": true,
+    "actions": ["New Sprint", "Export"]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "active-sprints", "label": "Active Sprints", "icon": "target", "tone": "primary", "sparkline": true },
+        { "id": "velocity", "label": "Sprint Velocity", "icon": "zap", "tone": "success", "sparkline": true },
+        { "id": "open-prs", "label": "Open Reviews", "icon": "briefcase", "tone": "info", "sparkline": false },
+        { "id": "incidents", "label": "Open Incidents", "icon": "shield-alert", "tone": "error", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "throughput", "title": "Deployment Throughput", "chartType": "bar", "height": 300 },
+        { "id": "sprint-progress", "title": "Sprint Completion", "chartType": "radialBar", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "deliverables", "title": "Project Deliverables", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

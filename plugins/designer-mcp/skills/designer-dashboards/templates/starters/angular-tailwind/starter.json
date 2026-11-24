@@ -1,0 +1,31 @@
+{
+  "slug": "angular-tailwind",
+  "name": "Angular 22+ (Zoneless + Signals) + Tailwind v4",
+  "framework": "angular",
+  "recommended": false,
+  "dependencies": {
+    "@angular/common": "^22.3.0",
+    "@angular/core": "^22.3.0",
+    "@angular/platform-browser": "^22.3.0",
+    "@angular/router": "^22.3.0",
+    "apexcharts": "^8.9.1",
+    "lucide-angular": "^1.0.0",
+    "zod": "^4.6.7",
+    "dayjs": "^1.11.23"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.3.0",
+    "@angular/cli": "^22.3.0",
+    "@angular/compiler-cli": "^22.3.0",
+    "tailwindcss": "^4.3.5",
+    "@tailwindcss/postcss": "^4.3.5",
+    "typescript": "^7.0.2"
+  },
+  "scripts": {
+    "dev": "ng serve",
+    "build": "ng build",
+    "lint": "ng lint",
+    "tokens:build": "node design-system/scripts/build-tokens.mjs design-system",
+    "tokens:check": "node design-system/scripts/build-tokens.mjs design-system --check"
+  }
+}

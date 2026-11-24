@@ -1,0 +1,37 @@
+{
+  "slug": "medical",
+  "name": "Healthcare & Clinic",
+  "route": "/dashboard/medical",
+  "translateKey": "nav.medical",
+  "icon": "heart-pulse",
+  "header": {
+    "dateRange": true,
+    "actions": [{ "label": "Book Appointment", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "patients", "label": "Active Patients", "icon": "users", "tone": "primary", "sparkline": true },
+        { "id": "appointments", "label": "Today Appointments", "icon": "calendar", "tone": "info", "sparkline": true },
+        { "id": "bed-occupancy", "label": "Bed Occupancy", "icon": "activity", "tone": "warning", "sparkline": false },
+        { "id": "avg-wait", "label": "Avg Wait Time", "icon": "clock", "tone": "success", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "patient-visits", "title": "Outpatient vs Inpatient", "chartType": "bar", "height": 300 },
+        { "id": "department-load", "title": "Visits by Department", "chartType": "donut", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "triage-queue", "title": "Appointment & Triage Queue", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,501 @@
+{
+  "version": 1,
+  "description": "Pre-generated tech stack profiles and capability-slot recommendations for /designer-dashboards:init. Mirrors templates/design-presets/catalog.json.",
+  "profiles": [
+    {
+      "id": "nextjs-rabbit-default",
+      "name": "Next.js 16 Lean Default (Designer Dashboards)",
+      "starter": "nextjs-tailwind",
+      "framework": "nextjs",
+      "useCase": "general-saas",
+      "recommended": true,
+      "summary": "Lean server-first Next.js 16 + Tailwind v4 + ApexCharts + TanStack Table + React Hook Form + Zod + Zustand + Sonner + Lucide.",
+      "recommendedFor": [
+        "Fastest time-to-first-dashboard with minimal config",
+        "Teams wanting zero-config @core/@layouts/@menu + ApexCharts presets"
+      ],
+      "file": "nextjs-rabbit-default.json"
+    },
+    {
+      "id": "nextjs-shadcn-enterprise",
+      "name": "Next.js 16 + shadcn (Base UI) + TanStack + Clerk + Sentry",
+      "starter": "nextjs-tailwind",
+      "framework": "nextjs",
+      "useCase": "production-saas-enterprise",
+      "recommended": false,
+      "summary": "Full-featured production SaaS stack: Next.js 16, Tailwind v4, shadcn/ui on Base UI, Recharts/Evil Charts, TanStack Form/Query/Table + Dice Table, Zustand, Nuqs, kbar, Clerk, Sentry, OxLint/Oxfmt, Husky, tweakcn.",
+      "recommendedFor": [
+        "Production multi-tenant SaaS dashboards with managed auth (Clerk) and error tracking (Sentry)",
+        "Teams preferring Base UI + shadcn/ui + tweakcn theming, URL-synced table filters (nuqs), and Rust-speed linting (OxLint/Oxfmt)"
+      ],
+      "file": "nextjs-shadcn-enterprise.json"
+    },
+    {
+      "id": "react-vite-spa",
+      "name": "React 19 + Vite 8 Client SPA",
+      "starter": "react-vite-tailwind",
+      "framework": "react-vite",
+      "useCase": "client-spa-internal-tool",
+      "recommended": false,
+      "summary": "Fast client-side SPA with React 19, Vite 8, React Router, TanStack Query, Zustand, ApexCharts, TanStack Table, React Hook Form + Zod, Sonner.",
+      "recommendedFor": [
+        "Internal tools, admin consoles behind an existing REST/OpenAPI backend, or static/CDN hosting",
+        "Teams that do not need SSR or Next.js server components"
+      ],
+      "file": "react-vite-spa.json"
+    },
+    {
+      "id": "realtime-ops-telemetry",
+      "name": "Real-Time Ops, AI & Telemetry Console",
+      "starter": "nextjs-tailwind",
+      "framework": "nextjs",
+      "useCase": "realtime-ops-ai",
+      "recommended": false,
+      "summary": "High-frequency monitoring & AI-ops stack: Next.js 16, Tailwind v4, ApexCharts (<LiveChart>), TanStack Query, Zustand, Nuqs, Sentry, OxLint/Oxfmt.",
+      "recommendedFor": [
+        "AI ops, observability, crypto/trading, or logistics telemetry dashboards",
+        "Streaming SSE/WebSocket metrics with shareable URL filter state"
+      ],
+      "file": "realtime-ops-telemetry.json"
+    },
+    {
+      "id": "vue-vite-pinia",
+      "name": "Vue 3 + Vite + Pinia Dashboard",
+      "starter": "vue-vite-tailwind",
+      "framework": "vue-vite",
+      "useCase": "vue-ecosystem",
+      "recommended": false,
+      "summary": "Vue 3 Composition API + Vite + Pinia + Vue-i18n + ApexCharts + TanStack Vue Table + VeeValidate + Zod + Vue Sonner.",
+      "recommendedFor": [
+        "Vue teams wanting full Designer Dashboards token, nav IR, and chart/table parity"
+      ],
+      "file": "vue-vite-pinia.json"
+    },
+    {
+      "id": "angular-enterprise-signals",
+      "name": "Angular Zoneless + Signals Enterprise",
+      "starter": "angular-tailwind",
+      "framework": "angular",
+      "useCase": "angular-enterprise",
+      "recommended": false,
+      "summary": "Modern zoneless Angular with Signals, Tailwind v4, ApexCharts, Angular Reactive Forms, and Lucide Angular.",
+      "recommendedFor": [
+        "Enterprise Angular teams migrating from Fuse-style architectures"
+      ],
+      "file": "angular-enterprise-signals.json"
+    },
+    {
+      "id": "react-vite-mantine",
+      "name": "Mantine v8 Dashboard (CSS Modules, No Tailwind)",
+      "starter": "react-vite-mantine",
+      "framework": "react-mantine",
+      "useCase": "dashboard-saas-tools",
+      "recommended": false,
+      "summary": "Complete React dashboard suite using Mantine Core/Hooks/Notifications/Dates with CSS Modules + OpenDesign CSSVariablesResolver (no Tailwind).",
+      "recommendedFor": [
+        "Security dashboards, developer tools, and SaaS consoles needing rich forms/dates/modals out of the box"
+      ],
+      "file": "react-vite-mantine.json"
+    },
+    {
+      "id": "react-vite-heroui",
+      "name": "HeroUI v3 (React Aria + Tailwind v4)",
+      "starter": "react-vite-heroui",
+      "framework": "react-heroui",
+      "useCase": "modern-polished-saas",
+      "recommended": false,
+      "summary": "Modern polished SaaS stack combining HeroUI v3, React Aria accessibility, and Tailwind v4 bridged to OpenDesign OKLCH tokens.",
+      "recommendedFor": [
+        "Modern SaaS applications prioritizing polished out-of-the-box aesthetics and React Aria accessibility"
+      ],
+      "file": "react-vite-heroui.json"
+    },
+    {
+      "id": "react-vite-chakra",
+      "name": "Chakra UI v3 (Ark UI Foundation, No Tailwind)",
+      "starter": "react-vite-chakra",
+      "framework": "react-chakra",
+      "useCase": "customizable-design-system",
+      "recommended": false,
+      "summary": "Composable design system with Chakra UI v3 semantic tokens, Ark UI state machines, and Emotion (no Tailwind).",
+      "recommendedFor": [
+        "Teams building a customizable, internally consistent design system with composable primitives"
+      ],
+      "file": "react-vite-chakra.json"
+    },
+    {
+      "id": "react-vite-mui",
+      "name": "Material UI v7 Enterprise (CSS Variables, No Tailwind)",
+      "starter": "react-vite-mui",
+      "framework": "react-mui",
+      "useCase": "enterprise-complex-apps",
+      "recommended": false,
+      "summary": "Enterprise React stack with Material UI v7 cssVariables theme, Emotion, and OpenDesign token bridge (no Tailwind).",
+      "recommendedFor": [
+        "Large enterprise applications requiring mature Material UI patterns and strict theme contracts"
+      ],
+      "file": "react-vite-mui.json"
+    },
+    {
+      "id": "react-vite-antd",
+      "name": "Ant Design Admin (ConfigProvider, No Tailwind)",
+      "starter": "react-vite-antd",
+      "framework": "react-antd",
+      "useCase": "data-heavy-admin",
+      "recommended": false,
+      "summary": "Data-heavy admin console using Ant Design ConfigProvider cssVar + darkAlgorithm synced with OpenDesign tokens (no Tailwind).",
+      "recommendedFor": [
+        "Data-intensive enterprise admin portals and back-office operations"
+      ],
+      "file": "react-vite-antd.json"
+    },
+    {
+      "id": "react-vite-primereact",
+      "name": "PrimeReact Enterprise Widgets & Tables",
+      "starter": "react-vite-primereact",
+      "framework": "react-primereact",
+      "useCase": "enterprise-tables-widgets",
+      "recommended": false,
+      "summary": "Enterprise widget & table suite with PrimeReactProvider, PrimeIcons, and OpenDesign CSS variable bridge (Tailwind optional).",
+      "recommendedFor": [
+        "Data-intensive enterprise dashboards needing rich built-in tables and widgets"
+      ],
+      "file": "react-vite-primereact.json"
+    },
+    {
+      "id": "react-vite-daisyui",
+      "name": "daisyUI v5 + Tailwind v4",
+      "starter": "react-vite-daisyui",
+      "framework": "react-daisyui",
+      "useCase": "quick-themed-interfaces",
+      "recommended": false,
+      "summary": "Rapid semantic-class UI with daisyUI v5 @plugin theme bridged to OpenDesign light/dark tokens.",
+      "recommendedFor": [
+        "Rapidly prototyped, cleanly themed dashboards with concise Tailwind utility/component classes"
+      ],
+      "file": "react-vite-daisyui.json"
+    },
+    {
+      "id": "react-vite-baseui",
+      "name": "Base UI Headless Primitives (No Tailwind)",
+      "starter": "react-vite-baseui",
+      "framework": "react-baseui",
+      "useCase": "headless-design-system",
+      "recommended": false,
+      "summary": "Unstyled, accessible @base-ui/react primitives styled directly with OpenDesign CSS variables and data-* state selectors.",
+      "recommendedFor": [
+        "Custom design systems wanting full visual ownership on top of Base UI accessibility"
+      ],
+      "file": "react-vite-baseui.json"
+    },
+    {
+      "id": "react-vite-cossui",
+      "name": "coss ui (Base UI + Tailwind v4)",
+      "starter": "react-vite-cossui",
+      "framework": "react-cossui",
+      "useCase": "minimal-product-saas",
+      "recommended": false,
+      "summary": "Cal.com-inspired minimal SaaS product UI built on @base-ui/react, Tailwind v4, and class-variance-authority.",
+      "recommendedFor": [
+        "Modern minimal SaaS product interfaces with crisp typography and Base UI primitives"
+      ],
+      "file": "react-vite-cossui.json"
+    },
+    {
+      "id": "react-vite-reactbits",
+      "name": "React Bits (Animated UI, Shaders & Backgrounds)",
+      "starter": "react-vite-reactbits",
+      "framework": "react-reactbits",
+      "useCase": "animated-visual-interface",
+      "recommended": false,
+      "summary": "High-craft animated components, aurora/shader backgrounds, spotlight cards, and click sparks with reduced-motion guards.",
+      "recommendedFor": [
+        "Distinctive animated web interfaces and interactive product showcases (check license for component redistribution)"
+      ],
+      "file": "react-vite-reactbits.json"
+    },
+    {
+      "id": "react-vite-magicui",
+      "name": "Magic UI (Bento Grids & Animated Effects)",
+      "starter": "react-vite-magicui",
+      "framework": "react-magicui",
+      "useCase": "animated-bento-dashboard",
+      "recommended": false,
+      "summary": "Animated bento grids, border beams, number tickers, and gradient text effects built with Tailwind v4 and motion/react.",
+      "recommendedFor": [
+        "Animated dashboards, bento KPI layouts, and polished visual highlights"
+      ],
+      "file": "react-vite-magicui.json"
+    },
+    {
+      "id": "react-vite-aceternity",
+      "name": "Aceternity UI (3D Cards, Spotlights & Beams)",
+      "starter": "react-vite-aceternity",
+      "framework": "react-aceternity",
+      "useCase": "creative-animated-ui",
+      "recommended": false,
+      "summary": "Interactive 3D perspective cards, spotlights, moving borders, background beams, and floating docks wired to OpenDesign tokens.",
+      "recommendedFor": [
+        "Creative interactive dashboards, hero sections, and marketing/product hybrids"
+      ],
+      "file": "react-vite-aceternity.json"
+    },
+    {
+      "id": "react-vite-21stdev",
+      "name": "21st.dev AI Registry + Base UI",
+      "starter": "react-vite-21stdev",
+      "framework": "react-21stdev",
+      "useCase": "ai-assisted-prototyping",
+      "recommended": false,
+      "summary": "AI coding-agent-ready component registry (components.json + @21st-dev) on Base UI + Tailwind v4 + OpenDesign tokens.",
+      "recommendedFor": [
+        "AI-assisted UI prototyping with shadcn/Base UI-compatible community components"
+      ],
+      "file": "react-vite-21stdev.json"
+    },
+    {
+      "id": "react-vite-motion",
+      "name": "Motion Primitives (motion/react)",
+      "starter": "react-vite-motion",
+      "framework": "react-motion",
+      "useCase": "motion-primitives-ui",
+      "recommended": false,
+      "summary": "Restrained, accessible animation primitives (TextEffect, AnimatedNumber, SlidingNumber, MorphingDialog, TransitionPanel) with MotionConfig reducedMotion='user'.",
+      "recommendedFor": [
+        "Interfaces needing tactile micro-interactions and physics-driven transitions"
+      ],
+      "file": "react-vite-motion.json"
+    },
+    {
+      "id": "react-vite-arkui",
+      "name": "Ark UI Headless State Machines (No Tailwind)",
+      "starter": "react-vite-arkui",
+      "framework": "react-arkui",
+      "useCase": "state-machine-headless-ui",
+      "recommended": false,
+      "summary": "Zag.js state-machine headless primitives (@ark-ui/react) styled via OpenDesign CSS variables (no Tailwind).",
+      "recommendedFor": [
+        "Multi-brand or strict-a11y design systems built on deterministic state machines"
+      ],
+      "file": "react-vite-arkui.json"
+    },
+    {
+      "id": "react-vite-unocss",
+      "name": "UnoCSS (@unocss/preset-wind4)",
+      "starter": "react-vite-unocss",
+      "framework": "react-unocss",
+      "useCase": "atomic-utility-css",
+      "recommended": false,
+      "summary": "Instant on-demand atomic CSS engine with presetWind4, directives, variant groups, and OpenDesign theme bridge.",
+      "recommendedFor": [
+        "Teams wanting utility-first CSS with full preset control and minimal CSS output"
+      ],
+      "file": "react-vite-unocss.json"
+    },
+    {
+      "id": "react-vite-pandacss",
+      "name": "Panda CSS + Base UI (Zero-Runtime CSS-in-JS)",
+      "starter": "react-vite-pandacss",
+      "framework": "react-pandacss",
+      "useCase": "typesafe-zero-runtime-css",
+      "recommended": false,
+      "summary": "Type-safe build-time CSS-in-JS (@pandacss/dev) with OpenDesign semanticTokens, cva recipes, and @base-ui/react primitives.",
+      "recommendedFor": [
+        "TypeScript-first custom design systems wanting full ownership without Tailwind"
+      ],
+      "file": "react-vite-pandacss.json"
+    },
+    {
+      "id": "react-vite-vanilla-extract",
+      "name": "vanilla-extract + Ark UI (Zero-Runtime TS CSS)",
+      "starter": "react-vite-vanilla-extract",
+      "framework": "react-vanilla-extract",
+      "useCase": "zero-runtime-typed-css",
+      "recommended": false,
+      "summary": "Zero-runtime stylesheets in TypeScript (.css.ts + @vanilla-extract/recipes) paired with @ark-ui/react state-machine primitives.",
+      "recommendedFor": [
+        "Type-safe React applications without Tailwind wanting static CSS extraction"
+      ],
+      "file": "react-vite-vanilla-extract.json"
+    },
+    {
+      "id": "react-vite-stylex",
+      "name": "StyleX (Compile-Time Atomic CSS)",
+      "starter": "react-vite-stylex",
+      "framework": "react-stylex",
+      "useCase": "compile-time-atomic-css",
+      "recommended": false,
+      "summary": "Meta's compile-time atomic CSS (@stylexjs/stylex + @stylexjs/unplugin) with defineVars bridged to OpenDesign tokens.",
+      "recommendedFor": [
+        "Large-scale apps requiring deterministic, collision-free atomic CSS at compile time"
+      ],
+      "file": "react-vite-stylex.json"
+    },
+    {
+      "id": "react-vite-open-props",
+      "name": "Open Props (CSS Design Tokens + JIT)",
+      "starter": "react-vite-open-props",
+      "framework": "react-open-props",
+      "useCase": "lightweight-css-tokens",
+      "recommended": false,
+      "summary": "Lightweight CSS custom-property foundation combining Open Props (postcss-jit-props) with OpenDesign semantic color tokens.",
+      "recommendedFor": [
+        "Minimalist CSS-first dashboards avoiding heavy styling frameworks"
+      ],
+      "file": "react-vite-open-props.json"
+    }
+  ],
+  "slotRecommendations": {
+    "stylingEngine": {
+      "label": "Styling Engine",
+      "default": "tailwindcss-v4",
+      "options": [
+        { "id": "tailwindcss-v4", "packages": ["tailwindcss", "@tailwindcss/vite"], "when": "Default utility-first CSS with @theme inline OpenDesign bridge" },
+        { "id": "unocss", "packages": ["unocss", "@unocss/preset-wind4"], "when": "Flexible atomic CSS engine with custom presets and shortcuts" },
+        { "id": "panda-css", "packages": ["@pandacss/dev"], "when": "Type-safe build-time CSS-in-JS + cva recipes (pairs with Base UI)" },
+        { "id": "vanilla-extract", "packages": ["@vanilla-extract/css", "@vanilla-extract/recipes", "@vanilla-extract/vite-plugin"], "when": "Zero-runtime typed .css.ts stylesheets (pairs with Ark UI)" },
+        { "id": "stylex", "packages": ["@stylexjs/stylex", "@stylexjs/unplugin"], "when": "Compile-time atomic CSS at scale" },
+        { "id": "open-props", "packages": ["open-props", "postcss-jit-props"], "when": "Lightweight CSS design tokens without a styling framework" },
+        { "id": "framework-native", "packages": [], "when": "Mantine CSS Modules, MUI/Chakra Emotion, or Ant Design cssVar" }
+      ]
+    },
+    "uiPrimitives": {
+      "label": "UI Component Primitives / Framework",
+      "default": "native-top-layer-or-radix",
+      "options": [
+        { "id": "shadcn-base-ui", "packages": ["@base-ui/react"], "when": "Headless Base UI primitives + shadcn/ui or coss ui / 21st.dev" },
+        { "id": "ark-ui", "packages": ["@ark-ui/react"], "when": "Zag.js state-machine headless primitives" },
+        { "id": "mantine", "packages": ["@mantine/core", "@mantine/hooks", "@mantine/notifications", "@mantine/dates"], "when": "Complete dashboard UI suite (no Tailwind)" },
+        { "id": "heroui-v3", "packages": ["@heroui/react", "@heroui/styles", "react-aria-components"], "when": "Polished React Aria + Tailwind v4 SaaS components" },
+        { "id": "chakra-v3", "packages": ["@chakra-ui/react", "@emotion/react"], "when": "Composable design system on Ark UI" },
+        { "id": "mui", "packages": ["@mui/material", "@emotion/react", "@emotion/styled"], "when": "Enterprise Material UI with cssVariables" },
+        { "id": "antd", "packages": ["antd"], "when": "Data-heavy admin portals with ConfigProvider" },
+        { "id": "primereact", "packages": ["primereact", "primeicons"], "when": "Enterprise tables and widgets" },
+        { "id": "daisyui", "packages": ["daisyui"], "when": "Quick semantic Tailwind component classes" },
+        { "id": "shadcn-radix", "packages": ["radix-ui"], "when": "Unified Radix UI primitives + shadcn/ui" },
+        { "id": "ui-sdk", "packages": ["@ui-sdk/react", "@ui-sdk/web"], "when": "Designer-UI headless behavior primitives aligned with /design-system" },
+        { "id": "native-top-layer", "packages": [], "when": "Zero-dep native <dialog> / Popover API" }
+      ]
+    },
+    "motionAndEffects": {
+      "label": "Motion & Visual Effects",
+      "default": "css-transitions",
+      "options": [
+        { "id": "motion-primitives", "packages": ["motion"], "when": "Accessible physics/spring primitives with MotionConfig reducedMotion='user'" },
+        { "id": "magic-ui", "packages": ["motion"], "when": "Animated bento grids, border beams, number tickers, and dot patterns" },
+        { "id": "aceternity-ui", "packages": ["motion"], "when": "3D cards, spotlights, moving borders, background beams, and floating docks" },
+        { "id": "react-bits", "packages": ["motion"], "when": "Shaders, aurora backgrounds, spotlight cards, and click sparks (commercial app use)" }
+      ]
+    },
+    "dndAndSplit": {
+      "label": "Drag-and-Drop & Resizable Split Panes",
+      "default": "dnd-kit",
+      "options": [
+        { "id": "dnd-kit", "packages": ["@dnd-kit/core", "@dnd-kit/sortable"], "when": "React 19 accessible Kanban boards, sortable tables, and pipeline cards" },
+        { "id": "resizable-panels", "packages": ["react-resizable-panels"], "when": "Resizable multi-pane Gantt, AI studio, and mail/code split shells" }
+      ]
+    },
+    "richText": {
+      "label": "Rich Text & Document Editor",
+      "default": "tiptap",
+      "options": [
+        { "id": "tiptap", "packages": ["@tiptap/react", "@tiptap/starter-kit"], "when": "Headless ProseMirror editor for Mail compose, Knowledge Base, and Blog" }
+      ]
+    },
+    "charts": {
+      "label": "Chart Engine (Single Engine)",
+      "default": "apexcharts",
+      "options": [
+        { "id": "apexcharts", "packages": ["apexcharts", "react-apexcharts"], "when": "Default for 24+ dashboard presets & <LiveChart> streaming" },
+        { "id": "recharts-evil", "packages": ["recharts"], "when": "React-native composable SVG charts (shadcn ChartContainer / Evil Charts)" }
+      ]
+    },
+    "tables": {
+      "label": "Data Tables (Single Engine)",
+      "default": "tanstack-table",
+      "options": [
+        { "id": "tanstack-table", "packages": ["@tanstack/react-table"], "when": "Standard Designer Dashboards server-mode <DataGrid>" },
+        { "id": "dice-table", "packages": ["@tanstack/react-table"], "when": "DiceUI Data Table pattern built over @tanstack/react-table" }
+      ]
+    },
+    "forms": {
+      "label": "Forms & Schema Validation (Single Engine)",
+      "default": "rhf-zod",
+      "options": [
+        { "id": "rhf-zod", "packages": ["react-hook-form", "@hookform/resolvers", "zod"], "when": "Fastest standard React forms + Zod" },
+        { "id": "tanstack-form-zod", "packages": ["@tanstack/react-form", "zod"], "when": "End-to-end TanStack ecosystem with fine-grained signal reactivity" }
+      ]
+    },
+    "dataFetching": {
+      "label": "Server Data Fetching & Caching",
+      "default": "tanstack-query",
+      "options": [
+        { "id": "tanstack-query", "packages": ["@tanstack/react-query"], "when": "Client mutations, optimistic updates, polling, or SPA caching" },
+        { "id": "rsc-server-actions", "packages": [], "when": "Pure Next.js Server Components + Server Actions" }
+      ]
+    },
+    "state": {
+      "label": "Client UI State",
+      "default": "zustand",
+      "options": [
+        { "id": "zustand", "packages": ["zustand"], "when": "Scoped micro-stores (theme, sidebar, AI drawer, filters)" }
+      ]
+    },
+    "urlState": {
+      "label": "URL Search Param State",
+      "default": "nuqs",
+      "options": [
+        { "id": "nuqs", "packages": ["nuqs"], "when": "Type-safe URL-synced table filters, pagination, and shareable dashboard views" },
+        { "id": "next-search-params", "packages": [], "when": "Minimal dashboards without shareable filter URLs" }
+      ]
+    },
+    "commandPalette": {
+      "label": "Command+K Interface",
+      "default": "cmdk",
+      "options": [
+        { "id": "kbar", "packages": ["kbar"], "when": "Rich action-tree Command+K palette with nested shortcuts & dynamic actions" },
+        { "id": "cmdk", "packages": ["cmdk"], "when": "Lightweight shadcn-style CommandDialog" }
+      ]
+    },
+    "auth": {
+      "label": "Authentication & RBAC",
+      "default": "mock-or-authjs",
+      "options": [
+        { "id": "clerk", "packages": ["@clerk/nextjs"], "when": "Managed auth, organizations, MFA, and zero-ops SaaS onboarding" },
+        { "id": "authjs-prisma", "packages": ["next-auth"], "when": "Self-hosted DB sessions/JWT in Postgres/SQLite" },
+        { "id": "supabase", "packages": ["@supabase/ssr", "@supabase/supabase-js"], "when": "Supabase Postgres + Auth + RLS" },
+        { "id": "better-auth", "packages": ["better-auth"], "when": "Modern TypeScript full-stack auth with 2FA & admin plugins" }
+      ]
+    },
+    "errorTracking": {
+      "label": "Error Tracking & Observability",
+      "default": "none",
+      "options": [
+        { "id": "sentry", "packages": ["@sentry/nextjs"], "when": "Production error tracking, session replay, and Next.js source maps" }
+      ]
+    },
+    "lintFormat": {
+      "label": "Linter & Formatter",
+      "default": "oxlint-oxfmt",
+      "options": [
+        { "id": "oxlint-oxfmt", "packages": ["oxlint", "oxfmt"], "when": "Rust-fast linting & formatting + OpenDesign _adherence.oxlintrc.json compatibility" },
+        { "id": "eslint", "packages": ["eslint", "eslint-plugin-jsx-a11y"], "when": "Traditional ESLint + jsx-a11y plugin" }
+      ]
+    },
+    "gitHooks": {
+      "label": "Pre-commit Hooks",
+      "default": "husky",
+      "options": [
+        { "id": "husky", "packages": ["husky", "lint-staged"], "when": "Enforce lint/format/token checks before every commit" }
+      ]
+    },
+    "theming": {
+      "label": "Theme Authoring",
+      "default": "opendesign-presets",
+      "options": [
+        { "id": "opendesign-presets", "packages": [], "when": "21 WCAG AA verified Designer Dashboards presets in design-system/" },
+        { "id": "tweakcn", "packages": [], "when": "tweakcn OKLCH CSS variables imported into design-system/theme.json & styles.css" }
+      ]
+    }
+  }
+}

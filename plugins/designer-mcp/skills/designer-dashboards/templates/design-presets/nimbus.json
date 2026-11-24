@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "nimbus",
+  "name": "Nimbus",
+  "description": "Softly rounded organic workspace with botanical green accents, generous pill-like card radii, subtle elevation, and warm neutral charcoal dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:nimbus",
+    "mood": "Softly rounded botanical calm"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#478128",
+      "secondary": "#1B9357",
+      "success": "#2E7D32",
+      "info": "#0284C7",
+      "warning": "#C25E18",
+      "error": "#D43A5C"
+    },
+    "light": {
+      "canvas": "#FAFAFA",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E8E8E8",
+      "text": "#4C4C4C",
+      "textMuted": "#707070"
+    },
+    "dark": {
+      "canvas": "#242424",
+      "surface": "#292929",
+      "surfaceElevated": "#333333",
+      "border": "#383838",
+      "text": "#E6E6E6",
+      "textMuted": "#999999"
+    },
+    "chart": [
+      "#478128",
+      "#1B9357",
+      "#2AC4EF",
+      "#417DEC",
+      "#7257EA",
+      "#D44EE9",
+      "#ED8B45",
+      "#D43A5C",
+      "#0D9488",
+      "#707070"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Plus Jakarta Sans', 'DM Sans', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "12px",
+    "headingWeight": 700
+  },
+  "layout": {
+    "sidebarWidth": "280px",
+    "sidebarCollapsedWidth": "60px",
+    "headerHeight": "80px",
+    "contentMaxWidth": "1280px",
+    "gutter": "20px",
+    "cardPadding": "24px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "8px",
+    "sm": "12px",
+    "md": "16px",
+    "lg": "18px",
+    "xl": "24px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

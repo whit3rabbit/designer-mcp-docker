@@ -1,0 +1,38 @@
+{
+  "slug": "social-media",
+  "name": "Social Media & Campaign Analytics",
+  "route": "/dashboard/social-media",
+  "translateKey": "nav.socialMedia",
+  "icon": "share-2",
+  "header": {
+    "title": "Social & Campaigns",
+    "dateRange": true,
+    "actions": [{ "label": "Schedule Post", "variant": "solid", "icon": "send" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "total-reach", "label": "Total Reach", "icon": "eye", "tone": "primary", "sparkline": true },
+        { "id": "engagement-rate", "label": "Engagement Rate", "icon": "heart", "tone": "success", "sparkline": true },
+        { "id": "new-followers", "label": "New Followers", "icon": "users", "tone": "info", "sparkline": true },
+        { "id": "ad-roas", "label": "Campaign ROAS", "icon": "target", "tone": "warning", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "audience-growth", "title": "Cross-Platform Growth", "chartType": "line", "height": 300 },
+        { "id": "channel-radar", "title": "Channel Performance", "chartType": "radar", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "campaign-metrics", "title": "Campaign Breakdown", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

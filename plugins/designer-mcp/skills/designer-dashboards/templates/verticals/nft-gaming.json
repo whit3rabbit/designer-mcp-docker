@@ -1,0 +1,38 @@
+{
+  "slug": "nft-gaming",
+  "name": "NFT & Digital Assets",
+  "route": "/dashboard/nft-gaming",
+  "translateKey": "nav.nftGaming",
+  "icon": "sparkles",
+  "header": {
+    "title": "Digital Assets & Auctions",
+    "dateRange": true,
+    "actions": [{ "label": "Mint Asset", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "floor-volume", "label": "24h Volume", "icon": "coins", "tone": "primary", "sparkline": true },
+        { "id": "active-bids", "label": "Active Bids", "icon": "gavel", "tone": "info", "sparkline": true },
+        { "id": "creators", "label": "Verified Creators", "icon": "award", "tone": "success", "sparkline": false },
+        { "id": "treasury-eth", "label": "Treasury Balance", "icon": "wallet", "tone": "warning", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "auction-volume", "title": "Marketplace Volume", "chartType": "bar", "height": 300 },
+        { "id": "collection-share", "title": "Collection Share", "chartType": "semiDonut", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "live-auctions", "title": "Live Auctions", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

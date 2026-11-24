@@ -1,0 +1,68 @@
+{
+  "id": "react-vite-arkui",
+  "name": "React 19 + Vite 8 + Ark UI (Zag.js)",
+  "starter": "react-vite-arkui",
+  "framework": "react-arkui",
+  "useCase": "state-machine-headless-ui",
+  "slots": {
+    "framework": "React 19 + Vite 8 + React Router",
+    "styling": "OpenDesign OKLCH CSS Variables + CSS Modules / Vanilla CSS (No Tailwind)",
+    "uiPrimitives": "Ark UI (@ark-ui/react) Zag.js State-Machine Primitives",
+    "charts": "ApexCharts",
+    "tables": "TanStack React Table",
+    "forms": "React Hook Form + Zod",
+    "dataFetching": "TanStack React Query",
+    "state": "Zustand",
+    "urlState": "React Router searchParams",
+    "commandPalette": "Ark UI Dialog + Combobox",
+    "auth": "Custom JWT + HttpOnly cookies / Auth0 / Clerk",
+    "errorTracking": "Optional Sentry",
+    "lintFormat": "ESLint + jsx-a11y",
+    "gitHooks": "Optional Husky",
+    "theming": "OpenDesign 21 WCAG AA presets via [data-scope]/[data-state] CSS bridge"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^8.5.2",
+    "@ark-ui/react": "^5.40.1",
+    "apexcharts": "^8.9.1",
+    "react-apexcharts": "^2.2.1",
+    "@tanstack/react-table": "^9.3.1",
+    "@tanstack/react-query": "^5.108.4",
+    "zustand": "^5.1.0",
+    "lucide-react": "^1.78.0",
+    "zod": "^4.6.7",
+    "react-hook-form": "^7.92.0",
+    "@hookform/resolvers": "^7.0.8",
+    "i18next": "^27.2.4",
+    "react-i18next": "^18.0.3",
+    "dayjs": "^1.11.23",
+    "sonner": "^2.0.8",
+    "clsx": "^2.1.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^7.0.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^10.15.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript-eslint": "^8.73.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "tokens:build": "node design-system/scripts/build-tokens.mjs design-system",
+    "tokens:check": "node design-system/scripts/build-tokens.mjs design-system --check"
+  },
+  "envVars": {
+    "VITE_API_BASE_URL": "http://localhost:4000/api",
+    "VITE_DATA_MODE": "mock"
+  },
+  "tooling": {}
+}

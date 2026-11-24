@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "slug": "saas-violet",
+  "name": "SaaS Violet",
+  "description": "Trusted SaaS blue-violet aesthetic: tinted off-white canvas, crisp elevated cards, 6px radius ladder, and stepped navy dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:saas-violet"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#5B4FE9",
+      "secondary": "#64748B",
+      "success": "#15803D",
+      "info": "#0284C7",
+      "warning": "#B45309",
+      "error": "#DC2626"
+    },
+    "light": {
+      "canvas": "#F8F7FA",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E4E3EC",
+      "text": "#2F2B3D",
+      "textMuted": "#5E5A6F"
+    },
+    "dark": {
+      "canvas": "#25293C",
+      "surface": "#2F3349",
+      "surfaceElevated": "#383D56",
+      "border": "#434968",
+      "text": "#ECEBF5",
+      "textMuted": "#B4B1C8"
+    },
+    "chart": [
+      "#5B4FE9",
+      "#10B981",
+      "#FF6A55",
+      "#0EA5E9",
+      "#F59E0B",
+      "#14B8A6",
+      "#F97316",
+      "#8B5CF6",
+      "#EC4899",
+      "#94A3B8"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Public Sans', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "272px",
+    "sidebarCollapsedWidth": "76px",
+    "headerHeight": "64px",
+    "contentMaxWidth": "1440px",
+    "gutter": "24px",
+    "cardPadding": "24px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "6px",
+    "lg": "10px",
+    "xl": "14px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

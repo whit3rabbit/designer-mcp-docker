@@ -1,0 +1,42 @@
+{
+  "slug": "finance",
+  "name": "Finance & Treasury",
+  "route": "/dashboard/finance",
+  "translateKey": "nav.finance",
+  "icon": "wallet",
+  "header": {
+    "title": "Treasury & Cashflow",
+    "dateRange": true,
+    "actions": [{ "label": "Transfer", "variant": "solid", "icon": "arrow-up-right" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "total-balance", "label": "Total Balance", "icon": "wallet", "tone": "primary", "sparkline": true },
+        { "id": "monthly-inflow", "label": "Monthly Inflow", "icon": "trending-up", "tone": "success", "sparkline": true },
+        { "id": "operating-burn", "label": "Operating Burn", "icon": "flame", "tone": "warning", "sparkline": false },
+        { "id": "net-margin", "label": "Net Margin", "icon": "percent", "tone": "info", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "cashflow-margin", "title": "Revenue vs Operating Margin", "chartType": "mixed", "height": 310 },
+        { "id": "expense-breakdown", "title": "Expense Breakdown", "chartType": "donut", "height": 310 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "ledger-transactions", "title": "Recent Ledger Transactions", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ],
+  "rightRail": [
+    { "id": "budget-utilization", "title": "Budget Utilization", "kind": "progress-list" },
+    { "id": "audit-timeline", "title": "Audit Activity", "kind": "timeline" }
+  ]
+}

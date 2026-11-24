@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "twilight",
+  "name": "Twilight",
+  "description": "Deep cobalt-and-slate workspace theme with crisp white paper cards over a cool slate canvas, 10px card corners, pill-shaped navigation, and stepped midnight-blue dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:twilight",
+    "mood": "crisp cobalt-slate executive"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#1E3A8A",
+      "secondary": "#64748B",
+      "success": "#65A30D",
+      "info": "#06B6D4",
+      "warning": "#FACC15",
+      "error": "#DC2626"
+    },
+    "light": {
+      "canvas": "#F1F5F9",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E2E8F0",
+      "text": "#1E293B",
+      "textMuted": "#475569"
+    },
+    "dark": {
+      "canvas": "#232D45",
+      "surface": "#28334E",
+      "surfaceElevated": "#303D5D",
+      "border": "#354567",
+      "text": "#E2E8F0",
+      "textMuted": "#94A3B8"
+    },
+    "chart": [
+      "#1E3A8A",
+      "#84CC16",
+      "#06B6D4",
+      "#F59E0B",
+      "#F97316",
+      "#DC2626",
+      "#6366F1",
+      "#14B8A6",
+      "#EC4899",
+      "#64748B"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Public Sans', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "230px",
+    "sidebarCollapsedWidth": "85px",
+    "headerHeight": "67px",
+    "contentMaxWidth": "1440px",
+    "gutter": "24px",
+    "cardPadding": "20px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "6px",
+    "lg": "10px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

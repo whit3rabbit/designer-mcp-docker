@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "aurora",
+  "name": "Aurora",
+  "description": "Compact indigo-violet dashboard palette with Inter typography, luminous elevated cards, tight 10px radius cap, and deep twilight navy dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:aurora",
+    "mood": "Luminous indigo twilight precision"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#5C61E6",
+      "secondary": "#6D788D",
+      "success": "#15803D",
+      "info": "#0284C7",
+      "warning": "#B45309",
+      "error": "#D92D29"
+    },
+    "light": {
+      "canvas": "#F7F7F9",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E4E5E9",
+      "text": "#3C4056",
+      "textMuted": "#676A7B"
+    },
+    "dark": {
+      "canvas": "#282A42",
+      "surface": "#30334E",
+      "surfaceElevated": "#3A3E5B",
+      "border": "#464963",
+      "text": "#D7D8ED",
+      "textMuted": "#B2B3CA"
+    },
+    "chart": [
+      "#5C61E6",
+      "#72E128",
+      "#FDB528",
+      "#26C6F9",
+      "#D92D29",
+      "#A855F7",
+      "#F97316",
+      "#14B8A6",
+      "#EC4899",
+      "#6D788D"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "13px",
+    "compactSize": "12px",
+    "headingWeight": 500
+  },
+  "layout": {
+    "sidebarWidth": "260px",
+    "sidebarCollapsedWidth": "71px",
+    "headerHeight": "64px",
+    "contentMaxWidth": "1440px",
+    "gutter": "24px",
+    "cardPadding": "20px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "6px",
+    "lg": "8px",
+    "xl": "10px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

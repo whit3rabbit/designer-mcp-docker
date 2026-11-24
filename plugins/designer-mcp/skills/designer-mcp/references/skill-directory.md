@@ -6,7 +6,7 @@ matches an entry below, name the skill exactly, say one line about what it
 covers, and follow it. If its files are missing from this install, offer to
 install it before proceeding.
 
-## The four skills
+## The five skills
 
 Paths resolve relative to this skill's own directory, the same convention as
 script paths elsewhere in the plugin.
@@ -16,6 +16,7 @@ script paths elsewhere in the plugin.
 | design-system | The research-first design methodology: capture DESIGN.md from a page or document, research references from the offline catalog, lock a direction, craft references (typography, color, motion, icons, copy), quality gate, visual QA | [../../design-system/SKILL.md](../../design-system/SKILL.md) |
 | designer-documents | Document toolchains, one bundled sub-skill per format, with render-and-inspect QA loops | [../../designer-documents/SKILL.md](../../designer-documents/SKILL.md) |
 | designer-ui | Implementation craft for web UI plus headless behavior and accessibility primitives | [../../designer-ui/SKILL.md](../../designer-ui/SKILL.md) |
+| designer-dashboards | Multi-framework dashboard builder & scaffolder (24 starters, 26 tech stacks, 20 UI/CSS framework kits, 21 presets, 16 verticals, `design_dashboards_*` MCP tools) | [../../designer-dashboards/SKILL.md](../../designer-dashboards/SKILL.md) |
 | designer-mcp | This skill: catalog tools, MCP setup, install snippets | [SKILL.md](../SKILL.md) |
 
 ## Bundled sub-skills
@@ -34,6 +35,12 @@ script paths elsewhere in the plugin.
 | heroui-theming | designer-ui | HeroUI theming: custom themes, design tokens, BEM class overrides, @heroui/styles on plain HTML and non-React stacks | [../../designer-ui/heroui/heroui-theming/SKILL.md](../../designer-ui/heroui/heroui-theming/SKILL.md) |
 | heroui-native | designer-ui | HeroUI Native for React Native (Uniwind): mobile components, install, dark/light themes | [../../designer-ui/heroui/heroui-native/SKILL.md](../../designer-ui/heroui/heroui-native/SKILL.md) |
 | heroui-migration | designer-ui | HeroUI v2-to-v3 migration: provider removal, compound components, styling, hooks, per-component changes | [../../designer-ui/heroui/heroui-migration/SKILL.md](../../designer-ui/heroui/heroui-migration/SKILL.md) |
+| init | designer-dashboards | Interactive dashboard stack wizard & scaffolder (24 starters, 26 tech stacks, 20 UI/CSS framework kits) | [../../designer-dashboards/init/SKILL.md](../../designer-dashboards/init/SKILL.md) |
+| design | designer-dashboards | OpenDesign token compiler, soft/tonal ladders, FOUC-free dark mode, `_adherence.oxlintrc.json` | [../../designer-dashboards/design/SKILL.md](../../designer-dashboards/design/SKILL.md) |
+| ui | designer-dashboards | Dashboard UI primitives, ApexCharts/Recharts, TanStack DataGrid, KPI cards, forms, overlays | [../../designer-dashboards/ui/SKILL.md](../../designer-dashboards/ui/SKILL.md) |
+| login | designer-dashboards | 7-page auth suite, RBAC `authority` guards, NextAuth/Supabase/Better Auth/Clerk adapters | [../../designer-dashboards/login/SKILL.md](../../designer-dashboards/login/SKILL.md) |
+| pages | designer-dashboards | Unified Nav IR, derived breadcrumbs/titles, 16 industry verticals, 11 app shells, print invoices | [../../designer-dashboards/pages/SKILL.md](../../designer-dashboards/pages/SKILL.md) |
+| audit | designer-dashboards | Token parity, WCAG 2.1 AA 18-point gate, RTL logical properties, dep & secret hygiene | [../../designer-dashboards/audit/SKILL.md](../../designer-dashboards/audit/SKILL.md) |
 
 The Mantine, daisyUI, and Base UI catalog layers have MCP tools
 (`design_mantine_*`, `design_daisyui_*`, `design_baseui_*`) but no sub-skill.
@@ -73,7 +80,7 @@ When the task matches a skill that is missing:
    command:
 
    ```bash
-   # Full plugin: all four skills, and the .mcp.json registers the MCP server
+   # Full plugin: all five skills, and the .mcp.json registers the MCP server
    claude plugin marketplace add whit3rabbit/designer-mcp-docker
    claude plugin install designer-mcp@designer-mcp-docker
 
@@ -86,7 +93,7 @@ When the task matches a skill that is missing:
 
    On ZCode the full plugin also installs through the Plugin Marketplace UI:
    Add, paste the repo, install Designer MCP. The zip from the `/skill`
-   route installs all four skills at once.
+   route installs all five skills at once.
 
 4. After installing, read the new skill's SKILL.md and follow it for the
    task.
@@ -117,4 +124,4 @@ Rules:
 - "Build this in Mantine / daisyUI / Base UI" → designer-ui, which routes to
   the `design_mantine_*`, `design_daisyui_*`, or `design_baseui_*` tools.
 - "What skills do I have for documents?" → walk the directory above and
-  report the four skills and their sub-skills with install status.
+  report the five skills and their sub-skills with install status.

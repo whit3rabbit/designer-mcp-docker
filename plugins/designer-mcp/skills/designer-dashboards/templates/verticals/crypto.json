@@ -1,0 +1,36 @@
+{
+  "slug": "crypto",
+  "name": "Crypto & Market Trading",
+  "description": "OHLC candlestick market chart, live ticker stream, portfolio allocation, and order book.",
+  "header": {
+    "title": "Market Overview",
+    "dateRange": true,
+    "actions": ["Deposit", "Export CSV"]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "portfolio", "label": "Portfolio Value", "icon": "coins", "tone": "primary", "sparkline": true },
+        { "id": "pnl-24h", "label": "24h PnL", "icon": "trending-up", "tone": "success", "sparkline": true },
+        { "id": "volume", "label": "24h Volume", "icon": "activity", "tone": "info", "sparkline": true },
+        { "id": "open-orders", "label": "Open Orders", "icon": "clock", "tone": "warning", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "ohlc-stream", "title": "BTC / USD Live Stream", "chartType": "live-line", "height": 320 },
+        { "id": "allocation", "title": "Asset Allocation", "chartType": "donut", "height": 320 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "order-book", "title": "Recent Executions", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

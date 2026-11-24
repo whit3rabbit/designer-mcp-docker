@@ -1,0 +1,60 @@
+@import "../design-system/styles.css";
+
+/* Open Props + OpenDesign semantic token bridge.
+ * postcss-jit-props injects only the Open Props custom properties
+ * (--size-*, --shadow-*, --ease-*, --radius-*, --border-size-*) referenced in CSS.
+ */
+:root {
+  --op-space-xs: var(--size-1);
+  --op-space-sm: var(--size-2);
+  --op-space-md: var(--size-3);
+  --op-space-lg: var(--size-5);
+  --op-space-xl: var(--size-7);
+
+  --op-radius-sm: var(--radius-2);
+  --op-radius-md: var(--radius-3);
+  --op-radius-lg: var(--radius-4);
+  --op-radius-pill: var(--radius-round);
+
+  --op-shadow-card: var(--shadow-2);
+  --op-shadow-elevated: var(--shadow-4);
+  --op-ease-standard: var(--ease-3);
+  --op-ease-spring: var(--ease-spring-2);
+  --op-border-width: var(--border-size-1);
+}
+
+[data-theme="dark"],
+.dark {
+  --shadow-strength: 25%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

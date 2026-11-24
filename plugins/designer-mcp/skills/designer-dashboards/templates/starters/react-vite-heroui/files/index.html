@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Designer Dashboards — HeroUI v3 Console</title>
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem('rd-theme') || 'system';
+          var d = m === 'dark' || (m === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var r = document.documentElement;
+          r.setAttribute('data-theme', d ? 'dark' : 'light');
+          r.classList.toggle('dark', d);
+          var dir = localStorage.getItem('rd-dir');
+          if (dir === 'rtl' || dir === 'ltr') r.setAttribute('dir', dir);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

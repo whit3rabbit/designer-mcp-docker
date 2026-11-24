@@ -1,0 +1,73 @@
+@import "tailwindcss";
+@import "../design-system/styles.css";
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Accessible focus ring across all React Bits & UI primitives */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Plain-CSS React Bits Aurora & Spotlight helpers */
+@keyframes rb-aurora-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, -2%, 0) scale(1.04);
+  }
+}
+
+.rb-aurora-layer {
+  animation: rb-aurora-drift 18s ease-in-out infinite;
+}
+
+.rb-spotlight-card {
+  position: relative;
+  overflow: hidden;
+  --spotlight-x: 50%;
+  --spotlight-y: 50%;
+  --spotlight-opacity: 0;
+}
+
+.rb-spotlight-card::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: var(--spotlight-opacity);
+  transition: opacity 220ms ease;
+  background: radial-gradient(
+    420px circle at var(--spotlight-x) var(--spotlight-y),
+    color-mix(in oklch, var(--color-primary) 16%, transparent),
+    transparent 70%
+  );
+}
+
+.rb-spotlight-card:hover,
+.rb-spotlight-card:focus-within {
+  --spotlight-opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-aurora-layer {
+    animation: none;
+  }
+
+  .rb-spotlight-card::before {
+    transition: none;
+    background: radial-gradient(
+      600px circle at 50% 0%,
+      color-mix(in oklch, var(--color-primary) 10%, transparent),
+      transparent 75%
+    );
+  }
+}

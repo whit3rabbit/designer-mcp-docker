@@ -116,6 +116,21 @@ const required = [
   "skills/designer-mcp/references/skill-directory.md",
   "skills/designer-documents/SKILL.md",
   "skills/designer-ui/SKILL.md",
+  "skills/designer-dashboards/SKILL.md",
+  "skills/designer-dashboards/LICENSE.txt",
+  "skills/designer-dashboards/rules/AGENTS.md",
+  "skills/designer-dashboards/init/SKILL.md",
+  "skills/designer-dashboards/design/SKILL.md",
+  "skills/designer-dashboards/ui/SKILL.md",
+  "skills/designer-dashboards/login/SKILL.md",
+  "skills/designer-dashboards/pages/SKILL.md",
+  "skills/designer-dashboards/audit/SKILL.md",
+  "skills/designer-dashboards/scripts/scaffold-starter.mjs",
+  "skills/designer-dashboards/scripts/build-tokens.mjs",
+  "skills/designer-dashboards/scripts/generate.mjs",
+  "skills/designer-dashboards/scripts/lint-nav.mjs",
+  "skills/designer-dashboards/scripts/verify-dashboard.mjs",
+  "skills/designer-dashboards/templates/tech-stacks/catalog.json",
   // The four HeroUI sub-skills nest one level deeper (under heroui/), so
   // they are listed by hand instead of through the BUNDLED map above.
   "skills/designer-ui/heroui/heroui-react/SKILL.md",
@@ -195,10 +210,10 @@ console.log(`built ${marketplaceZip} (${(statSync(marketplaceZip).size / 1024).t
 
 // Print the install commands the user will need.
 console.log(`
-Install the plugin (four skills in one archive, sub-skills bundled inside):
+Install the plugin (five skills in one archive, sub-skills bundled inside):
 
   # any client that takes a zip: the archive keeps a skills/ prefix, so
-  # extract it aside and copy the four skill folders into your skills root
+  # extract it aside and copy the five skill folders into your skills root
   unzip -o designer-mcp-skill.zip -d /tmp/designer-mcp-skill
   cp -R /tmp/designer-mcp-skill/skills/. ~/.claude/skills/
 
@@ -207,7 +222,7 @@ Install the plugin (four skills in one archive, sub-skills bundled inside):
   claude plugin marketplace add ~/designer-mcp-marketplace
   claude plugin install designer-mcp@designer-mcp-docker
 
-  # skills CLI: discovers the four skills
+  # skills CLI: discovers the five skills
   npx -y skills add whit3rabbit/designer-mcp-docker
 
   # Claude Code plugin, online (from GitHub)

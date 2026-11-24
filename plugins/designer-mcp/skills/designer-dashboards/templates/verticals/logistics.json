@@ -1,0 +1,37 @@
+{
+  "slug": "logistics",
+  "name": "Logistics & Fleet",
+  "route": "/dashboard/logistics",
+  "translateKey": "nav.logistics",
+  "icon": "truck",
+  "header": {
+    "dateRange": true,
+    "actions": [{ "label": "Dispatch Route", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "en-route", "label": "Vehicles En Route", "icon": "truck", "tone": "primary", "sparkline": true },
+        { "id": "on-time", "label": "On-Time Delivery", "icon": "check-circle", "tone": "success", "sparkline": true },
+        { "id": "delayed", "label": "Delayed Shipments", "icon": "alert-triangle", "tone": "error", "sparkline": false },
+        { "id": "fuel-cost", "label": "Fuel Spend", "icon": "activity", "tone": "info", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "shipment-throughput", "title": "Daily Shipment Throughput", "chartType": "area", "height": 300 },
+        { "id": "delivery-status", "title": "Delivery Exceptions", "chartType": "donut", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "fleet-manifest", "title": "Active Fleet Manifest", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "cirrus",
+  "name": "Cirrus",
+  "description": "Crisp cobalt-blue operational interface with airy neutral canvas, bordered flat cards, 8px radius rhythm, and slate-navy dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:cirrus",
+    "mood": "crisp-cobalt-operational"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#2F69F2",
+      "secondary": "#6B7280",
+      "success": "#15803D",
+      "info": "#0284C7",
+      "warning": "#B45309",
+      "error": "#DC2626"
+    },
+    "light": {
+      "canvas": "#F5F6FA",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#EBECEF",
+      "text": "#111827",
+      "textMuted": "#4B5563"
+    },
+    "dark": {
+      "canvas": "#1B2431",
+      "surface": "#273142",
+      "surfaceElevated": "#323D4E",
+      "border": "#3A4659",
+      "text": "#F3F4F6",
+      "textMuted": "#9CA3AF"
+    },
+    "chart": [
+      "#487FFF",
+      "#45B369",
+      "#FF9F29",
+      "#8252E9",
+      "#00B8F2",
+      "#EF4A00",
+      "#DE3ACE",
+      "#144BD6",
+      "#F4941E",
+      "#6B7280"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "320px",
+    "sidebarCollapsedWidth": "72px",
+    "headerHeight": "72px",
+    "contentMaxWidth": "1600px",
+    "gutter": "20px",
+    "cardPadding": "24px",
+    "cardStyle": "bordered"
+  },
+  "radius": {
+    "xs": "4px",
+    "sm": "6px",
+    "md": "8px",
+    "lg": "12px",
+    "xl": "20px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "slug": "lms",
+  "name": "Learning & Academy",
+  "route": "/dashboard/lms",
+  "translateKey": "nav.lms",
+  "icon": "book-open",
+  "header": {
+    "dateRange": true,
+    "actions": [{ "label": "New Course", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "active-learners", "label": "Active Learners", "icon": "users", "tone": "primary", "sparkline": true },
+        { "id": "completions", "label": "Course Completions", "icon": "award", "tone": "success", "sparkline": true },
+        { "id": "watch-hours", "label": "Watch Hours", "icon": "clock", "tone": "info", "sparkline": false },
+        { "id": "avg-score", "label": "Avg Quiz Score", "icon": "sparkles", "tone": "warning", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "weekly-study", "title": "Weekly Study Hours", "chartType": "bar", "height": 300 },
+        { "id": "topic-share", "title": "Enrollment by Track", "chartType": "donut", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "course-roster", "title": "Course Catalog & Progress", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

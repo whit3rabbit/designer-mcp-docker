@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "mirage",
+  "name": "Mirage",
+  "description": "High-clarity operational workspace in DM Sans with deep oceanic teal primaries, crisp bordered 8px cards over a neutral alabaster canvas, and dark charcoal surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:mirage",
+    "mood": "calm oceanic teal clarity"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#007D88",
+      "secondary": "#5E7D8A",
+      "success": "#00D67F",
+      "info": "#18DDEF",
+      "warning": "#FFC400",
+      "error": "#D61F2C"
+    },
+    "light": {
+      "canvas": "#F7F7F7",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#EAEAEA",
+      "text": "#262A2E",
+      "textMuted": "#5A6066"
+    },
+    "dark": {
+      "canvas": "#1B1E22",
+      "surface": "#212529",
+      "surfaceElevated": "#2B3035",
+      "border": "#35393F",
+      "text": "#EAECEF",
+      "textMuted": "#9CA3AC"
+    },
+    "chart": [
+      "#007D88",
+      "#25CBA1",
+      "#298DFF",
+      "#18DDEF",
+      "#FF9100",
+      "#7429F8",
+      "#E92990",
+      "#FFC400",
+      "#C02FF3",
+      "#5E7D8A"
+    ]
+  },
+  "typography": {
+    "fontSans": "'DM Sans', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'Geist Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "270px",
+    "sidebarCollapsedWidth": "72px",
+    "headerHeight": "65px",
+    "contentMaxWidth": "1440px",
+    "gutter": "24px",
+    "cardPadding": "20px",
+    "cardStyle": "bordered"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "6px",
+    "lg": "8px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

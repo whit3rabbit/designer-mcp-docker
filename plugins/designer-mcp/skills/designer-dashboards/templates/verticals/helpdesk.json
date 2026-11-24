@@ -1,0 +1,38 @@
+{
+  "slug": "helpdesk",
+  "name": "Help Desk & SLA Operations",
+  "route": "/dashboard/helpdesk",
+  "translateKey": "nav.helpdesk",
+  "icon": "life-buoy",
+  "header": {
+    "title": "Support & SLA Monitor",
+    "dateRange": true,
+    "actions": [{ "label": "New Ticket", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "open-tickets", "label": "Open Tickets", "icon": "inbox", "tone": "primary", "sparkline": true },
+        { "id": "first-response", "label": "Avg First Response", "icon": "clock", "tone": "info", "sparkline": true },
+        { "id": "sla-compliance", "label": "SLA Compliance", "icon": "shield-check", "tone": "success", "sparkline": false },
+        { "id": "csat-score", "label": "CSAT Score", "icon": "smile", "tone": "warning", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "tickets-created-solved", "title": "Tickets Created vs Solved", "chartType": "dashedLine", "height": 300 },
+        { "id": "tickets-by-channel", "title": "Tickets by Channel", "chartType": "polarArea", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "agent-performance", "title": "Agent SLA Queue", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

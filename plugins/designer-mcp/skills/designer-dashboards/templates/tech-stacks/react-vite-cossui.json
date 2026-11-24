@@ -1,0 +1,72 @@
+{
+  "id": "react-vite-cossui",
+  "name": "React 19 + Vite 8 + coss ui (Base UI + Tailwind v4)",
+  "starter": "react-vite-cossui",
+  "framework": "react-cossui",
+  "useCase": "minimal-product-saas",
+  "slots": {
+    "framework": "React 19 + Vite 8 + React Router",
+    "styling": "Tailwind CSS v4 + coss ui + OpenDesign OKLCH tokens",
+    "uiPrimitives": "@base-ui/react + class-variance-authority",
+    "charts": "ApexCharts",
+    "tables": "TanStack React Table",
+    "forms": "React Hook Form + Zod",
+    "dataFetching": "TanStack React Query",
+    "state": "Zustand",
+    "urlState": "React Router searchParams",
+    "commandPalette": "Built-in CommandPalette",
+    "auth": "Custom JWT + HttpOnly cookies / Auth0 / Clerk",
+    "errorTracking": "Optional Sentry",
+    "lintFormat": "ESLint + jsx-a11y",
+    "gitHooks": "Optional Husky",
+    "theming": "OpenDesign 21 WCAG AA presets"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^8.5.2",
+    "@base-ui/react": "^1.9.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.7.1",
+    "apexcharts": "^8.9.1",
+    "react-apexcharts": "^2.2.1",
+    "@tanstack/react-table": "^9.3.1",
+    "@tanstack/react-query": "^5.108.4",
+    "lucide-react": "^1.78.0",
+    "zustand": "^5.1.0",
+    "react-hook-form": "^7.92.0",
+    "@hookform/resolvers": "^7.0.8",
+    "zod": "^4.6.7",
+    "i18next": "^27.2.4",
+    "react-i18next": "^18.0.3",
+    "dayjs": "^1.11.23",
+    "sonner": "^2.0.8"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^7.0.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.5",
+    "@tailwindcss/vite": "^4.3.5",
+    "eslint": "^10.15.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript-eslint": "^8.73.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "tokens:build": "node design-system/scripts/build-tokens.mjs design-system",
+    "tokens:check": "node design-system/scripts/build-tokens.mjs design-system --check"
+  },
+  "envVars": {
+    "VITE_API_BASE_URL": "http://localhost:4000/api",
+    "VITE_DATA_MODE": "mock"
+  },
+  "tooling": {}
+}

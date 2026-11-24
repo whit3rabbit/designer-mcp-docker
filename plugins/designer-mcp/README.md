@@ -1,13 +1,13 @@
 # designer-mcp plugin
 
-`plugins/designer-mcp/` is a marketplace plugin with four skills. It carries
+`plugins/designer-mcp/` is a marketplace plugin with five skills. It carries
 the research-first design methodology (`design-system`, which bundles the
 `design-template-authoring` sub-skill), the offline catalog and MCP setup
 (`designer-mcp`), the document toolchains (`designer-documents`, which
 bundles docx, pptx, xlsx, pdf, and pdf-reading), and the UI craft and SDK
 layers (`designer-ui`, which bundles frontend-design and ui-sdk). The Docker
 image copies the whole directory into the image, and
-`scripts/package-skill.mjs` zips the four skills into the single
+`scripts/package-skill.mjs` zips the five skills into the single
 `designer-mcp-skill.zip` served at `/skill`, so treat every file as
 distributable: no secrets, no scratch material.
 
@@ -22,6 +22,7 @@ distributable: no secrets, no scratch material.
 | `skills/design-system/references/`, `agents/`, `evals/` | Craft references, agent interface metadata, eval harness | See repo |
 | `skills/designer-documents/` | Routing skill bundling `docx/`, `pptx/`, `xlsx/`, `pdf/`, `pdf-reading/`: file mechanics and render-and-inspect QA, design decisions come from a design-system reference lock | See repo (sub-skills: Apache-2.0 `LICENSE.txt` in each, verbatim from [anthropics/skills](https://github.com/anthropics/skills)) |
 | `skills/designer-ui/` | Routing skill bundling `frontend-design/` (implementation craft executed inside design-system's research-first workflow) and `ui-sdk/` (offline docs for the `@ui-sdk/*` headless packages, searchable via `design_docs_search` / `design_docs_get`) | See repo (sub-skills: Apache-2.0 `LICENSE.txt` files) |
+| `skills/designer-dashboards/` | Multi-framework dashboard builder (`init`, `design`, `ui`, `login`, `pages`, `audit`) with 24 starters, 26 tech-stack profiles, 20 UI/CSS framework kits, 21 OpenDesign presets, 16 industry verticals, and `design_dashboards_*` MCP tools | See repo |
 | `.zcode-plugin/plugin.json`, `.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, `.cursor-plugin/plugin.json`, `.mcp.json` | Plugin manifests and the auto-registered Docker MCP server | See repo |
 | `requirements.txt`, `package.json` | Dependency manifests for the sub-skills' scripts | See repo |
 
@@ -39,7 +40,7 @@ route by trigger descriptions. The top-level skills route by path otherwise.
   then `claude plugin install designer-mcp@designer-mcp-docker`. The
   marketplace command also takes a path, so a checkout can install itself:
   `claude plugin marketplace add /path/to/this-repo`.
-- **Codex and other harnesses.** The skills CLI discovers the four skills
+- **Codex and other harnesses.** The skills CLI discovers the five skills
   and asks which to install: `npx -y skills add whit3rabbit/designer-mcp-docker`.
   Add `--all` to install everything without prompts, or `-s <skill>` for
   one. This path copies the skill directories only, so the plugin-root

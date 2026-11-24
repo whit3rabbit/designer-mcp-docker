@@ -1,0 +1,37 @@
+{
+  "slug": "crm",
+  "name": "CRM & Sales Pipeline",
+  "route": "/dashboard/crm",
+  "translateKey": "nav.crm",
+  "icon": "briefcase",
+  "header": {
+    "dateRange": true,
+    "actions": [{ "label": "Add Deal", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "pipeline", "label": "Open Pipeline", "icon": "trending-up", "tone": "primary", "sparkline": true },
+        { "id": "win-rate", "label": "Win Rate", "icon": "award", "tone": "success", "sparkline": false },
+        { "id": "new-leads", "label": "Qualified Leads", "icon": "user-plus", "tone": "info", "sparkline": true },
+        { "id": "cycle-time", "label": "Avg Sales Cycle", "icon": "clock", "tone": "warning", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [7, 5],
+      "widgets": [
+        { "id": "stage-conversion", "title": "Pipeline by Stage", "chartType": "bar", "height": 300 },
+        { "id": "lead-scoring", "title": "Lead Source Profile", "chartType": "radar", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "active-deals", "title": "Active Deals", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

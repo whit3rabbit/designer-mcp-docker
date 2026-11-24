@@ -1,0 +1,38 @@
+{
+  "skill": "designer-dashboards",
+  "scenarios": [
+    {
+      "id": "direct-scaffold-mantine",
+      "type": "direct",
+      "query": "Scaffold a Mantine admin dashboard with dark mode and analytics widgets",
+      "files": [],
+      "expected_behavior": [
+        "Routes to designer-dashboards and activates designer-dashboards:init.",
+        "Reads rules/AGENTS.md guardrails before generating code.",
+        "Selects the react-vite-mantine stack profile from templates/tech-stacks/catalog.json or calls design_dashboards_get.",
+        "Uses scripts/scaffold-starter.mjs and verifies output with scripts/verify-dashboard.mjs."
+      ]
+    },
+    {
+      "id": "indirect-harden-login",
+      "type": "paraphrase",
+      "query": "Harden my dashboard login page with 2FA, RBAC guards, and proper cookie settings",
+      "files": [],
+      "expected_behavior": [
+        "Routes to designer-dashboards:login and consults references/05-auth-and-security.md.",
+        "Applies HttpOnly, Secure, SameSite cookie defaults, fail-closed authority guards, and real auth adapter options.",
+        "Avoids cosmetic localStorage-only auth or client-exposed secret env vars."
+      ]
+    },
+    {
+      "id": "negative-gradient-preset",
+      "type": "routing-negative",
+      "query": "Pick a gradient preset for my marketing hero section",
+      "files": [],
+      "expected_behavior": [
+        "Does not trigger designer-dashboards.",
+        "Routes to design-system or designer-mcp (design_preset_search / design_preset_get)."
+      ]
+    }
+  ]
+}

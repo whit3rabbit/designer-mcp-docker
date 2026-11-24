@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "nebula",
+  "name": "Nebula",
+  "description": "Vibrant violet-and-magenta analytics workspace with crisp 1px bordered cards, deep navy-ink light typography, and rich cosmic midnight dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:nebula",
+    "mood": "Expressive violet-magenta analytics aesthetic over midnight surfaces"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#7C3AED",
+      "secondary": "#C4259A",
+      "success": "#188F56",
+      "info": "#0088B0",
+      "warning": "#B8780E",
+      "error": "#D63324"
+    },
+    "light": {
+      "canvas": "#F9F7FC",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E2E8EE",
+      "text": "#011A42",
+      "textMuted": "#5D6576"
+    },
+    "dark": {
+      "canvas": "#161623",
+      "surface": "#262634",
+      "surfaceElevated": "#323246",
+      "border": "#393946",
+      "text": "#E3E3E8",
+      "textMuted": "#A3A3B5"
+    },
+    "chart": [
+      "#985FFD",
+      "#32D484",
+      "#FDAF22",
+      "#00C9FF",
+      "#FF49CD",
+      "#FF6757",
+      "#FA8128",
+      "#35B5AA",
+      "#BE2BEB",
+      "#7987A1"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Plus Jakarta Sans', 'DM Sans', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 500
+  },
+  "layout": {
+    "sidebarWidth": "256px",
+    "sidebarCollapsedWidth": "80px",
+    "headerHeight": "68px",
+    "contentMaxWidth": "1440px",
+    "gutter": "24px",
+    "cardPadding": "20px",
+    "cardStyle": "bordered"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "5px",
+    "lg": "8px",
+    "xl": "10px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

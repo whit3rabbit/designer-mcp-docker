@@ -1,0 +1,37 @@
+{
+  "slug": "hrm",
+  "name": "HR & People Operations",
+  "route": "/dashboard/hrm",
+  "translateKey": "nav.hrm",
+  "icon": "users",
+  "header": {
+    "dateRange": true,
+    "actions": [{ "label": "Add Employee", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "headcount", "label": "Total Headcount", "icon": "users", "tone": "primary", "sparkline": true },
+        { "id": "open-roles", "label": "Open Roles", "icon": "briefcase", "tone": "info", "sparkline": false },
+        { "id": "attendance", "label": "Attendance Rate", "icon": "check-circle", "tone": "success", "sparkline": true },
+        { "id": "turnover", "label": "Attrition", "icon": "trending-down", "tone": "warning", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "hiring-velocity", "title": "Hiring vs Departures", "chartType": "area", "height": 300 },
+        { "id": "department-split", "title": "Department Distribution", "chartType": "donut", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "leave-requests", "title": "Leave & Payroll Queue", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

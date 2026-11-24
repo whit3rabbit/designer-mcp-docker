@@ -1,0 +1,73 @@
+@import "tailwindcss";
+@import "../design-system/styles.css";
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@keyframes aceternity-spotlight {
+  0% {
+    opacity: 0;
+    transform: translate(-62%, -54%) scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -40%) scale(1);
+  }
+}
+
+@keyframes aceternity-shimmer {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: -200% 0%;
+  }
+}
+
+@keyframes aceternity-beam-flow {
+  0% {
+    stroke-dashoffset: 240;
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.25;
+  }
+}
+
+.animate-aceternity-spotlight {
+  animation: aceternity-spotlight 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+
+.animate-aceternity-shimmer {
+  background-size: 200% 100%;
+  animation: aceternity-shimmer 2.4s linear infinite;
+}
+
+.animate-aceternity-beam {
+  stroke-dasharray: 120 120;
+  animation: aceternity-beam-flow 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-aceternity-spotlight,
+  .animate-aceternity-shimmer,
+  .animate-aceternity-beam {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}

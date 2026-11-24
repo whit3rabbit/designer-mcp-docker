@@ -851,6 +851,15 @@ at all.
 
 ---
 
+## Designer Dashboards Tools (`design_dashboards_*`)
+
+Served offline from `plugins/designer-mcp/skills/designer-dashboards/`:
+
+- `design_dashboards_list` — list or keyword-search (`query`, `limit`) the offline `designer-dashboards` skill: `all`, `stacks` (26 profiles), `starters` (24 templates), `presets` (21 OpenDesign themes), `verticals` (16 industry recipes), `frameworks` (20 UI/CSS framework kits), `references` (10 docs), or `subskills` (6 subskills).
+- `design_dashboards_get` — read a `stack`, `starter`, `preset`, `vertical`, `framework`, `reference`, or `skill` artifact (`kind`, `id`, `path`, `offset`, `maxBytes`). Omit `path` on `framework` or `starter` to list files.
+
+---
+
 ## Common Mistakes
 
 - Do not use the official tool names (`refero_search_styles`, `refero_get_style`)

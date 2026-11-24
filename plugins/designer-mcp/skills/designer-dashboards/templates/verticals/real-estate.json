@@ -1,0 +1,38 @@
+{
+  "slug": "real-estate",
+  "name": "Real Estate & Property Portfolio",
+  "route": "/dashboard/real-estate",
+  "translateKey": "nav.realEstate",
+  "icon": "building-2",
+  "header": {
+    "title": "Property Portfolio",
+    "dateRange": true,
+    "actions": [{ "label": "Add Property", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "active-listings", "label": "Active Listings", "icon": "home", "tone": "primary", "sparkline": true },
+        { "id": "monthly-rent", "label": "Monthly Rent Roll", "icon": "dollar-sign", "tone": "success", "sparkline": true },
+        { "id": "occupancy-rate", "label": "Occupancy Rate", "icon": "key", "tone": "info", "sparkline": false },
+        { "id": "pending-tours", "label": "Scheduled Tours", "icon": "calendar", "tone": "warning", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [7, 5],
+      "widgets": [
+        { "id": "revenue-overview", "title": "Portfolio Revenue", "chartType": "area", "height": 300 },
+        { "id": "region-demand", "title": "Demand by Region", "chartType": "map", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "property-listings", "title": "Property Directory", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

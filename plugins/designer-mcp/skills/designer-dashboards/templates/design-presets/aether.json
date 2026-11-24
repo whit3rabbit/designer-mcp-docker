@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "aether",
+  "name": "Aether",
+  "description": "High-contrast azure minimalist workspace with neutral gray canvas, crisp bordered 16px cards, bold geometric headings, and obsidian dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:aether",
+    "mood": "azure-minimalist-obsidian"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#0069F6",
+      "secondary": "#525252",
+      "success": "#047857",
+      "info": "#0069F6",
+      "warning": "#B45309",
+      "error": "#D93824"
+    },
+    "light": {
+      "canvas": "#F5F5F5",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E5E5E5",
+      "text": "#171717",
+      "textMuted": "#525252"
+    },
+    "dark": {
+      "canvas": "#0A0A0A",
+      "surface": "#262626",
+      "surfaceElevated": "#333333",
+      "border": "#404040",
+      "text": "#F5F5F5",
+      "textMuted": "#A3A3A3"
+    },
+    "chart": [
+      "#2A85FF",
+      "#7CBC7D",
+      "#FF6A55",
+      "#8C62FF",
+      "#FBC13E",
+      "#00C7BE",
+      "#FE964A",
+      "#FEBB7B",
+      "#7CD2FA",
+      "#BEE9D3"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 700
+  },
+  "layout": {
+    "sidebarWidth": "290px",
+    "sidebarCollapsedWidth": "80px",
+    "headerHeight": "64px",
+    "contentMaxWidth": "1536px",
+    "gutter": "24px",
+    "cardPadding": "20px",
+    "cardStyle": "bordered"
+  },
+  "radius": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "12px",
+    "lg": "16px",
+    "xl": "20px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

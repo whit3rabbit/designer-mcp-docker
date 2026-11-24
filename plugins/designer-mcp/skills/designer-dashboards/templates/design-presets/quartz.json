@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "quartz",
+  "name": "Quartz",
+  "description": "Flat, zinc-bordered modern workspace in DM Sans with electric blue and violet accents, compact 1280px container framing, and inverted monochrome dark mode.",
+  "provenance": {
+    "source": "designer-dashboards:preset:quartz",
+    "mood": "Clean, border-driven monochrome precision with electric blue highlights"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#2563EB",
+      "secondary": "#6D28D9",
+      "success": "#15803D",
+      "info": "#0369A1",
+      "warning": "#B45309",
+      "error": "#C2410C"
+    },
+    "light": {
+      "canvas": "#FAFAFA",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E4E4E7",
+      "text": "#27272A",
+      "textMuted": "#52525B"
+    },
+    "dark": {
+      "canvas": "#09090B",
+      "surface": "#18181B",
+      "surfaceElevated": "#27272A",
+      "border": "#3F3F46",
+      "text": "#F4F4F5",
+      "textMuted": "#A1A1AA"
+    },
+    "chart": [
+      "#3B82F6",
+      "#22C55E",
+      "#F97316",
+      "#8B5CF6",
+      "#F59E0B",
+      "#0EA5E9",
+      "#EF4444",
+      "#EC4899",
+      "#14B8A6",
+      "#71717A"
+    ]
+  },
+  "typography": {
+    "fontSans": "'DM Sans', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'Geist Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "260px",
+    "sidebarCollapsedWidth": "70px",
+    "headerHeight": "70px",
+    "contentMaxWidth": "1280px",
+    "gutter": "24px",
+    "cardPadding": "20px",
+    "cardStyle": "bordered"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "5px",
+    "lg": "8px",
+    "xl": "12px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

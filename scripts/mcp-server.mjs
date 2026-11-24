@@ -25,9 +25,9 @@
  * server for the Refero-specific tools.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -96,6 +96,11 @@ import { baseUiSlug, readBaseUiCatalog, readBaseUiDoc, searchBaseUiDocs } from "
 import { loadFrontend } from "./lib/frontend.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+const DASHBOARDS_DIR = process.env.DESIGN_DASHBOARDS_DIR
+  ? process.env.DESIGN_DASHBOARDS_DIR
+  : join(HERE, "..", "plugins", "designer-mcp", "skills", "designer-dashboards");
+const DASHBOARD_LIST_KINDS = ["all", "stacks", "starters", "presets", "verticals", "frameworks", "references", "subskills"];
+const DASHBOARD_GET_KINDS = ["stack", "starter", "preset", "vertical", "framework", "reference", "skill"];
 
 // ------------------------------------------------------------------ renderer
 /**
@@ -1030,6 +1035,36 @@ const TOOLS = [
         ...PAGE_PROPERTIES,
       },
       required: ["path"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_dashboards_list",
+    description:
+      "List the offline designer-dashboards skill: tech stacks, starters, presets, verticals, framework kits, references and sub-skills. With query, only the matching entries.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: DASHBOARD_LIST_KINDS, description: "Category filter (default 'all')." },
+        query: { type: "string", description: "Keyword filter. Omit to list a whole category." },
+        limit: { type: "integer", minimum: 1, maximum: 100, description: "Max matches (default 20, max 100)." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "design_dashboards_get",
+    description:
+      "Read a designer-dashboards stack, starter, preset, vertical, framework kit, reference, or sub-skill offline.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: DASHBOARD_GET_KINDS, description: "Artifact kind." },
+        id: { type: "string", description: "Id from design_dashboards_list." },
+        path: { type: "string", description: "Optional relative file path inside a framework kit or starter." },
+        ...PAGE_PROPERTIES,
+      },
+      required: ["kind", "id"],
       additionalProperties: false,
     },
   },
@@ -2236,6 +2271,204 @@ async function handleBaseUiGetGuide(args) {
 }
 
 
+async function listDirFilesRecursive(dir, base = "") {
+  if (!existsSync(dir)) return [];
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const rel = base ? `${base}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      out.push(...(await listDirFilesRecursive(join(dir, entry.name), rel)));
+    } else {
+      out.push(rel);
+    }
+  }
+  return out.sort();
+}
+
+/**
+ * `relPath` under `rootDir`, or an error. The check is on the resolved path
+ * with a separator, so a sibling directory that merely shares the root's
+ * name is outside it (a plain startsWith let it through).
+ */
+function safeChildPath(rootDir, relPath) {
+  const root = resolve(rootDir);
+  const resolved = resolve(root, relPath);
+  if (resolved !== root && !resolved.startsWith(root + sep)) {
+    throw new Error(`Invalid path outside root: ${relPath}`);
+  }
+  return resolved;
+}
+
+const isFile = (path) => existsSync(path) && statSync(path).isFile();
+
+/** A skill file as text. Binary assets (fonts, images) are refused, never served mangled. */
+async function readSkillText(file) {
+  const buf = await readFile(file);
+  if (buf.subarray(0, 8192).includes(0)) {
+    throw new Error("that file is binary (a font, image or archive), so it is not served as text");
+  }
+  return buf.toString("utf8");
+}
+
+function dashboardsUnavailableNote() {
+  return (
+    "The designer-dashboards skill is not present in this deployment, so its stacks, starters and presets cannot be read. " +
+    "The gallery image ships it; a checkout has it under plugins/designer-mcp/skills/."
+  );
+}
+
+/** The skill's index, or null when the skill directory itself is absent. */
+async function readDashboardsIndex() {
+  if (!existsSync(DASHBOARDS_DIR)) return null;
+  const tplDir = join(DASHBOARDS_DIR, "templates");
+  // A broken catalog is a broken skill. Say that, not the host path a raw
+  // read error would print.
+  const readCatalog = async (rel) => {
+    try {
+      return JSON.parse(await readFile(join(tplDir, rel), "utf8"));
+    } catch {
+      throw new Error(`the designer-dashboards skill is incomplete: templates/${rel} is missing or not valid JSON`);
+    }
+  };
+  const dirNames = async (dir) =>
+    existsSync(dir)
+      ? (await readdir(dir, { withFileTypes: true }))
+          .filter((d) => d.isDirectory())
+          .map((d) => d.name)
+          .sort()
+      : [];
+  const baseNames = async (dir, ext) =>
+    existsSync(dir)
+      ? (await readdir(dir)).filter((f) => f.endsWith(ext)).map((f) => f.slice(0, -ext.length)).sort()
+      : [];
+  const stacksCatalog = await readCatalog(join("tech-stacks", "catalog.json"));
+  const presetsCatalog = await readCatalog(join("design-presets", "catalog.json"));
+  // A sub-skill is any directory of the skill that carries a SKILL.md, so
+  // adding one needs no edit here.
+  const subskills = (await dirNames(DASHBOARDS_DIR)).filter((d) => isFile(join(DASHBOARDS_DIR, d, "SKILL.md")));
+  return {
+    stacks: (Array.isArray(stacksCatalog.profiles) ? stacksCatalog.profiles : []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      framework: p.framework,
+      starter: p.starter,
+      useCase: p.useCase,
+      summary: p.summary,
+    })),
+    starters: await dirNames(join(tplDir, "starters")),
+    presets: (presetsCatalog.presets || presetsCatalog.themes || []).map((p) =>
+      typeof p === "string" ? { slug: p } : { slug: p.slug || p.id, name: p.name, category: p.category },
+    ),
+    verticals: await baseNames(join(tplDir, "verticals"), ".json"),
+    frameworks: await dirNames(join(tplDir, "components", "frameworks")),
+    references: await baseNames(join(DASHBOARDS_DIR, "references"), ".md"),
+    subskills,
+  };
+}
+
+/** Every listable entry of the skill as one searchable row. */
+function dashboardEntries(index) {
+  return [
+    ...index.stacks.map((s) => ({ kind: "stack", id: s.id, title: s.name, detail: `${s.framework} · ${s.summary}` })),
+    ...index.starters.map((id) => ({ kind: "starter", id, title: id, detail: "Runnable starter template" })),
+    ...index.presets.map((p) => ({ kind: "preset", id: p.slug, title: p.name || p.slug, detail: p.category || "OpenDesign preset" })),
+    ...index.verticals.map((id) => ({ kind: "vertical", id, title: id, detail: "Industry vertical widget recipe" })),
+    ...index.frameworks.map((id) => ({ kind: "framework", id, title: id, detail: "Framework component kit & OpenDesign bridge" })),
+    ...index.references.map((id) => ({ kind: "reference", id, title: id, detail: "Reference doc" })),
+    ...index.subskills.map((id) => ({ kind: "skill", id, title: id, detail: "Sub-skill" })),
+  ];
+}
+
+const DASHBOARD_SINGULAR = {
+  stacks: "stack",
+  starters: "starter",
+  presets: "preset",
+  verticals: "vertical",
+  frameworks: "framework",
+  references: "reference",
+  subskills: "skill",
+};
+
+async function handleDashboardsList(args) {
+  const kind = asEnum(args.kind, "kind", DASHBOARD_LIST_KINDS) ?? "all";
+  const query = optionalString(args.query).trim().toLowerCase();
+  const index = await readDashboardsIndex();
+  if (!index) return { available: false, note: dashboardsUnavailableNote() };
+  // With a query the reply is the matches inside the requested categories.
+  if (query) {
+    const limit = asLimit(args.limit, 20, 100);
+    const wanted = DASHBOARD_SINGULAR[kind];
+    const matches = dashboardEntries(index)
+      .filter((c) => !wanted || c.kind === wanted)
+      .filter((c) => `${c.id} ${c.title} ${c.detail}`.toLowerCase().includes(query));
+    return { query, kind, total: matches.length, results: matches.slice(0, limit) };
+  }
+  if (kind === "all") return index;
+  return { kind, items: index[kind], count: index[kind].length };
+}
+
+async function handleDashboardsGet(args) {
+  const kind = asEnum(args.kind, "kind", DASHBOARD_GET_KINDS);
+  if (!kind) throw new Error(`kind must be one of: ${DASHBOARD_GET_KINDS.join(", ")}`);
+  const id = asString(args.id, "id");
+  const index = await readDashboardsIndex();
+  if (!index) return { available: false, note: dashboardsUnavailableNote() };
+  const pathArg = optionalString(args.path, "path").trim();
+  const tplDir = join(DASHBOARDS_DIR, "templates");
+
+  // An id is only ever one the index already lists, so a traversal string or
+  // the name of some other file is simply unknown. Nothing is stripped from
+  // it and nothing is resolved by guesswork.
+  const known = (ids, what) => {
+    if (ids.includes(id)) return;
+    throw new Error(`Unknown ${what} '${id}'. design_dashboards_list names the valid ids.`);
+  };
+  const readPaged = async (file) => ({ kind, id, ...pageText(await readSkillText(file), pageArgs(args)) });
+
+  // stack, preset and vertical are one JSON file each, named after the id.
+  const single = {
+    stack: [index.stacks.map((s) => s.id), join(tplDir, "tech-stacks")],
+    preset: [index.presets.map((p) => p.slug), join(tplDir, "design-presets")],
+    vertical: [index.verticals, join(tplDir, "verticals")],
+  }[kind];
+  if (single) {
+    known(single[0], kind);
+    const file = safeChildPath(single[1], `${id}.json`);
+    if (!isFile(file)) throw new Error(`${kind} '${id}' is listed but its file is missing from the skill`);
+    return readPaged(file);
+  }
+  if (kind === "reference") {
+    known(index.references, "reference");
+    const file = safeChildPath(join(DASHBOARDS_DIR, "references"), `${id}.md`);
+    if (!isFile(file)) throw new Error(`reference '${id}' is listed but its file is missing from the skill`);
+    return readPaged(file);
+  }
+  if (kind === "skill") {
+    // "designer-dashboards" is the root skill; every other id is a sub-skill directory.
+    if (id !== "designer-dashboards") known(index.subskills, "sub-skill");
+    const file =
+      id === "designer-dashboards" ? join(DASHBOARDS_DIR, "SKILL.md") : safeChildPath(DASHBOARDS_DIR, join(id, "SKILL.md"));
+    if (!isFile(file)) throw new Error(`skill '${id}' is listed but its SKILL.md is missing`);
+    return readPaged(file);
+  }
+
+  // starter and framework are directories: listed, or one file read by relative path.
+  known(kind === "starter" ? index.starters : index.frameworks, kind);
+  const dirRoot = safeChildPath(
+    kind === "starter" ? join(tplDir, "starters") : join(tplDir, "components", "frameworks"),
+    id,
+  );
+  if (!pathArg) {
+    const files = await listDirFilesRecursive(dirRoot);
+    return { kind, id, total: files.length, files };
+  }
+  const target = safeChildPath(dirRoot, pathArg);
+  if (!isFile(target)) {
+    throw new Error(`File '${pathArg}' not found in ${kind} '${id}'. Call without path to list the files.`);
+  }
+  return { kind, id, path: pathArg, ...pageText(await readSkillText(target), pageArgs(args)) };
+}
+
 async function dispatch(name, args) {
   if (CATALOG_TOOLS.has(name) && !(CONTENT_INPUT_TOOLS.has(name) && args.identifier === undefined)) {
     await ensureCatalog();
@@ -2354,6 +2587,10 @@ async function dispatch(name, args) {
       return handleBaseUiGetDocs(args);
     case "design_baseui_get_guide":
       return handleBaseUiGetGuide(args);
+    case "design_dashboards_list":
+      return handleDashboardsList(args);
+    case "design_dashboards_get":
+      return handleDashboardsGet(args);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -2388,6 +2625,8 @@ const NARROWING_HINT = {
   design_baseui_get_guide: "Lower maxBytes and page with offset.",
   design_heroui_migration_guide: "Lower maxBytes and page with offset.",
   design_heroui_get_source: "Drop includeStories.",
+  design_dashboards_list: "Pass a specific kind or query, or lower limit.",
+  design_dashboards_get: "Lower maxBytes and page with offset, or omit path to list files.",
   design_template_file: "Lower maxBytes and page with offset.",
 };
 

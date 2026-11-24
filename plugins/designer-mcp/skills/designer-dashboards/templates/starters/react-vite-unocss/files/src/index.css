@@ -1,0 +1,9 @@
+@import "../design-system/styles.css";
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}

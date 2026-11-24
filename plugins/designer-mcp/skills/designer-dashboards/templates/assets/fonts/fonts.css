@@ -1,0 +1,73 @@
+/* Designer Dashboards Self-Hosted Variable Fonts (SIL OFL 1.1 — Zero CDN @import) */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./inter/inter-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./public-sans/public-sans-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('./plus-jakarta-sans/plus-jakarta-sans-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url('./dm-sans/dm-sans-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./geist/Geist.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./geist/Geist-Italic.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./geist/GeistMono.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./geist/GeistMono-Italic.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url('./jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2') format('woff2-variations');
+}

@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "horizon",
+  "name": "Horizon",
+  "description": "Airy geometric SaaS theme featuring Plus Jakarta Sans typography, cool ice-blue canvas tints, generous 30px padded elevated cards, soft 7px corners, and deep charcoal-navy dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:horizon",
+    "mood": "airy geometric periwinkle SaaS"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#3B66E0",
+      "secondary": "#49BEFF",
+      "success": "#13DEB9",
+      "info": "#539BFF",
+      "warning": "#FFAE1F",
+      "error": "#C94324"
+    },
+    "light": {
+      "canvas": "#F2F6FA",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E5EAEF",
+      "text": "#2A3547",
+      "textMuted": "#5A6A85"
+    },
+    "dark": {
+      "canvas": "#171C23",
+      "surface": "#1E2530",
+      "surfaceElevated": "#262F3D",
+      "border": "#333F55",
+      "text": "#EAEFF4",
+      "textMuted": "#94A3B8"
+    },
+    "chart": [
+      "#5D87FF",
+      "#49BEFF",
+      "#13DEB9",
+      "#FFAE1F",
+      "#FA896B",
+      "#539BFF",
+      "#763EBD",
+      "#0074BA",
+      "#47D7BC",
+      "#7C8FAC"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "270px",
+    "sidebarCollapsedWidth": "87px",
+    "headerHeight": "70px",
+    "contentMaxWidth": "1200px",
+    "gutter": "24px",
+    "cardPadding": "30px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "7px",
+    "lg": "12px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

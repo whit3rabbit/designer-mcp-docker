@@ -1,0 +1,37 @@
+{
+  "slug": "analytics",
+  "name": "Product & Traffic Analytics",
+  "route": "/dashboard/analytics",
+  "translateKey": "nav.analytics",
+  "icon": "bar-chart-3",
+  "header": {
+    "dateRange": true,
+    "actions": [{ "label": "Export CSV", "variant": "outline", "icon": "download" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "active-users", "label": "Active Users", "icon": "users", "tone": "primary", "sparkline": true },
+        { "id": "sessions", "label": "Sessions", "icon": "activity", "tone": "info", "sparkline": true },
+        { "id": "bounce-rate", "label": "Bounce Rate", "icon": "arrow-down-right", "tone": "warning", "sparkline": false },
+        { "id": "conversion", "label": "Conversion", "icon": "target", "tone": "success", "sparkline": true }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "traffic-trend", "title": "Traffic Overview", "chartType": "area", "height": 300 },
+        { "id": "device-share", "title": "Device Breakdown", "chartType": "donut", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "top-pages", "title": "Top Landing Pages", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

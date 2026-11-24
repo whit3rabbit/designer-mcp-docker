@@ -1,0 +1,168 @@
+@import "primereact/resources/themes/lara-light-indigo/theme.css";
+@import "primereact/resources/primereact.min.css";
+@import "primeicons/primeicons.css";
+@import "../design-system/styles.css";
+
+/* ==========================================================================
+   PrimeReact -> OpenDesign CSS Custom Property Bridge
+   Maps PrimeReact theme variables to OpenDesign OKLCH tokens for light/dark
+   mode and RTL support without hardcoded pure black or white backgrounds.
+   ========================================================================== */
+
+:root,
+[data-theme="light"],
+[data-theme="dark"],
+.dark {
+  --font-family: var(--font-sans);
+  --surface-a: var(--color-surface);
+  --surface-b: var(--color-canvas);
+  --surface-c: var(--color-surface-subtle);
+  --surface-d: var(--color-border);
+  --surface-e: var(--color-surface-elevated);
+  --surface-f: var(--color-surface-elevated);
+
+  --surface-ground: var(--color-canvas);
+  --surface-section: var(--color-canvas);
+  --surface-card: var(--color-surface);
+  --surface-overlay: var(--color-surface-elevated);
+  --surface-border: var(--color-border);
+  --surface-hover: var(--color-surface-subtle);
+
+  --text-color: var(--color-text);
+  --text-color-secondary: var(--color-text-muted);
+
+  --primary-color: var(--color-primary);
+  --primary-color-text: var(--color-on-solid);
+  --highlight-bg: var(--color-primary-surface);
+  --highlight-text-color: var(--color-primary);
+
+  --border-radius: var(--radius-md);
+  --focus-ring: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-primary);
+}
+
+html,
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base, 14px);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* PrimeReact structural surface overrides */
+.p-component {
+  font-family: var(--font-sans);
+}
+
+.p-card {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.p-datatable .p-datatable-header,
+.p-datatable .p-datatable-footer,
+.p-datatable .p-paginator-bottom {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+  font-weight: 600;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  border-color: var(--color-border);
+}
+
+.p-datatable .p-datatable-tbody > tr.p-highlight {
+  background: var(--color-primary-surface);
+  color: var(--color-text);
+}
+
+.p-datatable.p-datatable-hoverable-rows .p-datatable-tbody > tr:not(.p-highlight):hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+}
+
+.p-inputtext,
+.p-dropdown {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.p-inputtext:enabled:focus,
+.p-dropdown:not(.p-disabled).p-focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.p-dropdown-panel {
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  color: var(--color-text);
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item:not(.p-highlight):not(.p-disabled):hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+}
+
+.p-dialog .p-dialog-header,
+.p-dialog .p-dialog-content,
+.p-dialog .p-dialog-footer {
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.p-tabview .p-tabview-nav {
+  background: transparent;
+  border-color: var(--color-border);
+}
+
+.p-tabview .p-tabview-nav li .p-tabview-nav-link {
+  background: transparent;
+  color: var(--color-text-muted);
+  border-color: transparent;
+}
+
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.p-tabview .p-tabview-panels {
+  background: transparent;
+  color: var(--color-text);
+  padding: 1rem 0 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* RTL-safe logical table alignment */
+.p-datatable .p-datatable-thead > tr > th,
+.p-datatable .p-datatable-tbody > tr > td {
+  text-align: start;
+}

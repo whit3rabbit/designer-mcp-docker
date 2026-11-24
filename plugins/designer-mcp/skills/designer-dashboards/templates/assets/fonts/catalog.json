@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "description": "Curated self-hosted variable dashboard fonts (all SIL OFL 1.1). Bundled as latin .woff2 files with official npm and ZIP download links.",
+  "fonts": [
+    {
+      "slug": "inter",
+      "family": "Inter",
+      "role": "Universal SaaS baseline",
+      "license": "SIL OFL 1.1",
+      "bundledFiles": ["inter/inter-latin-wght-normal.woff2", "inter/LICENSE"],
+      "npmPackage": "@fontsource-variable/inter",
+      "nextFont": "import { Inter } from 'next/font/google'",
+      "officialZipUrl": "https://github.com/rsms/inter/releases/latest",
+      "googleFontsUrl": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "slug": "public-sans",
+      "family": "Public Sans",
+      "role": "High-legibility editorial SaaS (saas-violet preset)",
+      "license": "SIL OFL 1.1",
+      "bundledFiles": ["public-sans/public-sans-latin-wght-normal.woff2", "public-sans/LICENSE"],
+      "npmPackage": "@fontsource-variable/public-sans",
+      "nextFont": "import { Public_Sans } from 'next/font/google'",
+      "officialZipUrl": "https://github.com/uswds/public-sans/releases/latest",
+      "googleFontsUrl": "https://fonts.google.com/specimen/Public+Sans"
+    },
+    {
+      "slug": "plus-jakarta-sans",
+      "family": "Plus Jakarta Sans",
+      "role": "Friendly modern geometric (executive-emerald preset)",
+      "license": "SIL OFL 1.1",
+      "bundledFiles": ["plus-jakarta-sans/plus-jakarta-sans-latin-wght-normal.woff2", "plus-jakarta-sans/LICENSE"],
+      "npmPackage": "@fontsource-variable/plus-jakarta-sans",
+      "nextFont": "import { Plus_Jakarta_Sans } from 'next/font/google'",
+      "officialZipUrl": "https://github.com/tokotype/PlusJakartaSans/releases/latest",
+      "googleFontsUrl": "https://fonts.google.com/specimen/Plus+Jakarta+Sans"
+    },
+    {
+      "slug": "geist",
+      "family": "Geist + Geist Mono",
+      "role": "High-density technical/ops (teal-precision preset)",
+      "license": "SIL OFL 1.1",
+      "bundledFiles": [
+        "geist/Geist.woff2",
+        "geist/Geist-Italic.woff2",
+        "geist/GeistMono.woff2",
+        "geist/GeistMono-Italic.woff2",
+        "geist/LICENSE"
+      ],
+      "npmPackage": "geist",
+      "nextFont": "import { Geist, Geist_Mono } from 'next/font/google'",
+      "officialZipUrl": "https://github.com/vercel/geist-font/releases/latest",
+      "googleFontsUrl": "https://fonts.google.com/specimen/Geist"
+    },
+    {
+      "slug": "dm-sans",
+      "family": "DM Sans",
+      "role": "Clean flat utility (slate-minimal preset)",
+      "license": "SIL OFL 1.1",
+      "bundledFiles": ["dm-sans/dm-sans-latin-wght-normal.woff2", "dm-sans/LICENSE"],
+      "npmPackage": "@fontsource-variable/dm-sans",
+      "nextFont": "import { DM_Sans } from 'next/font/google'",
+      "officialZipUrl": "https://github.com/googlefonts/dm-fonts/releases/latest",
+      "googleFontsUrl": "https://fonts.google.com/specimen/DM+Sans"
+    },
+    {
+      "slug": "jetbrains-mono",
+      "family": "JetBrains Mono",
+      "role": "Tabular monospace for IDs, amounts, and logs",
+      "license": "SIL OFL 1.1",
+      "bundledFiles": ["jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2", "jetbrains-mono/LICENSE"],
+      "npmPackage": "@fontsource-variable/jetbrains-mono",
+      "nextFont": "import { JetBrains_Mono } from 'next/font/google'",
+      "officialZipUrl": "https://github.com/JetBrains/JetBrainsMono/releases/latest",
+      "googleFontsUrl": "https://fonts.google.com/specimen/JetBrains+Mono"
+    }
+  ]
+}

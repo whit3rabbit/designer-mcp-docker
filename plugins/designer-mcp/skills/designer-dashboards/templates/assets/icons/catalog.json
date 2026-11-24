@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "description": "Permissive open-source icon packs for dashboards. Ship ONE primary pack per project.",
+  "bundled": {
+    "pack": "lucide",
+    "license": "ISC",
+    "iconCount": 44,
+    "spritePath": "lucide-dashboard-sprite.svg",
+    "individualSvgDir": "lucide-core/",
+    "licensePath": "lucide-core/LICENSE"
+  },
+  "packs": [
+    {
+      "slug": "lucide",
+      "name": "Lucide",
+      "recommended": true,
+      "license": "ISC",
+      "defaultStrokeWidth": 1.5,
+      "iconifyPrefix": "lucide",
+      "packages": {
+        "react": "lucide-react",
+        "vue": "lucide-vue-next",
+        "angular": "lucide-angular",
+        "staticSvg": "lucide-static"
+      },
+      "officialZipUrl": "https://github.com/lucide-icons/lucide/releases/latest",
+      "browseUrl": "https://lucide.dev/icons"
+    },
+    {
+      "slug": "tabler",
+      "name": "Tabler Icons",
+      "recommended": false,
+      "license": "MIT",
+      "defaultStrokeWidth": 1.5,
+      "iconifyPrefix": "tabler",
+      "packages": {
+        "react": "@tabler/icons-react",
+        "vue": "@tabler/icons-vue",
+        "angular": "angular-tabler-icons",
+        "staticSvg": "@tabler/icons"
+      },
+      "officialZipUrl": "https://github.com/tabler/tabler-icons/releases/latest",
+      "browseUrl": "https://tabler.io/icons"
+    },
+    {
+      "slug": "remix",
+      "name": "Remix Icon",
+      "recommended": false,
+      "license": "Apache-2.0",
+      "defaultStrokeWidth": null,
+      "iconifyPrefix": "ri",
+      "packages": {
+        "react": "@remixicon/react",
+        "vue": "@remixicon/vue",
+        "staticSvg": "remixicon"
+      },
+      "officialZipUrl": "https://github.com/Remix-Design/RemixIcon/releases/latest",
+      "browseUrl": "https://remixicon.com"
+    },
+    {
+      "slug": "phosphor",
+      "name": "Phosphor Icons",
+      "recommended": false,
+      "license": "MIT",
+      "defaultStrokeWidth": null,
+      "iconifyPrefix": "ph",
+      "packages": {
+        "react": "@phosphor-icons/react",
+        "vue": "@phosphor-icons/vue",
+        "staticSvg": "@phosphor-icons/core"
+      },
+      "officialZipUrl": "https://github.com/phosphor-icons/core/releases/latest",
+      "browseUrl": "https://phosphoricons.com"
+    },
+    {
+      "slug": "iconify-offline",
+      "name": "Iconify (Offline Build-Time Bundle)",
+      "recommended": false,
+      "license": "MIT",
+      "defaultStrokeWidth": null,
+      "iconifyPrefix": "*",
+      "packages": {
+        "json": "@iconify/json",
+        "tailwind4": "@iconify/tailwind4",
+        "react": "@iconify/react"
+      },
+      "officialZipUrl": "https://github.com/iconify/icon-sets/releases/latest",
+      "browseUrl": "https://icon-sets.iconify.design"
+    }
+  ]
+}

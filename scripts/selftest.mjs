@@ -24,7 +24,7 @@
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -2483,12 +2483,12 @@ section("13. Offline install archives (skill zip, local marketplace)");
     bad(`package-skill.mjs failed: ${(packed.stderr || packed.stdout).slice(0, 200)}`);
   } else {
     const skillEntries = list("designer-mcp-skill.zip");
-    const skillTops = ["design-system", "designer-mcp", "designer-documents", "designer-ui"];
+    const skillTops = ["design-system", "designer-mcp", "designer-documents", "designer-ui", "designer-dashboards"];
     // The README's install command copies skills/. out of an extracted
     // copy; this keeps that command true to the real layout.
     skillTops.every((t) => skillEntries.includes(`skills/${t}/SKILL.md`)) &&
     !skillEntries.some((e) => /^[^/]+\/SKILL\.md$/.test(e))
-      ? ok("skill zip keeps the four skills under skills/ (matches the documented copy command)")
+      ? ok("skill zip keeps the five skills under skills/ (matches the documented copy command)")
       : bad("skill zip layout changed: update the README install command");
     const mEntries = list("designer-mcp-marketplace.zip");
     const mRequired = [
@@ -2530,6 +2530,216 @@ section("13. Offline install archives (skill zip, local marketplace)");
     }
   }
   rmSync(out, { recursive: true, force: true });
+}
+
+// ----------------------------------------- 14. designer-dashboards skill
+section("14. Designer Dashboards skill (MCP tools, presets, starters, verifier, generator)");
+{
+  const dashDir = join(ROOT, "plugins", "designer-mcp", "skills", "designer-dashboards");
+
+  // 14a. MCP tools: design_dashboards_list + design_dashboards_get + traversal checks
+  const ddMcp = spawn("node", [join(HERE, "mcp-server.mjs")], {
+    env: { ...process.env, DESIGN_CACHE_DIR: CACHE_DIR },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let ddBuf = "";
+  const ddPending = new Map();
+  ddMcp.stdout.on("data", (d) => {
+    ddBuf += d.toString();
+    let idx;
+    while ((idx = ddBuf.indexOf("\n")) >= 0) {
+      const line = ddBuf.slice(0, idx).trim();
+      ddBuf = ddBuf.slice(idx + 1);
+      if (!line) continue;
+      try {
+        const m = JSON.parse(line);
+        const p = ddPending.get(m.id);
+        if (p) {
+          ddPending.delete(m.id);
+          p(m);
+        }
+      } catch {}
+    }
+  });
+  let ddId = 0;
+  const ddCall = (method, params) =>
+    new Promise((resolve, reject) => {
+      rpcDeadline(reject, method);
+      const myId = ++ddId;
+      ddPending.set(myId, resolve);
+      ddMcp.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: myId, method, params }) + "\n");
+    });
+
+  try {
+    await ddCall("initialize", {
+      protocolVersion: "2024-11-05",
+      capabilities: {},
+      clientInfo: { name: "selftest", version: "1" },
+    });
+
+    const allIdx = toolJson(await ddCall("tools/call", { name: "design_dashboards_list", arguments: {} }));
+    allIdx.stacks?.length === 26 &&
+    allIdx.starters?.length === 24 &&
+    allIdx.presets?.length === 21 &&
+    allIdx.verticals?.length === 16 &&
+    allIdx.frameworks?.length === 20 &&
+    allIdx.references?.length === 10 &&
+    allIdx.subskills?.length === 6
+      ? ok("design_dashboards_list returns full index (26 stacks, 24 starters, 21 presets, 16 verticals, 20 frameworks, 10 refs, 6 subskills)")
+      : bad(`design_dashboards_list counts unexpected: ${JSON.stringify({
+          stacks: allIdx.stacks?.length, starters: allIdx.starters?.length, presets: allIdx.presets?.length,
+          verticals: allIdx.verticals?.length, frameworks: allIdx.frameworks?.length,
+          references: allIdx.references?.length, subskills: allIdx.subskills?.length,
+        })}`);
+
+    for (const k of ["stacks", "references", "subskills"]) {
+      const sub = toolJson(await ddCall("tools/call", { name: "design_dashboards_list", arguments: { kind: k } }));
+      sub.kind === k && Array.isArray(sub.items) && sub.count === sub.items.length && sub.count > 0
+        ? ok(`design_dashboards_list kind='${k}' returns ${sub.count} entries`)
+        : bad(`design_dashboards_list kind='${k}' failed: ${JSON.stringify(sub).slice(0, 120)}`);
+    }
+
+    const qRes = toolJson(await ddCall("tools/call", { name: "design_dashboards_list", arguments: { query: "mantine" } }));
+    qRes.total > 0 && qRes.results?.some((r) => r.id.includes("mantine"))
+      ? ok(`design_dashboards_list query='mantine' matched ${qRes.total} entries`)
+      : bad("design_dashboards_list query='mantine' returned no matches");
+
+    for (const [kind, id, extra] of [
+      ["stack", "nextjs-rabbit-default", {}],
+      ["preset", "saas-violet", {}],
+      ["vertical", "analytics", {}],
+      ["reference", "01-design-tokens", {}],
+      ["skill", "designer-dashboards", {}],
+      ["skill", "init", {}],
+      ["starter", "nextjs-tailwind", {}],
+      ["starter", "nextjs-tailwind", { path: "starter.json" }],
+      ["framework", "mantine", {}],
+      ["framework", "mantine", { path: "ShowcasePage.tsx" }],
+    ]) {
+      const r = await ddCall("tools/call", { name: "design_dashboards_get", arguments: { kind, id, ...extra } });
+      const parsed = toolJson(r);
+      const valid = !toolFailed(r) && (typeof parsed.content === "string" ? parsed.content.length > 0 : Array.isArray(parsed.files) && parsed.files.length > 0);
+      valid
+        ? ok(`design_dashboards_get ${kind}/${id}${extra.path ? ` (${extra.path})` : ""}`)
+        : bad(`design_dashboards_get ${kind}/${id} failed: ${parsed.error || r.result?.content?.[0]?.text || "empty"}`);
+    }
+
+    const travId = await ddCall("tools/call", { name: "design_dashboards_get", arguments: { kind: "stack", id: "../../package" } });
+    toolFailed(travId)
+      ? ok("design_dashboards_get rejects traversal id")
+      : bad("design_dashboards_get accepted traversal id");
+    const travPath = await ddCall("tools/call", { name: "design_dashboards_get", arguments: { kind: "starter", id: "nextjs-tailwind", path: "../../../SKILL.md" } });
+    toolFailed(travPath)
+      ? ok("design_dashboards_get rejects traversal path")
+      : bad("design_dashboards_get accepted traversal path");
+  } catch (e) {
+    bad(`designer-dashboards MCP smoke failed: ${e.message}`);
+  } finally {
+    ddMcp.kill();
+  }
+
+  // 14b. All 21 presets build cleanly with OKLCH + WCAG AA contrast + safe reduced-motion
+  const presetsDir = join(dashDir, "templates", "design-presets");
+  const presetFiles = readdirSync(presetsDir).filter((f) => f.endsWith(".json") && f !== "catalog.json");
+  let presetFailures = 0;
+  for (const pf of presetFiles) {
+    const tmp = mkdtempSync(join(tmpdir(), "dd-selftest-preset-"));
+    try {
+      writeFileSync(join(tmp, "theme.json"), readFileSync(join(presetsDir, pf), "utf8"));
+      const b = spawnSync("node", [join(dashDir, "scripts", "build-tokens.mjs"), tmp], { encoding: "utf8" });
+      const c = spawnSync("node", [join(dashDir, "scripts", "build-tokens.mjs"), tmp, "--check"], { encoding: "utf8" });
+      const css = existsSync(join(tmp, "styles.css")) ? readFileSync(join(tmp, "styles.css"), "utf8") : "";
+      if (b.status !== 0 || c.status !== 0 || !css.includes("color-mix(in oklch,") || !existsSync(join(tmp, "user-overrides.css"))) {
+        presetFailures++;
+        bad(`preset ${pf} failed build-tokens check`);
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+  if (presetFailures === 0) ok(`all ${presetFiles.length} OpenDesign dashboard presets pass build-tokens + WCAG AA + OKLCH checks`);
+
+  // 14c. Scaffold + verify + relative-import smoke across representative stacks
+  const walkSrc = (dir, out = []) => {
+    if (!existsSync(dir)) return out;
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walkSrc(p, out);
+      else out.push(p);
+    }
+    return out;
+  };
+  const resolvesRel = (fromFile, spec) => {
+    const base = join(dirname(fromFile), spec);
+    return [base, `${base}.ts`, `${base}.tsx`, `${base}.js`, `${base}.jsx`, `${base}.mjs`, `${base}.vue`, `${base}.css`, join(base, "index.ts"), join(base, "index.tsx")]
+      .some((c) => existsSync(c));
+  };
+  for (const stackId of [
+    "nextjs-rabbit-default",
+    "nextjs-shadcn-enterprise",
+    "react-vite-mantine",
+    "react-vite-heroui",
+    "react-vite-primereact",
+    "vue-vite-pinia",
+    "angular-enterprise-signals",
+  ]) {
+    const tmp = mkdtempSync(join(tmpdir(), `dd-selftest-${stackId}-`));
+    try {
+      const sc = spawnSync("node", [
+        join(dashDir, "scripts", "scaffold-starter.mjs"),
+        "--stack", stackId, "--name", "smoke-app", "--out", tmp,
+      ], { encoding: "utf8" });
+      const vr = spawnSync("node", [join(dashDir, "scripts", "verify-dashboard.mjs"), tmp], { encoding: "utf8" });
+      const warnCount = ((vr.stderr || "").match(/\[WARN\]/g) || []).length;
+      const broken = [];
+      for (const f of walkSrc(join(tmp, "src")).filter((x) => /\.(tsx?|jsx?|vue)$/.test(x))) {
+        const txt = readFileSync(f, "utf8");
+        for (const m of txt.matchAll(/(?:import|export)\s+(?:[\s\S]*?\s+from\s+)?["'](\.[^"']+)["']/g)) {
+          if (!resolvesRel(f, m[1])) broken.push(`${f.slice(tmp.length + 1)} -> ${m[1]}`);
+        }
+      }
+      sc.status === 0 && vr.status === 0 && warnCount === 0 && broken.length === 0
+        ? ok(`scaffold + verify + imports clean for ${stackId}`)
+        : bad(`scaffold/verify failed for ${stackId}: sc=${sc.status} vr=${vr.status} warns=${warnCount} broken=${broken.slice(0, 3).join("; ")}`);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+
+  // 14d. Generator smoke (vertical, chart, form, emails, auth-suite, app-shell, page)
+  const genTmp = mkdtempSync(join(tmpdir(), "dd-selftest-gen-"));
+  try {
+    spawnSync("node", [
+      join(dashDir, "scripts", "scaffold-starter.mjs"),
+      "--stack", "nextjs-rabbit-default", "--name", "gen-smoke", "--out", genTmp,
+      "--hosting", "docker", "--backend", "clerk",
+    ], { encoding: "utf8" });
+    const genCmds = [
+      ["vertical", "ai-ops", "--out", genTmp],
+      ["chart", "dashedLine", "--out", genTmp],
+      ["form", "shadcn", "--out", genTmp],
+      ["emails", "--out", genTmp],
+      ["auth-suite", "--out", genTmp, "--adapter", "supabase"],
+      ["app-shell", "board", "--name", "tasks", "--out", genTmp],
+      ["page", "orders", "--out", genTmp],
+    ];
+    let genFailed = false;
+    for (const args of genCmds) {
+      const r = spawnSync("node", [join(dashDir, "scripts", "generate.mjs"), ...args], { encoding: "utf8" });
+      if (r.status !== 0) {
+        genFailed = true;
+        bad(`generate.mjs ${args.slice(0, 2).join(" ")} failed: ${(r.stderr || r.stdout).slice(0, 120)}`);
+      }
+    }
+    const vr = spawnSync("node", [join(dashDir, "scripts", "verify-dashboard.mjs"), genTmp], { encoding: "utf8" });
+    const hasDockerHygiene = existsSync(join(genTmp, ".dockerignore")) && readFileSync(join(genTmp, "Dockerfile"), "utf8").includes("USER node");
+    const hasAdapters = existsSync(join(genTmp, "src", "@core", "auth", "adapter.ts")) && existsSync(join(genTmp, "src", "@core", "auth", "clerk.ts"));
+    !genFailed && vr.status === 0 && hasDockerHygiene && hasAdapters
+      ? ok("generate.mjs subcommands + Docker non-root hygiene + auth adapters pass verify-dashboard")
+      : bad(`generate.mjs smoke failed: genFailed=${genFailed} vr=${vr.status} docker=${hasDockerHygiene} adapters=${hasAdapters}`);
+  } finally {
+    rmSync(genTmp, { recursive: true, force: true });
+  }
 }
 
 // ------------------------------------------------------------ done

@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "drift",
+  "name": "Drift",
+  "description": "High-density cobalt operations console with compact 13px typography, crisp 4px card corners, subtle light-mode elevation, and deep obsidian dark mode.",
+  "provenance": {
+    "source": "designer-dashboards:preset:drift",
+    "mood": "Crisp, high-density operational workspace with vivid cobalt accents"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#3762EA",
+      "secondary": "#4E525E",
+      "success": "#1A8F4E",
+      "info": "#2B8A9B",
+      "warning": "#B87814",
+      "error": "#D93636"
+    },
+    "light": {
+      "canvas": "#F7F7F7",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#DDE1EF",
+      "text": "#1E1A22",
+      "textMuted": "#646878"
+    },
+    "dark": {
+      "canvas": "#0F1114",
+      "surface": "#15171A",
+      "surfaceElevated": "#1F242E",
+      "border": "#2C2E30",
+      "text": "#EEF0F7",
+      "textMuted": "#9BA1B0"
+    },
+    "chart": [
+      "#3762EA",
+      "#2DCB73",
+      "#FF6C6C",
+      "#4AB0C1",
+      "#F6B749",
+      "#8561F9",
+      "#F7649F",
+      "#F1963B",
+      "#438EFF",
+      "#878A99"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "13px",
+    "compactSize": "12px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "250px",
+    "sidebarCollapsedWidth": "70px",
+    "headerHeight": "70px",
+    "contentMaxWidth": "1440px",
+    "gutter": "20px",
+    "cardPadding": "20px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "3px",
+    "md": "4px",
+    "lg": "6px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

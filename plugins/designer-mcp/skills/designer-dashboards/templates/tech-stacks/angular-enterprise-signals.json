@@ -1,0 +1,18 @@
+{
+  "id": "angular-enterprise-signals",
+  "name": "Angular Zoneless + Signals Enterprise",
+  "starter": "angular-tailwind",
+  "framework": "angular",
+  "useCase": "angular-enterprise",
+  "slots": {
+    "framework": "Angular (Zoneless + Signals)",
+    "styling": "Tailwind CSS v4 + OpenDesign OKLCH tokens",
+    "charts": "ApexCharts",
+    "tables": "Angular Signals DataGrid",
+    "forms": "Angular Reactive Forms",
+    "state": "Angular Signals",
+    "icons": "Lucide Angular"
+  },
+  "envVars": {},
+  "tooling": {}
+}

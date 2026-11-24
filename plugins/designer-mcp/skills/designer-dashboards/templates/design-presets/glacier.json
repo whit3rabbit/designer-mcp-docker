@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "glacier",
+  "name": "Glacier",
+  "description": "Dense cool-neutral workspace with crisp cobalt primary actions, 13px compact Geist typography, outlined neutral cards, and slate-charcoal dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:glacier",
+    "mood": "Crisp high-density engineering clarity"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#1565C0",
+      "secondary": "#4A5565",
+      "success": "#15803D",
+      "info": "#0284C7",
+      "warning": "#B45309",
+      "error": "#DC2626"
+    },
+    "light": {
+      "canvas": "#F3F4F6",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E5E7EB",
+      "text": "#030712",
+      "textMuted": "#5B6372"
+    },
+    "dark": {
+      "canvas": "#101828",
+      "surface": "#1E2939",
+      "surfaceElevated": "#283548",
+      "border": "#364153",
+      "text": "#F9FAFB",
+      "textMuted": "#99A1AF"
+    },
+    "chart": [
+      "#1565C0",
+      "#059669",
+      "#F59E0B",
+      "#DC2626",
+      "#7C3AED",
+      "#0891B2",
+      "#EA580C",
+      "#DB2777",
+      "#14B8A6",
+      "#6A7282"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Geist', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'Geist Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "13px",
+    "compactSize": "12px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "280px",
+    "sidebarCollapsedWidth": "72px",
+    "headerHeight": "56px",
+    "contentMaxWidth": "1280px",
+    "gutter": "24px",
+    "cardPadding": "24px",
+    "cardStyle": "bordered"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "8px",
+    "lg": "12px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

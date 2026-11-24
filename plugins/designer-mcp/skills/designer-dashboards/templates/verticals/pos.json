@@ -1,0 +1,37 @@
+{
+  "slug": "pos",
+  "name": "Point of Sale",
+  "route": "/dashboard/pos",
+  "translateKey": "nav.pos",
+  "icon": "credit-card",
+  "header": {
+    "dateRange": true,
+    "actions": [{ "label": "Open Register", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "daily-sales", "label": "Daily Sales", "icon": "dollar-sign", "tone": "primary", "sparkline": true },
+        { "id": "tickets", "label": "Tickets", "icon": "receipt", "tone": "info", "sparkline": true },
+        { "id": "avg-basket", "label": "Avg Basket", "icon": "shopping-bag", "tone": "success", "sparkline": false },
+        { "id": "voids", "label": "Void Rate", "icon": "rotate-ccw", "tone": "warning", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "hourly-volume", "title": "Hourly Register Volume", "chartType": "bar", "height": 300 },
+        { "id": "payment-methods", "title": "Payment Tender Mix", "chartType": "donut", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "recent-receipts", "title": "Recent Receipts", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

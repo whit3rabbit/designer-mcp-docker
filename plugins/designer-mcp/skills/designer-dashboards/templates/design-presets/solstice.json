@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "solstice",
+  "name": "Solstice",
+  "description": "Vibrant electric-indigo workspace with warm off-white canvas, soft elevated 15px cards, playful semantic accents, and charcoal-slate dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:solstice",
+    "mood": "vibrant-indigo-elevated"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#6657F5",
+      "secondary": "#646873",
+      "success": "#2E7D32",
+      "info": "#0284C7",
+      "warning": "#B45309",
+      "error": "#D6362C"
+    },
+    "light": {
+      "canvas": "#F7F8F9",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E9EDF1",
+      "text": "#242934",
+      "textMuted": "#59667A"
+    },
+    "dark": {
+      "canvas": "#1D1E26",
+      "surface": "#262932",
+      "surfaceElevated": "#323846",
+      "border": "#374558",
+      "text": "#E4E6EB",
+      "textMuted": "#A8A9AD"
+    },
+    "chart": [
+      "#7366FF",
+      "#65C15C",
+      "#FFB829",
+      "#FC564A",
+      "#40B8F5",
+      "#A927F9",
+      "#48A3D7",
+      "#FD2E64",
+      "#838383",
+      "#9D97FB"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "265px",
+    "sidebarCollapsedWidth": "80px",
+    "headerHeight": "80px",
+    "contentMaxWidth": "1440px",
+    "gutter": "24px",
+    "cardPadding": "20px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "8px",
+    "lg": "15px",
+    "xl": "20px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

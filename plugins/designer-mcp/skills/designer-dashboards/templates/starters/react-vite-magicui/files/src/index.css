@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@import "../design-system/styles.css";
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+
+@keyframes magic-border-beam {
+  0% {
+    offset-distance: 0%;
+  }
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+@keyframes magic-gradient-x {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes magic-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-magic-beam {
+  animation: magic-border-beam var(--beam-duration, 10s) linear infinite;
+  animation-delay: var(--beam-delay, 0s);
+}
+
+.animate-magic-gradient {
+  background-size: 200% 200%;
+  animation: magic-gradient-x 6s ease infinite;
+}
+
+.animate-magic-shimmer {
+  animation: magic-shimmer 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-magic-beam,
+  .animate-magic-gradient,
+  .animate-magic-shimmer {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "zenith",
+  "name": "Zenith",
+  "description": "Precision engineering UI theme built on Inter typography, royal-blue primary accents, structured content blocks with subtle elevation over cool silver-gray canvas, and graphite dark mode.",
+  "provenance": {
+    "source": "designer-dashboards:preset:zenith",
+    "mood": "structured royal-blue precision"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#2356D7",
+      "secondary": "#475569",
+      "success": "#139A52",
+      "info": "#1391AA",
+      "warning": "#EA580C",
+      "error": "#D61F47"
+    },
+    "light": {
+      "canvas": "#EBEEF2",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#DFE3E9",
+      "text": "#212529",
+      "textMuted": "#555E67"
+    },
+    "dark": {
+      "canvas": "#18202B",
+      "surface": "#1F2937",
+      "surfaceElevated": "#2A3647",
+      "border": "#2F3D50",
+      "text": "#E9ECEF",
+      "textMuted": "#9CA7B4"
+    },
+    "chart": [
+      "#2356D7",
+      "#139A52",
+      "#1391AA",
+      "#EA580C",
+      "#D61F47",
+      "#6366F1",
+      "#0C91CF",
+      "#D4428B",
+      "#475569",
+      "#818D96"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "250px",
+    "sidebarCollapsedWidth": "60px",
+    "headerHeight": "64px",
+    "contentMaxWidth": "1280px",
+    "gutter": "28px",
+    "cardPadding": "20px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "6px",
+    "lg": "8px",
+    "xl": "12px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

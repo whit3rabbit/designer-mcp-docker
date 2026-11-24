@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@import "../design-system/styles.css";
+
+/* coss ui + OpenDesign base layer */
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base UI portals sit in a clean top stacking context */
+[data-base-ui-portal] {
+  isolation: isolate;
+}

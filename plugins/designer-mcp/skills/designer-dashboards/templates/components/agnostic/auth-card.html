@@ -1,0 +1,28 @@
+<main class="flex min-h-screen items-center justify-center p-6" style="background-color: var(--color-canvas);">
+  <section
+    class="w-full max-w-md border p-8"
+    style="background-color: var(--color-surface); border-color: var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md);"
+  >
+    <h1 class="text-xl font-semibold" style="color: var(--color-text);">Sign in</h1>
+    <p class="mt-1 text-xs" style="color: var(--color-text-muted);">Enter your credentials to continue.</p>
+    <form class="mt-6 space-y-4">
+      <div class="space-y-1.5">
+        <label for="email" class="block text-xs font-semibold" style="color: var(--color-text);">Email</label>
+        <input
+          id="email"
+          type="email"
+          required
+          class="h-[38px] w-full border px-3 text-sm"
+          style="background-color: var(--color-surface); border-color: var(--color-border); color: var(--color-text); border-radius: var(--radius-md);"
+        />
+      </div>
+      <button
+        type="submit"
+        class="h-[38px] w-full cursor-pointer text-sm font-medium"
+        style="background-color: var(--color-primary); color: var(--color-on-solid); border-radius: var(--radius-md);"
+      >
+        Sign in
+      </button>
+    </form>
+  </section>
+</main>

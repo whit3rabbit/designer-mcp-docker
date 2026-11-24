@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+@import "../design-system/styles.css";
+
+/*
+ * HeroUI v3 <-> OpenDesign Token Bridge
+ * Maps HeroUI v3 semantic CSS variables (--background, --surface, --accent, etc.)
+ * to OpenDesign OKLCH tokens so all 21 Designer Dashboards presets and dark/light modes
+ * apply seamlessly to @heroui/react components.
+ */
+:root,
+[data-theme="light"],
+.dark,
+[data-theme="dark"] {
+  --background: var(--color-canvas);
+  --foreground: var(--color-text);
+  --surface: var(--color-surface);
+  --surface-secondary: var(--color-surface-subtle);
+  --surface-tertiary: var(--color-surface-elevated);
+  --overlay: var(--color-surface-elevated);
+  --muted: var(--color-text-muted);
+  --border: var(--color-border);
+  --divider: var(--color-border);
+  --focus: var(--color-primary);
+
+  --accent: var(--color-primary);
+  --accent-foreground: var(--color-on-solid);
+  --accent-soft: var(--color-primary-surface);
+  --accent-soft-foreground: var(--color-primary);
+
+  --success: var(--color-success);
+  --success-foreground: var(--color-on-solid);
+  --warning: var(--color-warning);
+  --warning-foreground: var(--color-on-solid);
+  --danger: var(--color-error);
+  --danger-foreground: var(--color-on-solid);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius: var(--radius-md);
+}
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base, 14px);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

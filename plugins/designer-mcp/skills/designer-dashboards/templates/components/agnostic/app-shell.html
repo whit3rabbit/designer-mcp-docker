@@ -1,0 +1,104 @@
+<!-- Designer Dashboards Agnostic HTML/CSS Attribute-Driven AppShell -->
+<!-- Works with static HTML, Laravel Blade, Django, Rails, Symfony, ASP.NET, or Bootstrap/Tailwind. -->
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="light" data-layout="vertical" data-content-width="fluid" data-navbar-style="attached">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Designer Dashboards Shell</title>
+  <style>
+    :root {
+      --sidebar-width: 272px;
+      --sidebar-collapsed-width: 76px;
+      --header-height: 64px;
+      --content-max-width: 1400px;
+      --transition-layout: 240ms cubic-bezier(0.2, 0, 0, 1);
+      --color-canvas: #f8fafc;
+      --color-surface: #ffffff;
+      --color-border: #e2e8f0;
+      --color-text: #0f172a;
+      --color-text-muted: #64748b;
+      --color-primary: #5b4fe9;
+      --color-primary-surface: rgba(91, 79, 233, 0.12);
+    }
+    html[data-theme="dark"] {
+      --color-canvas: #0f172a;
+      --color-surface: #1e293b;
+      --color-border: #334155;
+      --color-text: #f8fafc;
+      --color-text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--color-canvas); color: var(--color-text); }
+    .rd-shell { display: flex; min-height: 100vh; }
+    .rd-sidebar {
+      width: var(--sidebar-width); flex-shrink: 0; background: var(--color-surface);
+      border-inline-end: 1px solid var(--color-border); padding: 12px; display: flex; flex-direction: column;
+      transition: width var(--transition-layout);
+    }
+    html[data-layout="collapsed"] .rd-sidebar { width: var(--sidebar-collapsed-width); }
+    html[data-layout="hover"] .rd-sidebar { width: var(--sidebar-collapsed-width); }
+    html[data-layout="hover"] .rd-sidebar:hover { width: var(--sidebar-width); }
+    html[data-layout="horizontal"] .rd-sidebar,
+    html[data-layout="sidebarless"] .rd-sidebar { display: none; }
+    html[data-layout="frameless"] .rd-shell { padding: 12px; gap: 12px; }
+    html[data-layout="frameless"] .rd-main-wrap { border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; background: var(--color-surface); }
+    .rd-main-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .rd-header {
+      height: var(--header-height); display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; background: var(--color-surface); border-bottom: 1px solid var(--color-border);
+    }
+    html[data-navbar-style="floating"] .rd-header { margin: 12px 24px 0; border-radius: 12px; border: 1px solid var(--color-border); }
+    .rd-main { flex: 1; padding: 24px; }
+    html[data-content-width="boxed"] .rd-main { max-width: var(--content-max-width); width: 100%; margin-inline: auto; }
+    .rd-nav-link {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px;
+      color: inherit; text-decoration: none; font-size: 14px; font-weight: 500;
+    }
+    .rd-nav-link[aria-current="page"] { background: var(--color-primary-surface); color: var(--color-primary); }
+    @media (max-width: 1023px) {
+      .rd-sidebar { position: fixed; inset-block: 0; inset-inline-start: -100%; z-index: 50; }
+      .rd-sidebar.is-open { inset-inline-start: 0; }
+    }
+    @media print {
+      .rd-sidebar, .rd-header, .no-print { display: none !important; }
+      .rd-main { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="rd-shell">
+    <aside class="rd-sidebar" id="rd-sidebar" aria-label="Primary Navigation">
+      <div style="font-weight:700; padding:8px 12px 16px;">Designer Dashboards</div>
+      <nav style="flex:1; display:flex; flex-direction:column; gap:4px;">
+        <a class="rd-nav-link" href="/dashboard/analytics" aria-current="page">Analytics</a>
+        <a class="rd-nav-link" href="/dashboard/ecommerce">E-commerce</a>
+        <a class="rd-nav-link" href="/apps/kanban">Board</a>
+      </nav>
+      <div style="border-top:1px solid var(--color-border); padding-top:12px;">
+        <a class="rd-nav-link" href="/settings">Settings</a>
+      </div>
+    </aside>
+
+    <div class="rd-main-wrap">
+      <header class="rd-header">
+        <button type="button" onclick="document.getElementById('rd-sidebar').classList.toggle('is-open')" aria-label="Toggle Menu">Menu</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" onclick="toggleAttr('data-layout','collapsed','vertical')">Collapse</button>
+          <button type="button" onclick="toggleAttr('data-theme','dark','light')">Theme</button>
+          <button type="button" onclick="toggleAttr('dir','rtl','ltr')">RTL</button>
+        </div>
+      </header>
+      <main class="rd-main" id="main-content" tabindex="-1">
+        <h1>Dashboard Content</h1>
+      </main>
+    </div>
+  </div>
+  <script>
+    function toggleAttr(attr, a, b) {
+      var r = document.documentElement;
+      r.setAttribute(attr, r.getAttribute(attr) === a ? b : a);
+    }
+  </script>
+</body>
+</html>

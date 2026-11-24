@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "zephyr",
+  "name": "Zephyr",
+  "description": "Airy corporate blue aesthetic with generous 16px typography, soft lavender-slate neutral tints, 8px rounded elevated cards, and cool charcoal dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:zephyr",
+    "mood": "Airy, polished corporate editorial with generous breathing room"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#3471DE",
+      "secondary": "#54617A",
+      "success": "#1E8E6E",
+      "info": "#2B84A5",
+      "warning": "#B87314",
+      "error": "#D93838"
+    },
+    "light": {
+      "canvas": "#F6F7F9",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E5E8F0",
+      "text": "#343F52",
+      "textMuted": "#60697B"
+    },
+    "dark": {
+      "canvas": "#1E2228",
+      "surface": "#262B32",
+      "surfaceElevated": "#2E353E",
+      "border": "#3B424E",
+      "text": "#EEF1F6",
+      "textMuted": "#A4AEC6"
+    },
+    "chart": [
+      "#3F78E0",
+      "#45C4A0",
+      "#F78B77",
+      "#605DBA",
+      "#FAB758",
+      "#54A8C7",
+      "#E2626B",
+      "#A07CC5",
+      "#5EB9F0",
+      "#9499A3"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 700
+  },
+  "layout": {
+    "sidebarWidth": "260px",
+    "sidebarCollapsedWidth": "72px",
+    "headerHeight": "72px",
+    "contentMaxWidth": "1550px",
+    "gutter": "24px",
+    "cardPadding": "24px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "8px",
+    "lg": "12px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

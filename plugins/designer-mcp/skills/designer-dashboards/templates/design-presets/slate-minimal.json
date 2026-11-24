@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "slug": "slate-minimal",
+  "name": "Slate Minimal",
+  "description": "Flat, border-driven engineering console: Inter typography, crisp 1px zinc borders, electric blue actions, and inverted slate dark mode.",
+  "provenance": {
+    "source": "designer-dashboards:preset:slate-minimal"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#2563EB",
+      "secondary": "#475569",
+      "success": "#15803D",
+      "info": "#0369A1",
+      "warning": "#B45309",
+      "error": "#DC2626"
+    },
+    "light": {
+      "canvas": "#F4F5F7",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#E2E8F0",
+      "text": "#0F172A",
+      "textMuted": "#475569"
+    },
+    "dark": {
+      "canvas": "#0F172A",
+      "surface": "#182234",
+      "surfaceElevated": "#1E293B",
+      "border": "#334155",
+      "text": "#F1F5F9",
+      "textMuted": "#94A3B8"
+    },
+    "chart": [
+      "#2563EB",
+      "#10B981",
+      "#F97316",
+      "#8B5CF6",
+      "#EAB308",
+      "#06B6D4",
+      "#EF4444",
+      "#EC4899",
+      "#14B8A6",
+      "#64748B"
+    ]
+  },
+  "typography": {
+    "fontSans": "'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'Geist Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 600
+  },
+  "layout": {
+    "sidebarWidth": "264px",
+    "sidebarCollapsedWidth": "72px",
+    "headerHeight": "64px",
+    "contentMaxWidth": "1440px",
+    "gutter": "20px",
+    "cardPadding": "20px",
+    "cardStyle": "bordered"
+  },
+  "radius": {
+    "xs": "2px",
+    "sm": "4px",
+    "md": "8px",
+    "lg": "12px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

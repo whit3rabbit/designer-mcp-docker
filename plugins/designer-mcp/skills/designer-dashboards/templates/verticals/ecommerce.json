@@ -1,0 +1,37 @@
+{
+  "slug": "ecommerce",
+  "name": "E-Commerce Operations",
+  "route": "/dashboard/ecommerce",
+  "translateKey": "nav.ecommerce",
+  "icon": "shopping-bag",
+  "header": {
+    "dateRange": true,
+    "actions": [{ "label": "New Product", "variant": "solid", "icon": "plus" }]
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "gmv", "label": "Gross Revenue", "icon": "dollar-sign", "tone": "primary", "sparkline": true },
+        { "id": "orders", "label": "Orders", "icon": "shopping-cart", "tone": "info", "sparkline": true },
+        { "id": "aov", "label": "Avg Order Value", "icon": "receipt", "tone": "success", "sparkline": false },
+        { "id": "refunds", "label": "Refund Rate", "icon": "rotate-ccw", "tone": "error", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "revenue-vs-orders", "title": "Revenue vs Orders", "chartType": "bar", "height": 300 },
+        { "id": "category-mix", "title": "Category Mix", "chartType": "donut", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "recent-orders", "title": "Recent Orders", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}

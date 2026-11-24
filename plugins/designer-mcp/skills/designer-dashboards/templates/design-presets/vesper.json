@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "slug": "vesper",
+  "name": "Vesper",
+  "description": "Precision periwinkle fintech aesthetic with cool mist canvas, borderless elevated 4px cards, generous 28px grid gutters, and deep midnight-navy dark surfaces.",
+  "provenance": {
+    "source": "designer-dashboards:preset:vesper",
+    "mood": "midnight-navy-fintech"
+  },
+  "colors": {
+    "semantic": {
+      "primary": "#4F62FA",
+      "secondary": "#526484",
+      "success": "#0E8565",
+      "info": "#0284C7",
+      "warning": "#A16207",
+      "error": "#CF372B"
+    },
+    "light": {
+      "canvas": "#F5F6FA",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#FFFFFF",
+      "border": "#DBDFEA",
+      "text": "#364A63",
+      "textMuted": "#526484"
+    },
+    "dark": {
+      "canvas": "#101924",
+      "surface": "#141C26",
+      "surfaceElevated": "#1F2B3A",
+      "border": "#2B3748",
+      "text": "#ECF2FF",
+      "textMuted": "#8094AE"
+    },
+    "chart": [
+      "#6576FF",
+      "#1EE0AC",
+      "#09C2DE",
+      "#F4BD0E",
+      "#E85347",
+      "#816BFF",
+      "#FFA353",
+      "#FF63A5",
+      "#559BFB",
+      "#20C997"
+    ]
+  },
+  "typography": {
+    "fontSans": "'DM Sans', 'Inter', system-ui, -apple-system, sans-serif",
+    "fontMono": "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+    "baseSize": "14px",
+    "compactSize": "13px",
+    "headingWeight": 700
+  },
+  "layout": {
+    "sidebarWidth": "290px",
+    "sidebarCollapsedWidth": "74px",
+    "headerHeight": "65px",
+    "contentMaxWidth": "1440px",
+    "gutter": "28px",
+    "cardPadding": "24px",
+    "cardStyle": "elevated"
+  },
+  "radius": {
+    "xs": "3px",
+    "sm": "4px",
+    "md": "5px",
+    "lg": "8px",
+    "xl": "12px",
+    "full": "9999px"
+  },
+  "zIndex": {
+    "base": 0,
+    "dropdown": 1000,
+    "sticky": 1020,
+    "header": 1030,
+    "sidebar": 1040,
+    "scrim": 1050,
+    "drawer": 1060,
+    "modal": 1070,
+    "popover": 1080,
+    "toast": 1090,
+    "tooltip": 1100
+  }
+}

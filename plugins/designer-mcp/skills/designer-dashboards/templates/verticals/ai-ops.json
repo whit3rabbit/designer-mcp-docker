@@ -1,0 +1,42 @@
+{
+  "slug": "ai-ops",
+  "name": "AI & Live Operations",
+  "route": "/dashboard/ai-ops",
+  "translateKey": "nav.aiOps",
+  "icon": "sparkles",
+  "header": {
+    "dateRange": true,
+    "actions": [{ "label": "Open Assistant", "variant": "tonal", "icon": "bot" }]
+  },
+  "assistantChrome": {
+    "enabled": true,
+    "provider": "env-with-mock-fallback",
+    "sidePanel": true
+  },
+  "rows": [
+    {
+      "kind": "kpi-row",
+      "columns": 4,
+      "widgets": [
+        { "id": "req-sec", "label": "Requests / min", "icon": "zap", "tone": "primary", "sparkline": true },
+        { "id": "p95-latency", "label": "P95 Latency", "icon": "gauge", "tone": "info", "sparkline": true },
+        { "id": "token-spend", "label": "Token Spend (24h)", "icon": "coins", "tone": "warning", "sparkline": false },
+        { "id": "error-rate", "label": "Error Rate", "icon": "shield-alert", "tone": "error", "sparkline": false }
+      ]
+    },
+    {
+      "kind": "chart-row",
+      "split": [8, 4],
+      "widgets": [
+        { "id": "live-throughput", "title": "Live Throughput", "chartType": "live-line", "height": 300 },
+        { "id": "quota-usage", "title": "Quota Utilization", "chartType": "radialBar", "height": 300 }
+      ]
+    },
+    {
+      "kind": "full-width",
+      "widgets": [
+        { "id": "inference-logs", "title": "Recent Inference Traces", "component": "DataGrid", "serverMode": true }
+      ]
+    }
+  ]
+}
