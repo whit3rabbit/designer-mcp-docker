@@ -1,12 +1,6 @@
 ---
-name: design
-description: >-
-  OpenDesign and /design-system workflow for dashboards (designer-dashboards:design). Guides
-  the user through selecting a premade preset or capturing a visual reference, generating
-  DESIGN.md, theme.json, DESIGN.evidence.json, styles.css (with soft/tonal ladders and
-  FOUC-free dark mode), _ds_manifest.json, and _adherence.oxlintrc.json, then verifying
-  WCAG AA contrast and token parity. Use when creating or customizing DESIGN.md,
-  theme.json, styles.css, design presets, or dark-mode tokens for a dashboard.
+name: dashboards-design
+description: "OpenDesign dashboard token workflow for DESIGN.md, theme.json, styles.css, dark mode, and WCAG AA contrast."
 ---
 
 # `designer-dashboards:design` — OpenDesign Dashboard System Builder
@@ -24,7 +18,7 @@ Before modifying tokens, read [01-design-tokens.md](../references/01-design-toke
 
 ## Step 1: Choose Source Direction
 
-Ask the user (via `ask_question` if not already stated):
+Ask the user (if not already stated):
 1. **Start from a premade dashboard preset** (21 WCAG 2.1 AA verified presets in [templates/design-presets/catalog.json](../templates/design-presets/catalog.json)):
    - **Core starters:** `saas-violet`, `slate-minimal`, `teal-precision`, `executive-emerald`
    - **Ephemeral collection (17 distinct themes):** `aether`, `amethyst`, `aurora`, `cirrus`, `drift`, `glacier`, `horizon`, `mirage`, `nebula`, `nimbus`, `obsidian`, `quartz`, `solstice`, `twilight`, `vesper`, `zenith`, `zephyr`

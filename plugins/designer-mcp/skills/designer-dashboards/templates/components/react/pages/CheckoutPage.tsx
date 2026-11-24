@@ -26,7 +26,7 @@ export function CheckoutPage() {
 
   return (
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-      {/* 8-col Checkout Steps (Vuexy / Materialize / Steex / Tailwink / Sandbox) */}
+      {/* 8-col Checkout Steps */}
       <div
         style={{
           backgroundColor: 'var(--color-surface)',

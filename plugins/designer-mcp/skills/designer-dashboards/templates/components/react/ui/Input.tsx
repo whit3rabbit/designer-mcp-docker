@@ -201,7 +201,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
 });
 
 /* -------------------------------------------------------------------------- */
-/*  InputGroup (shadcn v4 / Metronic / Vuexy composable prefix & suffix)      */
+/*  InputGroup (shadcn v4 composable prefix & suffix)                        */
 /* -------------------------------------------------------------------------- */
 
 export interface InputGroupProps extends React.HTMLAttributes<HTMLDivElement> {

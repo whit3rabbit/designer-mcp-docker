@@ -41,7 +41,7 @@ export interface PhoneInputProps {
 }
 
 /**
- * International Phone Input with country flag & dial code (Ecme / Metronic / Steex / Cuba).
+ * International Phone Input with country flag & dial code.
  */
 export function PhoneInput({
   value,

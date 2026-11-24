@@ -1,11 +1,6 @@
 ---
-name: audit
-description: >-
-  Dashboard quality, design-token adherence, WCAG 2.1 AA, RTL, dependency, and security
-  auditor (designer-dashboards:audit). Runs verify-dashboard.mjs and checks OpenDesign token
-  parity, contrast ratios, the 18-point WCAG AA spec, CSS logical properties for RTL,
-  single-engine dependency hygiene, and secret leaks. Use before releasing a dashboard,
-  after major UI changes, or when auditing WCAG, RTL, token, or security compliance.
+name: dashboards-audit
+description: "Dashboard quality, token adherence, WCAG 2.1 AA, RTL, dependency hygiene, and security auditor."
 ---
 
 # `designer-dashboards:audit` — Adherence, Accessibility, RTL & Hygiene Gate

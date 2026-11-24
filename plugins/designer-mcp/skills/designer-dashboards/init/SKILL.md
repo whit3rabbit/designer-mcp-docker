@@ -1,11 +1,6 @@
 ---
-name: init
-description: >-
-  Interactive dashboard project initializer (designer-dashboards:init). Walks the user through
-  choosing frontend framework, package manager (pnpm/bun/npm/yarn), hosting target
-  (Vercel/Cloudflare/Docker), backend & data mode, and design preset, then scaffolds a
-  clean @core/@layouts/@menu starter project. Use when starting a new dashboard project,
-  scaffolding from a starter, or initializing a dashboard workspace.
+name: dashboards-init
+description: "Interactive dashboard project initializer for framework, package manager, hosting, backend, and starter scaffolding."
 ---
 
 # `designer-dashboards:init` — Stack Wizard & Starter Scaffolder
@@ -14,7 +9,7 @@ Use this skill when starting a new dashboard project or initializing a dashboard
 
 ## Step 1: Interactive Stack Discovery
 
-If the user has not already specified these choices, use `ask_question` to gather them concisely in 1–2 rounds:
+If the user has not already specified these choices, ask the user to gather them concisely in 1–2 rounds:
 
 1. **Frontend Framework & Tech Stack Profile** (pre-generated profiles in [templates/tech-stacks/catalog.json](../templates/tech-stacks/catalog.json); see [09-tech-stacks.md](../references/09-tech-stacks.md) for the slot-level recommendation matrix):
    - `(Recommended) Next.js 16 Lean Default (nextjs-rabbit-default)` — Next.js App Router + React 19 + Tailwind v4 + ApexCharts + TanStack Table + React Hook Form + Zod + Zustand + Sonner.

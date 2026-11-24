@@ -132,7 +132,7 @@ export function TimePicker({ value, onChange, label, className }: TimePickerProp
 }
 
 /* -------------------------------------------------------------------------- */
-/*  DateTimePicker & InlineCalendar (shadcn / Cuba / Metronic / Vuexy)        */
+/*  DateTimePicker & InlineCalendar (shadcn)                                  */
 /* -------------------------------------------------------------------------- */
 
 export interface DateTimePickerProps {

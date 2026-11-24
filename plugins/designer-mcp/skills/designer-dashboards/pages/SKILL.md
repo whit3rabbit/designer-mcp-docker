@@ -1,13 +1,6 @@
 ---
-name: pages
-description: >-
-  Dashboard information architecture, navigation IR, vertical page recipes, app shells,
-  and AI surfaces (designer-dashboards:pages). Generates typed navigation.config.ts, derived
-  breadcrumbs/titles, 16 industry-vertical dashboards (with colocated *.charts.ts presets),
-  11 app shells (list-detail, board, stream, full-canvas, pos, map-split, docs-toc,
-  workspace-rail, affix-form, masonry, resizable-split), print invoices, and an always-on
-  AI assistant side panel. Use when adding dashboard pages, navigation config, app shells,
-  or vertical dashboards (analytics, CRM, POS, mail, kanban, finance, helpdesk, real-estate).
+name: dashboards-pages
+description: "Dashboard information architecture, navigation IR, vertical page recipes, app shells, and AI side panel."
 ---
 
 # `designer-dashboards:pages` — Nav IR, Vertical Dashboards & App Shells

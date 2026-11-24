@@ -64,7 +64,7 @@ export function Slider({
 }
 
 /* -------------------------------------------------------------------------- */
-/*  RangeSlider (Dual-thumb range slider — shadcn / Ecme / Vuexy / Steex)     */
+/*  RangeSlider (Dual-thumb range slider — shadcn)                          */
 /* -------------------------------------------------------------------------- */
 
 export interface RangeSliderProps {

@@ -13,7 +13,7 @@ export interface InlineEditProps {
 }
 
 /**
- * Click-to-edit inline field (React Jampack / Ecme / Admina / Fuse).
+ * Click-to-edit inline field.
  * Saves on Enter or blur; cancels on Escape.
  */
 export function InlineEdit({

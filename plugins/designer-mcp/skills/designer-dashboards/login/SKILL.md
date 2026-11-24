@@ -1,13 +1,6 @@
 ---
-name: login
-description: >-
-  Authentication, login-area design, RBAC guards, and backend-aware security builder
-  (designer-dashboards:login). Generates the 7-page core auth suite (login, register, forgot,
-  reset, 2FA/OTP, verify-email, 401/403) across reusable shells (split/cover, basic, boxed),
-  single-source RBAC authority guards, JWT/OAuth/session adapters (Auth.js + Prisma,
-  Supabase, Better Auth, Custom JWT + Local DB), and XSS/SQLi/cookie/password hardening.
-  Use when building or hardening login, register, OTP, RBAC guards, auth adapters, or
-  auth security.
+name: dashboards-login
+description: "Dashboard auth flows, login shells, RBAC authority guards, and backend-aware security builder."
 ---
 
 # `designer-dashboards:login` — Auth Flows, Login Shells & Backend-Aware Security
@@ -16,7 +9,7 @@ Use this skill when building or hardening authentication pages, JWT/OAuth/sessio
 
 ## Step 1: Clarify Auth Architecture & Requirements
 
-If not already decided, ask the user (via `ask_question`):
+If not already decided, ask the user:
 1. **Auth Strategy & Storage (Outside Service vs Local Database):**
    - `(Recommended) Auth.js / NextAuth + Prisma` (Next.js + local SQLite/Postgres, encrypted JWE or DB sessions + OAuth)
    - `Better Auth` (Full-stack TS + local DB with built-in 2FA, Organizations & rate limiting)

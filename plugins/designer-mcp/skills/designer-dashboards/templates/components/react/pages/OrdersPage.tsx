@@ -37,7 +37,7 @@ export function OrdersPage() {
         </div>
       </div>
 
-      {/* 8+4 Order Detail Split (Materialize / Vuexy / Ecme pattern) */}
+      {/* 8+4 Order Detail Split */}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <div className="space-y-6 lg:col-span-8">
           <section

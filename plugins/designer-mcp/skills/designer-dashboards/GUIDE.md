@@ -52,7 +52,7 @@ src/
 | 2. Lock design system | `designer-dashboards:design` | `design-system/{DESIGN.md, theme.json, DESIGN.evidence.json, styles.css, _ds_manifest.json, _adherence.oxlintrc.json}` |
 | 3. Build UI & data layer | `designer-dashboards:ui` | Icon registry, Button grammar, KPI cards, ApexCharts wrapper + presets, TanStack server DataGrid, 12 form primitives, Sonner + Top-Layer/headless overlays |
 | 4. Wire auth & RBAC | `designer-dashboards:login` | 7-page auth suite, shell variants, `(guest-only)` / `(private)` guards, unified `authority` RBAC, backend adapter |
-| 5. Compose pages & nav | `designer-dashboards:pages` | Unified `navigation.config.ts`, vertical dashboards, 4 app shells, print invoice, AI assistant side-panel |
+| 5. Compose pages & nav | `designer-dashboards:pages` | Unified `navigation.config.ts`, vertical dashboards, 11 app shells, print invoice, AI assistant side-panel |
 | 6. Verify & ship | `designer-dashboards:audit` | Token parity pass, WCAG 2.1 AA checklist, RTL logical-properties check, dep & secret audit |
 
 ---
@@ -62,9 +62,9 @@ src/
 For deep specifications, exact token tables, schemas, and code contracts, see `references/`:
 
 - [01-design-tokens.md](references/01-design-tokens.md) — Semantic palette, soft tint ladders, surfaces, radii, shadows, dark mode, OpenDesign contract
-- [02-navigation-and-layout.md](references/02-navigation-and-layout.md) — Unified Nav IR, sidebar magic numbers, attribute-driven layout machine, page composition recipe, 4 app shells
+- [02-navigation-and-layout.md](references/02-navigation-and-layout.md) — Unified Nav IR, sidebar magic numbers, attribute-driven layout machine, page composition recipe, 11 app shells
 - [03-icons-and-typography.md](references/03-icons-and-typography.md) — Iconify/Lucide pipeline, string-key registry, font shortlist, 13–14px density scale
-- [04-data-display-and-charts.md](references/04-data-display-and-charts.md) — ApexCharts 10 presets, type↔question matrix, 10-hue chart palette, `<LiveChart>`, TanStack server-grid contract, KPI stat-card primitive
+- [04-data-display-and-charts.md](references/04-data-display-and-charts.md) — ApexCharts 29 presets, type↔question matrix, 10-hue chart palette, `<LiveChart>`, TanStack server-grid contract, KPI stat-card primitive
 - [05-auth-and-security.md](references/05-auth-and-security.md) — 7-page auth suite, reusable shells, RBAC guard chain, real backend adapters, security checklist
 - [06-forms-feedback-chrome.md](references/06-forms-feedback-chrome.md) — 12 input primitives, validation contract, wizards, Tiptap/FullCalendar/dayjs, Sonner/Radix overlays, z-index ladder, derived page chrome
 - [07-state-data-ai.md](references/07-state-data-ai.md) — Scoped micro-stores, mock-adapter & server-first data layers, AI chat + assistant chrome + `AIProvider`

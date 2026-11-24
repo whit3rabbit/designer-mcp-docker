@@ -22,7 +22,7 @@ export interface DualListboxProps {
 }
 
 /**
- * Dual Listbox / Transfer List (Cuba / DashLite / Vyzor).
+ * Dual Listbox / Transfer List.
  * Moves items between Available and Selected lists with search and bulk actions.
  */
 export function DualListbox({

@@ -1,11 +1,6 @@
 ---
-name: ui
-description: >-
-  Dashboard UI primitives and data-display builder (designer-dashboards:ui). Covers 4px spacing
-  and sizing, single-pipeline icons (Iconify/Lucide string registry), standardized button
-  grammar, ApexCharts 10 presets + LiveChart, TanStack server-mode DataGrid, KPI stat cards,
-  12 form primitives + wizards, Sonner/Radix feedback/overlays, and restrained motion. Use
-  when building dashboard buttons, icons, charts, KPI cards, data grids, forms, or toasts.
+name: dashboards-ui
+description: "Dashboard UI primitives, icons, charts, KPI cards, data grids, forms, overlays, and motion builder."
 ---
 
 # `designer-dashboards:ui` — Dashboard UI Primitives, Icons, Charts & Grids
@@ -41,7 +36,7 @@ Use this skill when building or upgrading the component layer of a dashboard. Co
   2. Automatic re-theming on light/dark toggle (`--chart-grid`, `--chart-tooltip-bg`, `--color-text-muted`, plus `key={themeTick}` rebuild on `donut`/`pie`/`radialBar`/`heatmap`),
   3. Deep-merging `options` (never shallow-spreading over nested keys), font sync (`var(--font-sans)`), and RTL mirroring (`yaxis.opposite`),
   4. Skeleton loading state, `<EmptyState>` fallback, and `role="img"` + `aria-label` + toggleable data-table view (handling both scalar and `{ x, y }` object points) for WCAG AA.
-- Use `templates/components/react/ui/chartPresets.ts` (`getChartPreset` / `getChartSampleSpec`, also available for Vue & Angular) and the **Type <-> Data-Question Matrix** (store specs as `{ type, height, series, options }` configs in colocated `<slug>.charts.ts` separate from `<WidgetCard>`, or generate any chart / the full 28-type gallery via `node scripts/generate.mjs chart <type|all|shadcn> --framework <react|vue|angular> --out <project-dir>`):
+- Use `templates/components/react/ui/chartPresets.ts` (`getChartPreset` / `getChartSampleSpec`, also available for Vue & Angular) and the **Type <-> Data-Question Matrix** (store specs as `{ type, height, series, options }` configs in colocated `<slug>.charts.ts` separate from `<WidgetCard>`, or generate any chart / the full 29-type gallery via `node scripts/generate.mjs chart <type|all|shadcn> --framework <react|vue|angular> --out <project-dir>`):
   - Trend -> `line` / `dashedLine` / `stepline` / `slope` / `area` / `rangeArea` (`smooth`, target-dashed, step, slope, or confidence bands, soft fill + solid stroke, horizontal-only `--chart-grid` gridlines, `280–320px` height)
   - Composition -> `donut` / `semiDonut` / `pie` (`donutTitle`/`donutText` center-text total, bottom legend hidden on single series)
   - Category comparison -> `bar` (`stackedBar` / `stackedBar100` / `horizontalBar` / `dumbbell` / `bullet`, `borderRadiusApplication: 'end'`, `borderRadiusWhenStacked: 'all'`) or `funnel`

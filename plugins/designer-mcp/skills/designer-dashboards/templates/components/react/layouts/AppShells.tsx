@@ -253,7 +253,7 @@ export function FullCanvasShell({ toolbar, children }: FullCanvasShellProps) {
   );
 }
 
-/** 5. POS Split Shell (Catalog grid + sticky ticket cart — Vyzor/Cuba/Midone) */
+/** 5. POS Split Shell (Catalog grid + sticky ticket cart) */
 export interface PosSplitShellProps {
   catalog: React.ReactNode;
   ticket: React.ReactNode;
@@ -280,7 +280,7 @@ export function PosSplitShell({ catalog, ticket }: PosSplitShellProps) {
   );
 }
 
-/** 6. Map Split Shell (50/50 or 5+7 list & interactive map with fullscreen toggle — Metronic/Vuexy/Steex) */
+/** 6. Map Split Shell (50/50 or 5+7 list & interactive map with fullscreen toggle) */
 export interface MapSplitShellProps {
   list: React.ReactNode;
   map: React.ReactNode;
@@ -327,7 +327,7 @@ export function MapSplitShell({ list, map, fixedHeight = true }: MapSplitShellPr
   );
 }
 
-/** 7. Docs + ScrollSpy TOC Shell (3-column nav + prose + sticky right TOC — Ecme/Gogo/Metronic) */
+/** 7. Docs + ScrollSpy TOC Shell (3-column nav + prose + sticky right TOC) */
 export interface DocsTocShellProps {
   nav: React.ReactNode;
   content: React.ReactNode;
@@ -373,7 +373,7 @@ export function DocsTocShell({ nav, content, toc }: DocsTocShellProps) {
   );
 }
 
-/** 8. Workspace + Right Rail Shell (9+3 asymmetric dashboard layout — Vyzor/Midone/Steex/Ecme) */
+/** 8. Workspace + Right Rail Shell (9+3 asymmetric dashboard layout) */
 export interface WorkspaceRailShellProps {
   main: React.ReactNode;
   rail: React.ReactNode;
@@ -390,7 +390,7 @@ export function WorkspaceRailShell({ main, rail }: WorkspaceRailShellProps) {
   );
 }
 
-/** 9. Affix Form Shell (Sticky step/section navigator + form + sticky bottom bar — Ecme/Cuba/DashLite) */
+/** 9. Affix Form Shell (Sticky step/section navigator + form + sticky bottom bar) */
 export interface AffixFormShellProps {
   nav: React.ReactNode;
   children: React.ReactNode;
@@ -430,7 +430,7 @@ export function AffixFormShell({ nav, children, footer }: AffixFormShellProps) {
   );
 }
 
-/** 10. Masonry Grid Shell (Notes, Gallery, Feed cards — Fuse/Tailwink/Vyzor/Gogo) */
+/** 10. Masonry Grid Shell (Notes, Gallery, Feed cards) */
 export interface MasonryGridShellProps {
   children: React.ReactNode;
   columns?: 2 | 3 | 4;
@@ -450,7 +450,7 @@ export function MasonryGridShell({ children, columns = 3 }: MasonryGridShellProp
   );
 }
 
-/** 11. Resizable Split Shell (Gantt+Table, AI Studio+Preview — React-Jampack/Metronic/DashLite) */
+/** 11. Resizable Split Shell (Gantt+Table, AI Studio+Preview) */
 export interface ResizableSplitShellProps {
   left: React.ReactNode;
   right: React.ReactNode;

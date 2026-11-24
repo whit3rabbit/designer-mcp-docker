@@ -70,7 +70,7 @@ function detectCardBrand(digits: string): string | null {
 }
 
 /**
- * Zero-dependency masked input (Cuba / Vuexy / Materialize / Ecme / Steex).
+ * Zero-dependency masked input.
  */
 export function MaskedInput({
   value,

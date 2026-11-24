@@ -15,7 +15,7 @@ export function HelpCenterPage() {
 
   return (
     <div className="space-y-8">
-      {/* Support Search Hero (Ecme / Metronic / Gogo pattern) */}
+      {/* Support Search Hero */}
       <section
         style={{
           backgroundColor: 'var(--color-primary-surface)',

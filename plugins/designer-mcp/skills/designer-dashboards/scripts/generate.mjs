@@ -313,14 +313,15 @@ function generateEmails(outDir, brand = 'Designer Dashboards') {
   const srcDir = path.join(REPO_ROOT, 'templates', 'emails');
   const destDir = path.join(outDir, 'emails');
   fs.mkdirSync(destDir, { recursive: true });
-  for (const file of fs.readdirSync(srcDir).filter((f) => f.endsWith('.html'))) {
+  const emailFiles = fs.readdirSync(srcDir).filter((f) => f.endsWith('.html'));
+  for (const file of emailFiles) {
     const html = fs
       .readFileSync(path.join(srcDir, file), 'utf8')
       .replace(/\{\{PRIMARY_COLOR\}\}/g, primary)
       .replace(/\{\{BRAND_NAME\}\}/g, brand);
     writeFile(path.join(destDir, file), html);
   }
-  console.log(`Generated 5 themed transactional HTML emails in: ${destDir}`);
+  console.log(`Generated ${emailFiles.length} themed transactional HTML emails in: ${destDir}`);
 }
 
 function generateAuthSuite(outDir, adapter = 'authjs-prisma') {
@@ -702,7 +703,7 @@ function generateChart(chartKind, outDir, framework = 'react') {
       const dest = path.join(outDir, 'src', 'features', 'charts', 'ChartsGalleryPage.tsx');
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(src, dest);
-      console.log(`Generated full 23-type ChartsGalleryPage at: ${dest}`);
+      console.log(`Generated full 29-type ChartsGalleryPage at: ${dest}`);
       return;
     }
   }

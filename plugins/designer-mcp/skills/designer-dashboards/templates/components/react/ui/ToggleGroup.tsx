@@ -30,7 +30,7 @@ const SIZE_CLASSES = {
 } as const;
 
 /**
- * Accessible ToggleGroup / SegmentedControl (shadcn v4 / Ecme / Steex / Metronic).
+ * Accessible ToggleGroup / SegmentedControl (shadcn v4).
  */
 export function ToggleGroup({
   options,

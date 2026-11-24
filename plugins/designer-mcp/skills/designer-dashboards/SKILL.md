@@ -22,12 +22,30 @@ Read [rules/AGENTS.md](rules/AGENTS.md) before generating any dashboard code. Ac
 
 ## MCP Tools & Authority
 
-- **Offline MCP lookup:** Use `design_dashboards_list` (with optional `kind` or `query` filter) and `design_dashboards_get` to browse or read the 26 tech stacks, 24 starters, 21 OpenDesign presets, 16 industry verticals, 20 framework component kits (`mantine`, `heroui`, `chakra`, `mui`, `antd`, `primereact`, `daisyui`, `base-ui`, `coss-ui`, `ark-ui`, `react-bits`, `magic-ui`, `aceternity-ui`, `21st-dev`, `motion-primitives`, `unocss`, `panda-css`, `vanilla-extract`, `stylex`, `open-props`), 10 references, and 6 subskills without needing to locate the skill directory first.
+- **Offline MCP lookup:** Use `design_dashboards_list` (with optional `kind` or `query` filter) and `design_dashboards_get` to browse or read tech stacks, starters, OpenDesign presets, industry verticals, framework component kits (`mantine`, `heroui`, `chakra`, `mui`, `antd`, `primereact`, `daisyui`, `base-ui`, `coss-ui`, `ark-ui`, `react-bits`, `magic-ui`, `aceternity-ui`, `21st-dev`, `motion-primitives`, `unocss`, `panda-css`, `vanilla-extract`, `stylex`, `open-props`), references, and subskills without needing to locate the skill directory first.
+- **Kit ID mapping (`design_dashboards_get` -> catalog MCP tools):** Seven framework directory ids match `design_uikit_*` directly (`chakra`, `mui`, `antd`, `primereact`, `unocss`, `vanilla-extract`, `stylex`). Nine map to a different `kit` argument, and four use their own tool family:
+
+  | Framework directory | Tool | `kit` argument / notes |
+  |---|---|---|
+  | `coss-ui` | `design_uikit_*` | `coss` |
+  | `magic-ui` | `design_uikit_*` | `magicui` |
+  | `motion-primitives` | `design_uikit_*` | `motion` |
+  | `panda-css` | `design_uikit_*` | `panda` |
+  | `open-props` | `design_uikit_*` | `openprops` |
+  | `ark-ui` | `design_uikit_*` | `ark` |
+  | `react-bits` | `design_uikit_*` | `reactbits` (index only, licence-restricted) |
+  | `aceternity-ui` | `design_uikit_*` | `aceternity` (index only, licence-restricted) |
+  | `21st-dev` | `design_uikit_*` | `twentyfirst` (index only, licence-restricted) |
+  | `mantine` | `design_mantine_*` | dedicated tool family |
+  | `heroui` | `design_heroui_*` | dedicated tool family |
+  | `daisyui` | `design_daisyui_*` | dedicated tool family |
+  | `base-ui` | `design_baseui_*` | dedicated tool family (docs only) |
+
 - **Design authority:** The [design-system](../design-system/SKILL.md) skill owns the research workflow, reference lock, and `DESIGN.md` contract. Use [designer-ui](../designer-ui/SKILL.md) for general UI craft and component-library docs (`design_uikit_*`, `design_mantine_*`, `design_heroui_*`, `design_daisyui_*`, `design_baseui_*`), [designer-documents](../designer-documents/SKILL.md) for file deliverables, and [designer-mcp](../designer-mcp/SKILL.md) for catalog setup.
 
 ## Recommended Full-Project Order
 
-When building a dashboard from scratch, run the subskills in sequence:
+In commands below, `<designer-dashboards-root>` is the directory holding this `SKILL.md`. When building a dashboard from scratch, run the subskills in sequence:
 1. `designer-dashboards:init` -> scaffold stack, `@core/@layouts/@menu` layers, package manager, hosting config, and FOUC-free pre-paint theme bootstrap.
 2. `designer-dashboards:design` -> lock `DESIGN.md` + `theme.json` + contrast-verified OKLCH `styles.css` (`--chart-1..10`, `--chart-seq-1..5`, `--chart-grid`, `--chart-tooltip-bg`, `@layer vendor` chart skin) + `_adherence.oxlintrc.json`.
 3. `designer-dashboards:ui` -> wire IconRegistry, Button grammar, `chartPresets` (`<slug>.charts.ts` config-as-data) + `<ChartWrapper>` + `<LiveChart>`, `<RegionMap>`, `<KpiCard>`, `<WidgetCard>` (`@container`, `skeletonVariant`, `collapsible`, `tabs`, `fullscreen`, `pin`), `<EmptyState>`, `<DataGrid>` (`ColumnMeta.skeleton`), `<FilterBar>`, forms, single-engine Sonner toasts + native `<dialog>`/Popover API (or `radix-ui`/`@base-ui/react`) overlays (`--z-*` shell ladder, `--color-scrim`, `CommandPalette`, `NotificationsSheet`), and derived `<PageHeader>`/`<Breadcrumb>` chrome.
