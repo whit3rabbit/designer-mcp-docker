@@ -50,7 +50,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.design-cache
-          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-reui.mjs', 'scripts/fetch-dashboards.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-heroui.mjs', 'scripts/fetch-mantine.mjs', 'scripts/fetch-daisyui.mjs', 'scripts/fetch-baseui.mjs', 'scripts/fetch-uikits.mjs', 'scripts/fetch-thumbs.mjs', 'data/mantine/pin.json', 'data/daisyui/pin.json', 'data/baseui/pin.json', 'data/uikits/pins.json') }}
+          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-refero-styles.mjs', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-reui.mjs', 'scripts/fetch-dashboards.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-heroui.mjs', 'scripts/fetch-mantine.mjs', 'scripts/fetch-daisyui.mjs', 'scripts/fetch-baseui.mjs', 'scripts/fetch-uikits.mjs', 'scripts/fetch-thumbs.mjs', 'data/refero-styles/pin.json', 'data/mantine/pin.json', 'data/daisyui/pin.json', 'data/baseui/pin.json', 'data/uikits/pins.json') }}
           restore-keys: |
             catalog-${{ runner.os }}-
 
@@ -60,6 +60,7 @@ jobs:
           export DESIGN_CACHE_DIR="$HOME/.design-cache"
           export REFERO_CACHE_DIR="$HOME/.design-cache"
           node scripts/refero-public-fetch.js --limit 0 || echo "refero fetch incomplete"
+          node scripts/fetch-refero-styles.mjs || echo "refero-styles fetch incomplete"
           node scripts/fetch-opendesign.mjs || echo "opendesign import incomplete"
           node scripts/fetch-agentkit.mjs || echo "agentkit import incomplete"
           node scripts/fetch-gradientdeck.mjs || echo "component fetch incomplete"
@@ -163,7 +164,7 @@ jobs:
           sleep 12
           docker exec designer-mcp-verify node -e "
             const base = 'http://127.0.0.1:8787';
-            const checks = ['/healthz', '/components', '/presets', '/api/designs', '/heroui', '/api/heroui', '/mantine', '/api/mantine', '/daisyui', '/api/daisyui', '/uikits', '/api/uikits'];
+            const checks = ['/healthz', '/components', '/presets', '/api/designs', '/api/designs-index.json', '/api/components-hub.json', '/refero-styles', '/api/refero-styles', '/heroui', '/api/heroui', '/mantine', '/api/mantine', '/daisyui', '/api/daisyui', '/uikits', '/api/uikits'];
             let bad = 0;
             for (const p of checks) {
               try {
