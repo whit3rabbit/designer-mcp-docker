@@ -30,7 +30,7 @@
  *   DESIGN_CACHE_DIR   cache root (default ~/.design-cache)
  */
 
-import { mkdir, writeFile, rename } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { CACHE_DIR } from "./lib/cache.mjs";
@@ -258,6 +258,20 @@ async function main() {
     console.error(`no tool matches --only ${ONLY}`);
     console.error(`known kinds: ${TOOLS.map((t) => t.kind).join(", ")}`);
     process.exit(1);
+  }
+  if (
+    process.argv.includes("--if-missing") &&
+    !process.argv.includes("--force") &&
+    existsSync(join(CACHE_DIR, "presets.json"))
+  ) {
+    try {
+      const idx = JSON.parse(await readFile(join(CACHE_DIR, "presets.json"), "utf8"));
+      const cats = idx?.catalogs || [];
+      if (cats.length > 0 && cats.every((c) => existsSync(join(PRESETS_DIR, `${c.kind}.json`)))) {
+        console.log(`presets   : ${cats.length} catalog(s) already cached; skipping due to --if-missing`);
+        return;
+      }
+    } catch {}
   }
 
   // The baseline tool shares its chunks with every other tool, so anything

@@ -372,6 +372,17 @@ async function run() {
   const targets = onlySlug ? TEMPLATES.filter((t) => t.slug === onlySlug) : TEMPLATES;
   if (!targets.length) throw new Error(`Unknown dashboard slug: ${onlySlug}`);
 
+  if (
+    !customSource &&
+    process.argv.includes("--if-missing") &&
+    !process.argv.includes("--force") &&
+    existsSync(join(DASHBOARDS_DIR, "index.json")) &&
+    targets.every((t) => existsSync(join(DASHBOARDS_DIR, t.slug, "dashboard.json")) && existsSync(join(DASHBOARDS_DIR, t.slug, "template.zip")))
+  ) {
+    console.log(`Dashboards layer -> ${DASHBOARDS_DIR} (already cached; skipping due to --if-missing)`);
+    return;
+  }
+
   await mkdir(DASHBOARDS_DIR, { recursive: true });
 
   // Merge with any existing dashboards in index.json so adding one template keeps others

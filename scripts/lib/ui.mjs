@@ -8,6 +8,8 @@
  * component demos in separate frames.
  */
 
+import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { glassCss, glassProperties } from "./liquid-glass.mjs";
 
 const esc = (s) =>
@@ -16,6 +18,37 @@ const esc = (s) =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+
+/**
+ * Registry of content-hashed shared shell assets served at `/shell/<filename>`
+ * (both by `preview.mjs` and emitted into `shell/` by `build-static.mjs`).
+ * Avoids duplicating ~15–20 KB of identical CSS/JS into every HTML document.
+ */
+export const SHELL_ASSETS = new Map();
+
+export function registerShellAsset(name, ext, text, type) {
+  const hash = createHash("sha256").update(text).digest("hex").slice(0, 10);
+  const filename = `${name}.${hash}.${ext}`;
+  const path = `/shell/${filename}`;
+  if (!SHELL_ASSETS.has(filename)) {
+    const content = Buffer.from(text, "utf8");
+    SHELL_ASSETS.set(filename, {
+      filename,
+      path,
+      content,
+      gzip: gzipSync(content, { level: 6 }),
+      type,
+      etag: `"${hash}"`,
+    });
+  }
+  return path;
+}
+
+/** Register a named section stylesheet and return its `<link rel="stylesheet">` tag. */
+export function shellStyle(name, css) {
+  const path = registerShellAsset(name, "css", css, "text/css; charset=utf-8");
+  return `<link rel="stylesheet" href="${path}">`;
+}
 
 /**
  * FOUC-prevention head snippet for adaptive light/dark theme.
@@ -45,7 +78,7 @@ export const BASE_CSS = `
     --code-bg: light-dark(#f2f4f8, #0a0c0f);
     --code-fg: light-dark(#1d2432, #d7dbe3);
     --ok-fg: light-dark(#147a42, #7ee2a8);
-    --nav-bg: light-dark(rgba(255,255,255,.92), rgba(13,15,18,.94));
+    --nav-bg: light-dark(rgba(255,255,255,.97), rgba(13,15,18,.97));
     --brand: light-dark(#15733a, #7ee2a8);
     --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -140,8 +173,10 @@ export function nav(active) {
     <span id="mcp-tray-status" class="mcp-status" role="status"></span>
   </div>
 </aside>
-<script>
-(function(){
+<script src="${SHELL_JS_PATH}"></script>`;
+}
+
+const SHELL_NAV_JS = `(function(){
   var meta = document.querySelector('meta[name="color-scheme"]');
   if (!meta) {
     meta = document.createElement('meta');
@@ -213,9 +248,11 @@ export function nav(active) {
     document.querySelectorAll('[data-mcp-ref]').forEach(function(el){
       var ref = el.getAttribute('data-mcp-ref') || '';
       var on = Boolean(ref && set.has(ref));
-      el.setAttribute('aria-pressed', String(on));
+      var prev = el.getAttribute('aria-pressed');
+      if (prev !== String(on)) el.setAttribute('aria-pressed', String(on));
       var compact = el.classList.contains('compact');
-      el.textContent = on ? (compact ? '✓ MCP' : '✓ Sent to MCP') : (compact ? '+ MCP' : '+ Send to MCP');
+      var label = on ? (compact ? '✓ MCP' : '✓ Sent to MCP') : (compact ? '+ MCP' : '+ Send to MCP');
+      if (el.textContent !== label) el.textContent = label;
     });
   }
   function renderTray() {
@@ -367,8 +404,9 @@ export function nav(active) {
     }).catch(function(){});
   }
 })();
-</script>`;
-}
+`;
+
+export const SHELL_JS_PATH = registerShellAsset("shell", "js", SHELL_NAV_JS, "text/javascript; charset=utf-8");
 
 /** Optional contextual secondary strip shown under the main nav on hub sub-pages. */
 export function subnav(items, active) {
@@ -385,7 +423,7 @@ export function subnav(items, active) {
 export const NAV_CSS = `
   .site-header { position:sticky; top:0; z-index:30; }
   .nav { display:flex; align-items:center; gap:4px;
-    background:var(--nav-bg); backdrop-filter:blur(10px);
+    background:var(--nav-bg);
     border-bottom:1px solid var(--line); padding:0 16px; height:48px; overflow-x:auto; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
   .brand { flex:none; white-space:nowrap; font-weight:700; margin-right:12px; letter-spacing:-.015em; color:var(--strong); text-decoration:none; font-size:14.5px; }
   .tab { color:var(--muted); text-decoration:none; padding:6px 11px; border-radius:7px;
@@ -488,6 +526,13 @@ export const NAV_CSS = `
   }
 `;
 
+export const SHELL_CSS_PATH = registerShellAsset("shell", "css", `${BASE_CSS}\n${NAV_CSS}`, "text/css; charset=utf-8");
+
+/** Shared head snippet: FOUC-free color-scheme + immutable shell stylesheet + optional section CSS links. */
+export function shellHead(extraLinks = "") {
+  return `${themeHead()}\n<link rel="stylesheet" href="${SHELL_CSS_PATH}">${extraLinks ? `\n${extraLinks}` : ""}`;
+}
+
 const SHARED_CSS = `
   .bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:14px 20px 0; }
   input, select, button { background:var(--panel2); color:var(--fg); border:1px solid var(--line);
@@ -558,11 +603,9 @@ export function assetsHtml(manifest, importMap = null, origin = "", libraries = 
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead()}
 <title>Assets &amp; Docs — Offline CDN</title>
 <style>
-${BASE_CSS}
-${NAV_CSS}
 main { max-width:980px; margin:0 auto; padding:22px 20px 64px; }
 h1 { font-size:22px; margin:0 0 12px; color:var(--strong); }
 h2 { font-size:15px; margin:26px 0 10px; color:var(--strong); }
@@ -694,11 +737,9 @@ export function startersHtml({ dashboards = [], templates = [], slopstrap = null
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead()}
 <title>Starters — Dashboards, System Templates &amp; Kits</title>
 <style>
-${BASE_CSS}
-${NAV_CSS}
 .st-wrap { max-width:1440px; margin:0 auto; padding:24px clamp(14px, 3vw, 36px) 64px; }
 .st-wrap h1 { font-size:24px; margin:0 0 6px; color:var(--strong); }
 .st-lead { color:var(--muted); margin:0 0 22px; max-width:72ch; }
@@ -824,8 +865,9 @@ function browsePage({ active, title, heading, back = "", sourceNav = "", items, 
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead()}
 <title>${esc(title)}</title>
-<style>${BASE_CSS}${NAV_CSS}${BROWSE_CSS}${styles}</style>
+<style>${BROWSE_CSS}${styles}</style>
 </head>
 <body>
 ${nav(active)}
@@ -934,8 +976,9 @@ export function tailwindExampleHtml(source, group, selected, example) {
   }).join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead()}
 <title>${esc(group.name)} · ${sourceName}</title>
-<style>${BASE_CSS}${NAV_CSS}${BROWSE_CSS}
+<style>${BROWSE_CSS}
 .example { max-width: 1180px; }
 .example h1 { margin-bottom: 12px; }
 .viewport-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; }
@@ -1034,10 +1077,9 @@ export function componentDetailHtml(component, previewPaths = []) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead()}
 <title>${esc(component?.title || component?.slug)} — Components</title>
 <style>
-${BASE_CSS}
-${NAV_CSS}
   .wrap { padding:18px 20px 60px; max-width:1100px; }
   h1 { margin:0 0 4px; font-size:19px; font-weight:650; letter-spacing:-.015em; }
   .lead { color:var(--muted); margin:0 0 14px; font-size:13px; max-width:70ch; line-height:1.6; }
@@ -1152,10 +1194,9 @@ export function slopstrapHtml(manifest) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead()}
 <title>${esc(title)}</title>
 <style>
-${BASE_CSS}
-${NAV_CSS}
   .gate { background:var(--panel); border:1px solid var(--line); border-radius:12px;
     padding:16px 18px; max-width:760px; margin:0 auto; }
   .gate h1 { font-size:18px; margin:0 0 6px; }
@@ -1470,10 +1511,9 @@ export function presetsHtml(catalogs) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead()}
 <title>Gradients &amp; Patterns — ${total} presets</title>
 <style>
-${BASE_CSS}
-${NAV_CSS}
 ${SHARED_CSS}
   .grid { display:grid; gap:12px; padding:18px 20px 60px;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
@@ -1627,11 +1667,9 @@ export function uiSdkDocsHtml(docs = []) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead()}
 <title>UI SDK Offline Docs (@ui-sdk/core, react, web)</title>
 <style>
-${BASE_CSS}
-${NAV_CSS}
 .docs-wrap { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; max-width: 1480px; margin: 0 auto; padding: 18px 20px 60px; }
 @media (max-width: 860px) { .docs-wrap { grid-template-columns: 1fr; } }
 .docs-side { display: flex; flex-direction: column; gap: 10px; }
@@ -1740,10 +1778,9 @@ export function templatesHtml(index) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead()}
 <title>System templates — ${total} design systems</title>
 <style>
-${BASE_CSS}
-${NAV_CSS}
 ${SHARED_CSS}
   .grid { display:grid; gap:12px; padding:18px 20px 60px;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
@@ -1849,10 +1886,9 @@ export function templateDetailHtml(record, previewLinks = {}) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead()}
 <title>${esc(record?.name || record?.slug)} — System templates</title>
 <style>
-${BASE_CSS}
-${NAV_CSS}
   .wrap { padding:18px 20px 60px; max-width:1100px; }
   h1 { margin:0 0 4px; font-size:19px; font-weight:650; letter-spacing:-.015em; }
   h2 { font-size:14px; font-weight:650; margin:22px 0 8px; }

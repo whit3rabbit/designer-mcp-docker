@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.1.0 (2026-11-25)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v2.1.0`
+- **Faster GitHub Pages & static site builds (-115.7 MB HTML, -43.7% HTML size):**
+  - Extracted shared `BASE_CSS`, `NAV_CSS`, per-section CSS, and the MCP Picks Tray / theme-toggle script into 14 content-hashed immutable bundles under `/shell/` (`scripts/lib/ui.mjs`, served with `Cache-Control: immutable` + gzip on `preview.mjs` and emitted into `shell/` on static Pages), eliminating ~115 MB of duplicated inline `<style>`/`<script>` across 8,546 HTML pages.
+  - Parallelized `scripts/build-static.mjs` across every layer with `mapLimit`, memoized `mkdir` calls, single-pass `relativizeHtml()` attribute rewriting, O(1) UIKit file-map lookups, and removed dead/duplicate outputs (`api/gallery-index.json`, double-written index pages, doubled `api/catalog.json` key, duplicate Mantine SVGs, and 1,685 unreferenced Refero Styles assets).
+  - Added `paths-ignore` to `.github/workflows/pages.yml` to skip doc-only pushes.
+- **Faster CI & local caching (incremental bake in ~3.1s, pin-matched fetch skips in <1s):**
+  - Added `provenance.json` pin-match short-circuiting (`--force` to override) to `fetch-uikits.mjs` (per-kit), `fetch-heroui.mjs`, `fetch-mantine.mjs`, `fetch-daisyui.mjs`, and `fetch-baseui.mjs`, plus `--if-missing` support to `fetch-reui.mjs`, `fetch-dashboards.mjs`, `fetch-presets.mjs`, and `fetch-opendesign.mjs`.
+  - Updated `fetch-refero-styles.mjs` to compress bitmap favicons to 64×64 WebP (~88 MB reduction on next refresh) and stop mirroring unreferenced extra type-preview assets.
+  - Made `scripts/bake-cache.mjs` incremental and parallel (`size+mtimeMs` skip, stale pruning, `COPYFILE_FICLONE` copy-on-write, single-pass byte accounting).
+  - Parallelized independent stages in `frontend/build.mjs`, memoized disk reads and scaled worker concurrency in `frontend/thumbnails.mjs`, split `.github/workflows/publish.yml` `actions/cache` by layer, parallelized independent fetchers, and added `FROM scratch AS frontend-export` in `Dockerfile` so CI builds the frontend bundle once instead of twice.
+- **Faster local servers & more responsive website (LCP, INP, scrolling):**
+  - Added gzip compression and `ETag` `304` validation to `scripts/preview.mjs`, `scripts/static-serve.mjs`, and `scripts/lib/frontend.mjs`; pre-serialized/pre-gzipped `/api/designs-index.json` and `/api/components-hub.json`; fixed per-request `designByDomain` rebuild and versioned component thumbnail caching; added `mtime+size`-validated parsed-JSON caching in `scripts/lib/cache.mjs`.
+  - SSR-rendered the first 24 design-system cards on `/` with `fetchpriority="high"` + `<link rel="preload" as="fetch">` for instant LCP, switched "Show more" to incremental append, debounced search inputs, precomputed `_rgb` tuples and `_hay` search strings, switched Icons browser sliders to CSS custom properties (zero DOM rebuilds), lazy-loaded ReUI category TSX payloads from `/api/reui/<slug>`, deferred Charts vendor scripts, and enabled `content-visibility: auto` on catalog cards.
+
 ## v2.0.1 (2026-11-25)
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v2.0.1`

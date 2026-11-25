@@ -176,9 +176,18 @@ function latestRelease(entries) {
 }
 
 async function main() {
+  const force = process.argv.includes("--force");
   const pin = await readJsonSafe(PIN_PATH);
   if (!pin?.docsSource || !pin?.docsBaseUrl) throw new Error(`missing or invalid ${PIN_PATH}`);
   const gaps = [];
+
+  if (!force && existsSync(join(BASEUI_DIR, "catalog.json"))) {
+    const prior = await readJsonSafe(join(BASEUI_DIR, "provenance.json"));
+    if (prior && JSON.stringify(prior.pin) === JSON.stringify(pin)) {
+      console.log(`Base UI docs layer -> ${BASEUI_DIR} (up to date, matches pin; pass --force to refetch)`);
+      return;
+    }
+  }
 
   console.log(`Base UI docs layer -> ${BASEUI_DIR}`);
   console.log(`  pin: docs ${pin.docsSource}, licence ${pin.license?.repo}@${pin.license?.ref}`);

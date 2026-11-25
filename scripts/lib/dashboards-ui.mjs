@@ -2,7 +2,9 @@
  * dashboards-ui.mjs — Dashboards starter templates gallery & setup pages.
  */
 
-import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
+import { shellHead, shellStyle, nav, mcpButton } from "./ui.mjs";
+
+let DASH_STYLE_LINK = "";
 
 const esc = (s) =>
   String(s ?? "")
@@ -160,8 +162,8 @@ export function dashboardsHtml(index) {
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(DASH_STYLE_LINK || (DASH_STYLE_LINK = shellStyle("dashboards", DASH_CSS)))}
 <title>Dashboards · Designer</title>
-<style>${BASE_CSS}${NAV_CSS}${DASH_CSS}</style>
 </head><body>
 ${nav("dashboards")}
 <main class="dash-wrap">
@@ -218,8 +220,8 @@ export function dashboardDetailHtml(record) {
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(DASH_STYLE_LINK || (DASH_STYLE_LINK = shellStyle("dashboards", DASH_CSS)))}
 <title>${esc(record.name)} · Dashboards</title>
-<style>${BASE_CSS}${NAV_CSS}${DASH_CSS}</style>
 </head><body>
 ${nav("dashboards")}
 <main class="dash-wrap">

@@ -16,7 +16,7 @@
  * page loads no third-party code, no fonts and no images.
  */
 
-import { BASE_CSS, NAV_CSS, nav, themeHead } from "./ui.mjs";
+import { BASE_CSS, NAV_CSS, nav, themeHead, shellHead, shellStyle } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -25,10 +25,7 @@ const esc = (s) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-/**
- * The design-system page shell — built on the shared adaptive light/dark tokens from ui.mjs.
- */
-export const KIT_CSS = `${BASE_CSS}
+const KIT_ONLY_CSS = `
   body { font: 15px/1.55 var(--font); color: var(--text); }
   a { color: var(--accent); }
   .wrap { max-width: 1220px; margin: 0 auto; padding: 26px max(16px, env(safe-area-inset-left)) 64px; }
@@ -47,6 +44,7 @@ export const KIT_CSS = `${BASE_CSS}
   .chip:hover { border-color: var(--accent); }
   .chip[aria-pressed="true"] { background: var(--accent-bg); color: var(--strong); border-color: var(--accent-line); font-weight: 600; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; list-style: none; padding: 0; margin: 0; }
+  .card { content-visibility: auto; contain-intrinsic-size: auto 280px; }
   .card a { display: grid; gap: 10px; text-decoration: none; color: inherit; }
   .thumb {
     aspect-ratio: 16 / 10; height: auto; border-radius: 10px; border: 1px solid var(--line);
@@ -98,13 +96,19 @@ export const KIT_CSS = `${BASE_CSS}
   footer { margin-top: 48px; font-size: 13px; color: var(--muted); }
 `;
 
+/**
+ * The design-system page shell — built on the shared adaptive light/dark tokens from ui.mjs.
+ */
+export const KIT_CSS = `${BASE_CSS}${KIT_ONLY_CSS}`;
+export const KIT_STYLE_LINK = shellStyle("kit", KIT_ONLY_CSS);
+
 /** The unified top nav bar (delegates directly to ui.mjs nav). */
 export function kitNav(active) {
   return nav(active);
 }
 
 export const KIT_NAV_CSS = NAV_CSS;
-export { themeHead };
+export { themeHead, shellHead };
 
 /**
  * The gallery index.
@@ -147,8 +151,8 @@ export function galleryIndexHtml({ designs, tags, total }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(KIT_STYLE_LINK)}
 <title>Design Systems — ${total} designs</title>
-<style>${KIT_CSS}${KIT_NAV_CSS}</style>
 </head>
 <body>
 ${kitNav("designs")}
@@ -239,9 +243,8 @@ export function designDetailHtml({ design, views = [], main = "", aside = "", ta
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead(KIT_STYLE_LINK)}
 <title>${esc(design.siteName)} — Design Systems</title>
-<style>${KIT_CSS}${KIT_NAV_CSS}</style>
 </head>
 <body>
 ${kitNav("designs")}

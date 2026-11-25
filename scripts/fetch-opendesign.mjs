@@ -37,8 +37,10 @@
 
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { CACHE_DIR } from "./lib/cache.mjs";
 import { importSystems } from "./lib/opendesign-import.mjs";
 
 const argv = process.argv.slice(2);
@@ -95,6 +97,24 @@ async function sparseClone(dest) {
 async function main() {
   const onlySlug = argVal("--slug");
   const localSource = argVal("--source");
+
+  if (
+    !localSource &&
+    !onlySlug &&
+    has("--if-missing") &&
+    !has("--force") &&
+    existsSync(join(CACHE_DIR, "systems")) &&
+    existsSync(join(CACHE_DIR, "catalog.json"))
+  ) {
+    try {
+      const cat = JSON.parse(await readFile(join(CACHE_DIR, "catalog.json"), "utf8"));
+      const odCount = (cat.designs || cat.styles || []).filter((d) => d.source === "opendesign").length;
+      if (odCount >= 150) {
+        console.log(`opendesign: ${odCount} systems already cached; skipping due to --if-missing`);
+        return;
+      }
+    } catch {}
+  }
 
   let systemsDir;
   if (localSource) {

@@ -11,7 +11,7 @@
  * so both `preview.mjs` and `build-static.mjs` stay byte-for-byte consistent.
  */
 
-import { BASE_CSS, NAV_CSS, nav, themeHead } from "./ui.mjs";
+import { shellHead, shellStyle, nav } from "./ui.mjs";
 import { HUE_FAMILIES } from "./designs-index.mjs";
 
 const esc = (s) =>
@@ -135,6 +135,7 @@ const DESIGNS_CSS = `
   .ds-card {
     display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 11px;
     background: var(--panel); overflow: hidden; transition: border-color .14s ease, transform .14s ease;
+    content-visibility: auto; contain-intrinsic-size: auto 330px;
   }
   .ds-card:hover, .ds-card:focus-within { border-color: var(--accent); transform: translateY(-1px); }
   .ds-card-link { display: flex; flex-direction: column; text-decoration: none; color: inherit; flex: 1; }
@@ -177,7 +178,62 @@ const DESIGNS_CSS = `
   .ds-empty[hidden] { display: none; }
 `;
 
-export function unifiedDesignsHtml({ total, facets = {}, indexUrl = "/api/designs-index.json", pageSize = 60 }) {
+const DESIGNS_STYLE_LINK = shellStyle("designs", DESIGNS_CSS);
+
+function refForDesignSsr(d) {
+  if (d.source === "template") return `designer:template:${String(d.id).replace(/^template:/, "")}`;
+  if (d.id && String(d.id).startsWith("rs:")) return `designer:style:${String(d.id).slice(3)}`;
+  if (d.source === "opendesign") return `designer:opendesign:${d.id}`;
+  return `designer:refero:${d.id}`;
+}
+
+function ssrDesignCard(d, idx) {
+  const swatches = (d.colors || [])
+    .map((c) => `<span style="background:${esc(c)}" title="${esc(c)}"></span>`)
+    .join("");
+  const srcLabel = d.source === "refero-styles"
+    ? (d.recipeCount ? `Deep Style · ${d.recipeCount} recipes` : "Deep Style")
+    : d.source === "opendesign"
+      ? "OpenDesign"
+      : d.source === "template"
+        ? "Template"
+        : "Refero";
+  const srcCls = d.source === "refero-styles" ? "ds-src deep" : d.source === "opendesign" || d.source === "template" ? "ds-src open" : "ds-src";
+  const isSvg = d.thumb && d.thumb.endsWith(".svg");
+  const tags = [];
+  if (d.theme) tags.push(d.theme);
+  if (d.industry && d.industry !== "template") tags.push(d.industry);
+  if (d.fonts && d.fonts[0]) tags.push(d.fonts[0]);
+  if (d.caps && d.caps.includes("live-preview")) tags.push("live preview");
+  if (d.caps && d.caps.includes("starter-kit")) tags.push("starter kit");
+  const mcpRef = refForDesignSsr(d);
+  const mcpBtn = `<button type="button" class="mcp-send-btn compact" data-mcp-ref="${esc(mcpRef)}" data-mcp-label="${esc(d.name)}" aria-pressed="false" title="Send ${esc(mcpRef)} to MCP">+ MCP</button>`;
+  const footLeft = d.deepHref
+    ? `<a href="${esc(d.deepHref)}">Deep Style Recipes →</a>`
+    : `<span>${esc(d.domain || srcLabel)}</span>`;
+  const imgAttrs = idx < 2
+    ? 'fetchpriority="high" decoding="async"'
+    : idx < 6
+      ? 'decoding="async"'
+      : 'loading="lazy" decoding="async"';
+  return `<li class="ds-card">` +
+    `<a class="ds-card-link" href="${esc(d.href)}">` +
+      `<div class="ds-visual${isSvg ? " svg-fit" : ""}">` +
+        `<div class="ds-swatch-fallback" aria-hidden="true">${swatches}</div>` +
+        (d.thumb ? `<img src="${esc(d.thumb)}" alt="" ${imgAttrs} onerror="this.remove()">` : "") +
+      `</div>` +
+      (swatches ? `<div class="ds-palette" aria-hidden="true">${swatches}</div>` : "") +
+      `<div class="ds-body">` +
+        `<div class="ds-title-row"><span class="ds-title">${esc(d.name)}</span><span class="${srcCls}">${esc(srcLabel)}</span></div>` +
+        (d.desc ? `<span class="ds-desc">${esc(d.desc)}</span>` : "") +
+        `<div class="ds-tags">${tags.slice(0, 4).map((t) => `<span class="ds-tag">${esc(t)}</span>`).join("")}</div>` +
+      `</div>` +
+    `</a>` +
+    `<div class="ds-card-foot">${footLeft}${mcpBtn}</div>` +
+  `</li>`;
+}
+
+export function unifiedDesignsHtml({ total, facets = {}, indexUrl = "/api/designs-index.json", pageSize = 60, initialDesigns = [] }) {
   const countMap = (list) => new Map((list || []).map((x) => [x.value, x.count]));
   const srcCounts = countMap(facets.sources);
   const themeCounts = countMap(facets.themes);
@@ -267,14 +323,16 @@ export function unifiedDesignsHtml({ total, facets = {}, indexUrl = "/api/design
     ...(facets.topFonts || []).map(({ value, count }) => `<option value="${esc(value)}">${esc(value)} (${count})</option>`),
   ].join("");
 
+  const initialCardsHtml = (initialDesigns || []).map(ssrDesignCard).join("");
+
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead(DESIGNS_STYLE_LINK)}
+<link rel="preload" href="${esc(indexUrl)}" as="fetch" crossorigin>
 <title>Design Systems — ${total} unified DESIGN.md systems</title>
-<style>${BASE_CSS}${NAV_CSS}${DESIGNS_CSS}</style>
 </head>
 <body>
 ${nav("designs")}
@@ -348,11 +406,11 @@ ${nav("designs")}
 
   <div id="ds-active" class="ds-active" hidden></div>
   <div class="ds-meta-bar">
-    <span id="ds-count" role="status">Loading ${total} design systems…</span>
+    <span id="ds-count" role="status">${initialCardsHtml ? `${total} design systems` : `Loading ${total} design systems…`}</span>
     <span id="ds-summary"></span>
   </div>
 
-  <ul id="ds-grid" class="ds-grid"></ul>
+  <ul id="ds-grid" class="ds-grid">${initialCardsHtml}</ul>
   <p id="ds-empty" class="ds-empty" hidden>No design systems match your current filters. Try clearing one or broadening your color tolerance.</p>
   <div id="ds-pager" class="ds-pager" hidden>
     <button type="button" id="ds-more" class="ds-btn">Show more</button>
@@ -410,6 +468,8 @@ ${nav("designs")}
   var allDesigns = [];
   var filtered = [];
   var shown = PAGE_SIZE;
+  var renderedCount = ${initialDesigns.length};
+  var ssrInitialCount = ${initialDesigns.length};
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -426,11 +486,9 @@ ${nav("designs")}
   }
   function minPaletteDist(item, targetRgb) {
     var best = 999;
-    var list = item.colors || [];
+    var list = item._rgb || [];
     for (var i = 0; i < list.length; i++) {
-      var rgb = hexRgb(list[i]);
-      if (!rgb) continue;
-      var d = colorDist(rgb, targetRgb);
+      var d = colorDist(list[i], targetRgb);
       if (d < best) best = d;
     }
     return best;
@@ -601,9 +659,14 @@ ${nav("designs")}
     '</li>';
   }
 
-  function renderGrid() {
-    var slice = filtered.slice(0, shown);
-    gridEl.innerHTML = slice.map(cardHtml).join('');
+  function renderGrid(append) {
+    var target = Math.min(filtered.length, shown);
+    if (append && renderedCount > 0 && renderedCount < target) {
+      gridEl.insertAdjacentHTML('beforeend', filtered.slice(renderedCount, target).map(cardHtml).join(''));
+    } else {
+      gridEl.innerHTML = filtered.slice(0, target).map(cardHtml).join('');
+    }
+    renderedCount = target;
     if (window.DesignerMCP) window.DesignerMCP.syncButtons();
     countEl.textContent = filtered.length === allDesigns.length
       ? filtered.length + ' design systems'
@@ -680,8 +743,14 @@ ${nav("designs")}
     renderGrid();
   }
 
-  // Event wiring
-  qEl.addEventListener('input', function(){ state.q = qEl.value; apply(true); });
+  // Event wiring (debounced text search & rAF-throttled color sliders for responsive INP)
+  var searchTimer = 0;
+  var sliderRaf = 0;
+  qEl.addEventListener('input', function(){
+    state.q = qEl.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function(){ apply(true); }, 100);
+  });
   sortEl.addEventListener('change', function(){ state.sort = sortEl.value; apply(false); });
   moreBtn.addEventListener('click', function(){
     var open = drawer.hidden;
@@ -735,10 +804,14 @@ ${nav("designs")}
   });
   fontEl.addEventListener('change', function(){ state.font = fontEl.value; apply(true); });
   indEl.addEventListener('change', function(){ state.industry = indEl.value; apply(true); });
+  function scheduleSliderApply() {
+    if (sliderRaf) return;
+    sliderRaf = requestAnimationFrame(function(){ sliderRaf = 0; apply(true); });
+  }
   hexPick.addEventListener('input', function(){
     state.hex = hexPick.value.toLowerCase();
     state.sort = 'color';
-    apply(true);
+    scheduleSliderApply();
   });
   hexText.addEventListener('input', function(){
     var v = hexText.value.trim();
@@ -751,12 +824,17 @@ ${nav("designs")}
       apply(true);
     }
   });
-  hexTol.addEventListener('input', function(){ state.tol = Number(hexTol.value) || 55; if (state.hex) apply(true); });
+  hexTol.addEventListener('input', function(){ state.tol = Number(hexTol.value) || 55; if (state.hex) scheduleSliderApply(); });
   hexClear.addEventListener('click', function(){ state.hex = ''; state.sort = 'richness'; apply(true); });
-  loadMoreBtn.addEventListener('click', function(){ shown += PAGE_SIZE; renderGrid(); });
-  showAllBtn.addEventListener('click', function(){ shown = filtered.length; renderGrid(); });
+  loadMoreBtn.addEventListener('click', function(){ shown += PAGE_SIZE; renderGrid(true); });
+  showAllBtn.addEventListener('click', function(){ shown = filtered.length; renderGrid(true); });
 
   hydrateFromUrl();
+  var hasInitialFilters = Boolean(
+    state.q || state.theme || state.source || state.ground || state.temp || state.contrast ||
+    state.fontStyle || state.pairing || state.font || state.industry || state.surface ||
+    state.hex || state.hues.size || state.moods.size || state.caps.size || state.sort !== 'richness'
+  );
   fetch(INDEX_URL).then(function(r){ return r.json(); }).then(function(data){
     allDesigns = (data.designs || []).map(function(d){
       d._hay = [
@@ -767,13 +845,21 @@ ${nav("designs")}
         (d.colors || []).join(' '),
         (d.sources || []).join(' ')
       ].filter(Boolean).join(' ').toLowerCase();
+      d._rgb = (d.colors || []).map(hexRgb).filter(Boolean);
       return d;
     });
     if (state.ground || state.temp || state.contrast || state.fontStyle || state.pairing || state.font || state.industry || state.surface || state.hex || state.moods.size || state.caps.size) {
       drawer.hidden = false;
       moreBtn.setAttribute('aria-expanded', 'true');
     }
-    apply(true);
+    if (!hasInitialFilters && ssrInitialCount > 0) {
+      filtered = allDesigns;
+      syncControls();
+      // Preserve SSR above-the-fold cards without flicker; append remaining items of page 1.
+      renderGrid(true);
+    } else {
+      apply(true);
+    }
   }).catch(function(err){
     countEl.textContent = 'Failed to load design systems index: ' + err.message;
   });

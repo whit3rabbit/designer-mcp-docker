@@ -55,11 +55,7 @@ async function readTextUnder(base, rel) {
   const full = resolve(join(base, clean));
   if (!full.startsWith(resolve(base) + "/") || !existsSync(full)) return null;
   if (contentCache.has(full)) {
-    // Re-insert so a hit stays fresh and the least recently used entry goes first.
-    const hit = contentCache.get(full);
-    contentCache.delete(full);
-    contentCache.set(full, hit);
-    return hit;
+    return contentCache.get(full);
   }
   // A directory passes existsSync, and reading one as text throws EISDIR.
   if (!statSync(full).isFile()) return null;

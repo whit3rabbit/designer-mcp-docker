@@ -32,7 +32,7 @@
  */
 
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, writeFile, rename } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, writeFile, rename } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 
@@ -280,18 +280,33 @@ export const SOURCE = {
   OPENDESIGN: "opendesign",
 };
 
+const localJsonCache = createBoundedCache(128);
+
 /** Atomic write — a crash mid-write must not leave a truncated JSON file. */
 export async function writeJsonAtomic(path, value) {
   await mkdir(dirname(path), { recursive: true });
   const tmp = `${path}.tmp.${process.pid}.${Date.now()}`;
   await writeFile(tmp, JSON.stringify(value), "utf8");
   await rename(tmp, path);
+  localJsonCache.delete(path);
 }
 
 export async function readJson(path) {
-  if (!existsSync(path)) return null;
+  let info;
   try {
-    return JSON.parse(await readFile(path, "utf8"));
+    info = await stat(path);
+  } catch {
+    localJsonCache.delete(path);
+    return null;
+  }
+  const hit = localJsonCache.get(path);
+  if (hit && hit.mtimeMs === info.mtimeMs && hit.size === info.size) {
+    return hit.data;
+  }
+  try {
+    const data = JSON.parse(await readFile(path, "utf8"));
+    localJsonCache.set(path, { mtimeMs: info.mtimeMs, size: info.size, data });
+    return data;
   } catch {
     return null;
   }

@@ -203,8 +203,16 @@ async function checksumTree(rootDir, rel = "") {
 }
 
 async function main() {
+  const force = process.argv.includes("--force");
   const pin = await readJsonSafe(PIN_PATH);
   if (!pin?.reactVersion) throw new Error(`missing or invalid ${PIN_PATH}`);
+  if (!force && existsSync(join(HEROUI_DIR, "catalog.json"))) {
+    const prior = await readJsonSafe(join(HEROUI_DIR, "provenance.json"));
+    if (prior && JSON.stringify(prior.pin) === JSON.stringify(pin)) {
+      console.log(`HeroUI layer -> ${HEROUI_DIR} (up to date, matches pin; pass --force to refetch)`);
+      return;
+    }
+  }
   const gaps = [];
   const stage = async (label, fn) => {
     try {

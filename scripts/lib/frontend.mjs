@@ -1,6 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
+import { gzipSync } from "node:zlib";
 import { validAssetPath, validSlug, variantFingerprint } from "./frontend-paths.mjs";
+
+const COMPRESSIBLE_EXT = new Set([".css", ".js", ".mjs", ".html", ".json", ".md", ".txt", ".ts", ".tsx", ".svg"]);
+const gzipAssetCache = new Map();
+const GZIP_CACHE_LIMIT = 256;
 
 const MIME = {
   ".css": "text/css; charset=utf-8",
@@ -280,19 +285,32 @@ export async function loadFrontend(directory) {
     }
     const [, slug, entry] = /^templates\/([a-z0-9-]+)\/(.+)$/.exec(file) ?? [];
     const kind = file.startsWith("tailwind/") ? "tailwind" : manifest.templates[slug]?.[entry]?.kind;
+    const acceptsGzip = /\bgzip\b/i.test(String(req.headers["accept-encoding"] || ""));
+    const shouldCompress = acceptsGzip && bytes.length >= 1024 && COMPRESSIBLE_EXT.has(extension);
+    let body = bytes;
+    if (shouldCompress) {
+      let gz = gzipAssetCache.get(etag);
+      if (!gz) {
+        gz = gzipSync(bytes, { level: 6 });
+        if (gzipAssetCache.size >= GZIP_CACHE_LIMIT) gzipAssetCache.delete(gzipAssetCache.keys().next().value);
+        gzipAssetCache.set(etag, gz);
+      }
+      body = gz;
+    }
     const headers = {
       ...(extension === ".html" ? htmlHeaders(kind ?? "starter") : {}),
       "content-type": MIME[extension] ?? "application/octet-stream",
-      "content-length": bytes.length,
+      "content-length": body.length,
       "x-content-type-options": "nosniff",
       // Sandboxed documents have opaque origins. Only these public, built assets need CORS.
       "access-control-allow-origin": "*",
       "cache-control": cacheHeader,
       etag,
+      ...(shouldCompress ? { "content-encoding": "gzip", vary: "accept-encoding" } : {}),
       ...(file === "starter.zip" ? { "content-disposition": 'attachment; filename="designer-frontend-starter.zip"' } : {}),
     };
     res.writeHead(200, headers);
-    res.end(req.method === "HEAD" ? undefined : bytes);
+    res.end(req.method === "HEAD" ? undefined : body);
     return true;
   }
 
@@ -334,6 +352,11 @@ export async function loadFrontend(directory) {
     },
     thumbnailAsset(slug, item) {
       const thumbnail = variant(slug, item)?.thumbnail;
+      return thumbnail && Object.hasOwn(files, thumbnail) ? assetUrl(thumbnail) : null;
+    },
+    thumbnailAssetById(slug, id) {
+      if (!manifest || !validSlug(slug) || !validSlug(id)) return null;
+      const thumbnail = manifest.previews?.[slug]?.[id]?.thumbnail;
       return thumbnail && Object.hasOwn(files, thumbnail) ? assetUrl(thumbnail) : null;
     },
     previewPath(slug, item) {

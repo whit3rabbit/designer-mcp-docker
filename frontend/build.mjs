@@ -1081,17 +1081,28 @@ try {
   const starterImportMap = Object.fromEntries(
     Object.entries(starterImports).map(([specifier, file]) => [specifier, file.replace(/^\.\//, "starter/")]),
   );
-  const templates = await stageTemplates(cache, out, deckModules);
-  const slopstrap = await stageSlopstrap(out);
   // Templates reference the same font faces and binaries as the downloadable starter.
   const templateFontImport = '@import "../starter/fonts/fonts.css";\n';
   await write(join(out, "fonts", "fonts.css"), templateFontImport);
-  const { previews, packages: previewPackages } = await buildPreviews(scratch, out);
-  const nativePreviews = await buildNativePreviews(scratch, out);
+  const [
+    templates,
+    slopstrap,
+    { previews, packages: previewPackages },
+    nativePreviews,
+    mantinePreviews,
+    daisyuiPreviews,
+    tailwindGallery,
+  ] = await Promise.all([
+    stageTemplates(cache, out, deckModules),
+    stageSlopstrap(out),
+    buildPreviews(scratch, out),
+    buildNativePreviews(scratch, out),
+    buildMantinePreviews(scratch, out),
+    buildDaisyuiPreviews(out),
+    stageTailwindGallery(out, hyperui, cache, modules, shadcn),
+  ]);
+  // ReUI previews share `out/previews/chunks/` with `buildPreviews`, so run after it completes.
   const { reuiPreviews, packages: reuiPackages } = await buildReuiPreviews(scratch, out);
-  const mantinePreviews = await buildMantinePreviews(scratch, out);
-  const daisyuiPreviews = await buildDaisyuiPreviews(out);
-  const tailwindGallery = await stageTailwindGallery(out, hyperui, cache, modules, shadcn);
   await captureThumbnails(out, previews, tailwindGallery, nativePreviews, mantinePreviews, daisyuiPreviews);
   const browserPackages = packages.filter((name) => !["esbuild", "parse5", "@tailwindcss/cli"].includes(name));
   const licenses = await stageLicenses(pack, browserPackages, deckPackages, new Set([...starterPackages, ...previewPackages, ...reuiPackages]), vendorFiles);

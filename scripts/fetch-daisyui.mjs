@@ -626,7 +626,17 @@ function parseThemes(themesCss) {
 }
 
 async function main() {
+  const force = process.argv.includes("--force");
   const pin = await readPin();
+  if (!force && existsSync(join(DAISYUI_DIR, "catalog.json")) && existsSync(join(DAISYUI_DIR, "css", "daisyui.css"))) {
+    try {
+      const prior = JSON.parse(await readFile(join(DAISYUI_DIR, "provenance.json"), "utf8"));
+      if (prior && JSON.stringify(prior.pin) === JSON.stringify(pin)) {
+        console.log(`daisyUI layer -> ${DAISYUI_DIR} (up to date, matches pin; pass --force to refetch)`);
+        return;
+      }
+    } catch {}
+  }
   const gaps = [];
   const stage = async (label, fn) => {
     try {

@@ -1,5 +1,6 @@
 import { chromium } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { cpus } from "node:os";
 import { extname, join } from "node:path";
 import { htmlHeaders, previewHtml } from "../scripts/lib/frontend.mjs";
 import { validAssetPath } from "../scripts/lib/frontend-paths.mjs";
@@ -62,6 +63,15 @@ export async function captureThumbnails(output, previews, tailwindGallery, nativ
   const nativesByPath = new Map(cards.filter(({ native }) => native).map(({ url, preview }) => [url, preview]));
   const daisyuiPaths = new Map(cards.filter(({ daisyui }) => daisyui).map(({ url }) => [url, daisyuiByPath.get(url)]));
   const types = { ".css": "text/css", ".mjs": "text/javascript", ".js": "text/javascript", ".woff2": "font/woff2", ".jpg": "image/jpeg" };
+  const assetBytesCache = new Map();
+  const readAssetCached = async (rel) => {
+    let hit = assetBytesCache.get(rel);
+    if (!hit) {
+      hit = await readFile(join(output, rel));
+      assetBytesCache.set(rel, hit);
+    }
+    return hit;
+  };
   const browser = await chromium.launch({
     executablePath: process.env.DESIGN_CHROMIUM_PATH || undefined,
     args: ["--disable-dev-shm-usage"],
@@ -111,14 +121,15 @@ export async function captureThumbnails(output, previews, tailwindGallery, nativ
       if (!headers["content-type"]) return route.abort();
       return route.fulfill({
         headers: { ...headers, "access-control-allow-origin": "*" },
-        body: await readFile(join(output, asset)),
+        body: await readAssetCached(asset),
       });
     });
 
     let next = 0;
     let mantineSkipped = 0;
     let daisyuiSkipped = 0;
-    await Promise.all(Array.from({ length: Math.min(cards.length, 4) }, async () => {
+    const workers = Number(process.env.DESIGN_THUMB_CONC) || Math.max(4, Math.min(cpus().length, 8));
+    await Promise.all(Array.from({ length: Math.min(cards.length, workers) }, async () => {
       const page = await context.newPage();
       try {
         while (next < cards.length) {

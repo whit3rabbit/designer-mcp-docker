@@ -6,7 +6,7 @@
  *   - /reui/:category  Live interactive component grid + slide-over Radix/Base code sheet
  */
 
-import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
+import { shellHead, shellStyle, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -68,6 +68,7 @@ const REUI_CSS = `
     display: flex; flex-direction: column; text-decoration: none; color: inherit;
     background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     overflow: hidden; transition: border-color .15s ease, transform .15s ease;
+    content-visibility: auto; contain-intrinsic-size: auto 240px;
   }
   .reui-cat-card:hover { border-color: var(--accent); transform: translateY(-1px); }
   .reui-cat-shot {
@@ -90,6 +91,7 @@ const REUI_CSS = `
   .reui-card {
     display: flex; flex-direction: column; background: var(--panel);
     border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+    content-visibility: auto; contain-intrinsic-size: auto 200px;
   }
   .reui-card.full { grid-column: 1 / -1; }
   .reui-frame-wrap {
@@ -139,6 +141,8 @@ const REUI_CSS = `
   .reui-sheet-body { flex: 1; overflow: auto; padding: 14px 18px; background: var(--code-bg); }
   .reui-sheet-body pre { margin: 0; font-size: 12.5px; line-height: 1.55; white-space: pre; overflow-x: auto; }
 `;
+
+const REUI_STYLE_LINK = shellStyle("reui", REUI_CSS);
 
 function renderSidebar(categories, activeSlug, total) {
   const links = categories
@@ -195,8 +199,8 @@ export function reuiCatalogHtml(index) {
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(REUI_STYLE_LINK)}
 <title>ReUI Components · Designer</title>
-<style>${BASE_CSS}${NAV_CSS}${REUI_CSS}</style>
 </head><body>
 ${nav("reui")}
 <div class="reui-shell">
@@ -286,15 +290,14 @@ export function reuiCategoryHtml(index, category, previewPath = () => null) {
       label: item.label,
       title: item.title,
       description: item.description,
-      radixCode: item.radixCode || "",
-      baseCode: item.baseCode || "",
     })),
   ).replace(/</g, "\\u003c");
+  const codeApiUrl = `/api/reui/${encodeURIComponent(category.slug)}`;
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(REUI_STYLE_LINK)}
 <title>${esc(category.label)} · ReUI Components</title>
-<style>${BASE_CSS}${NAV_CSS}${REUI_CSS}</style>
 </head><body>
 ${nav("reui")}
 <div class="reui-shell">
@@ -357,9 +360,30 @@ ${nav("reui")}
 <script>
 ${SIDEBAR_SCRIPT}
 const REUI_ITEMS = ${payload};
+const REUI_CODE_URL = "${codeApiUrl}";
+let reuiCodeLoaded = false;
+let reuiCodePromise = null;
 let currentBase = 'radix';
 let currentTheme = 'dark';
 let activeSheetIndex = -1;
+
+async function ensureReuiCode() {
+  if (reuiCodeLoaded) return;
+  if (!reuiCodePromise) {
+    reuiCodePromise = fetch(REUI_CODE_URL).then((r) => r.json()).then((data) => {
+      const byName = new Map((data.items || []).map((it) => [it.name, it]));
+      for (const item of REUI_ITEMS) {
+        const full = byName.get(item.name);
+        if (full) {
+          item.radixCode = full.radixCode || '';
+          item.baseCode = full.baseCode || '';
+        }
+      }
+      reuiCodeLoaded = true;
+    }).catch(() => { reuiCodePromise = null; });
+  }
+  return reuiCodePromise;
+}
 
 const grid = document.getElementById('reui-comp-grid');
 const search = document.getElementById('reui-item-search');
@@ -440,19 +464,24 @@ const sheetDesc = document.getElementById('reui-sheet-desc');
 const sheetCode = document.getElementById('reui-sheet-code');
 const sheetStatus = document.getElementById('reui-sheet-status');
 
-function renderSheetCode() {
+async function renderSheetCode() {
   const item = REUI_ITEMS[activeSheetIndex];
   if (!item) return;
   sheetTitle.textContent = item.name;
   sheetDesc.textContent = item.description || item.title || '';
+  if (!reuiCodeLoaded) {
+    sheetCode.textContent = 'Loading source…';
+    await ensureReuiCode();
+    if (activeSheetIndex < 0 || REUI_ITEMS[activeSheetIndex] !== item) return;
+  }
   sheetCode.textContent = getCode(item);
   sheetStatus.textContent = '';
 }
 
 function openSheet(index) {
   activeSheetIndex = index;
-  renderSheetCode();
   backdrop.classList.add('open');
+  renderSheetCode();
 }
 
 function closeSheet() {
@@ -471,6 +500,7 @@ grid.addEventListener('click', async (e) => {
   if (copyBtn) {
     const item = REUI_ITEMS[Number(copyBtn.dataset.index)];
     if (!item) return;
+    await ensureReuiCode();
     try {
       await navigator.clipboard.writeText(getCode(item));
       const prev = copyBtn.textContent;

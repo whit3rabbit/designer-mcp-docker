@@ -852,16 +852,41 @@ async function stageKit(pin, stagedKit, scratch) {
 async function main() {
   pins = await readJsonSafe(PIN_PATH);
   if (!pins?.kits?.length) throw new Error(`missing or invalid ${PIN_PATH}`);
+  const force = process.argv.includes("--force");
   const only = process.argv.slice(2).filter((a) => !a.startsWith("-"));
   const kits = pins.kits.filter((k) => !only.length || only.includes(k.kit));
 
-  console.log(`UI kits layer -> ${UIKITS_DIR} (${kits.length} kit${kits.length === 1 ? "" : "s"})`);
+  console.log(`UI kits layer -> ${UIKITS_DIR} (${kits.length} kit${kits.length === 1 ? "" : "s"}${force ? ", --force" : ""})`);
   await mkdir(UIKITS_DIR, { recursive: true });
 
   const rows = [];
   for (const pin of kits) {
     process.stdout.write(`  ${pin.kit} (${pin.kind}) ... `);
     try {
+      const kitDir = join(UIKITS_DIR, pin.kit);
+      const cachedCatalog = !force ? await readJsonSafe(join(kitDir, "catalog.json")) : null;
+      const cachedProv = cachedCatalog ? await readJsonSafe(join(kitDir, "provenance.json")) : null;
+      if (
+        cachedCatalog &&
+        cachedProv &&
+        existsSync(join(kitDir, "files.json")) &&
+        JSON.stringify(cachedProv.pin) === JSON.stringify(pin)
+      ) {
+        rows.push({
+          kit: cachedCatalog.kit,
+          name: cachedCatalog.name,
+          category: cachedCatalog.category,
+          kind: cachedCatalog.kind,
+          homepage: cachedCatalog.homepage,
+          usesTailwind: cachedCatalog.usesTailwind,
+          license: cachedCatalog.license,
+          note: cachedCatalog.note,
+          totals: cachedCatalog.totals,
+          version: null,
+        });
+        console.log(`up to date (${cachedCatalog.totals.items} items, matches pin)`);
+        continue;
+      }
       const catalog = await bakeKit(pin);
       rows.push({
         kit: catalog.kit,

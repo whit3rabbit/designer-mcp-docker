@@ -60,6 +60,8 @@ const MAX_PAGES = 200; // safety cap; the list is 33 pages today
 const PAGE_SIZE = 24; // the API's fixed per_page
 const THUMB_WIDTH = 1000; // same quality bar as scripts/fetch-thumbs.mjs
 const THUMB_QUALITY = 86;
+const FAVICON_SIZE = 64; // rendered at 18x18 px (3.5x retina margin)
+const FAVICON_QUALITY = 85;
 
 const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -139,13 +141,16 @@ async function getSharp() {
 }
 
 /** Screenshot keyframes -> WebP at the shared thumbs quality bar. */
-async function compressToWebp(bytes) {
+async function compressToWebp(bytes, { width = THUMB_WIDTH, height = null, quality = THUMB_QUALITY } = {}) {
   const sharp = await getSharp();
   if (!sharp) return null;
+  const resizeOpts = height
+    ? { width, height, fit: "inside", kernel: "lanczos3", withoutEnlargement: true }
+    : { width, kernel: "lanczos3", withoutEnlargement: true };
   return sharp(bytes)
     .rotate()
-    .resize({ width: THUMB_WIDTH, kernel: "lanczos3", withoutEnlargement: true })
-    .webp({ quality: THUMB_QUALITY, effort: 4, smartSubsample: true })
+    .resize(resizeOpts)
+    .webp({ quality, effort: 4, smartSubsample: true })
     .toBuffer();
 }
 
@@ -249,11 +254,12 @@ async function main() {
   const priorAssets = (await readJsonSafe(assetsPath)) || {};
   const assets = { ...priorAssets };
   const assetUrls = new Set();
+  const faviconUrls = new Set();
   for (const [uuid, list] of records) {
-    collectAssetUrls(list, assetUrls);
+    collectAssetUrls(list, assetUrls, faviconUrls);
     if (!force && cached.has(uuid)) continue; // existing records already mapped
     const record = await readJsonSafe(join(stylesDir, `${uuid}.json`));
-    if (record) collectAssetUrls(record, assetUrls);
+    if (record) collectAssetUrls(record, assetUrls, faviconUrls);
   }
   const needed = [...assetUrls].filter((url) => {
     const prior = priorAssets[url];
@@ -278,14 +284,24 @@ async function main() {
         let file;
         let mime;
         const isScreenshot = url.includes("/keyframes/");
-        if (isScreenshot) {
-          const webp = await compressToWebp(bytes);
-          if (webp) {
-            file = `${hashKey(url)}.webp`;
-            await writeFile(join(assetDir, file), webp);
-            assets[url] = { file, bytes: webp.length, mime: "image/webp", sourceBytes: bytes.length };
-            assetOk += 1;
-            continue;
+        const isFavicon = faviconUrls.has(url);
+        if (isScreenshot || isFavicon) {
+          const kindHint = sniffImage(bytes);
+          // Keep vector SVGs verbatim; compress bitmap screenshots and oversized favicons to WebP.
+          if (!kindHint || kindHint[0] !== "svg") {
+            const webp = await compressToWebp(
+              bytes,
+              isFavicon
+                ? { width: FAVICON_SIZE, height: FAVICON_SIZE, quality: FAVICON_QUALITY }
+                : { width: THUMB_WIDTH, quality: THUMB_QUALITY },
+            );
+            if (webp) {
+              file = `${hashKey(url)}.webp`;
+              await writeFile(join(assetDir, file), webp);
+              assets[url] = { file, bytes: webp.length, mime: "image/webp", sourceBytes: bytes.length };
+              assetOk += 1;
+              continue;
+            }
           }
         }
         const kind = sniffImage(bytes);
@@ -303,6 +319,31 @@ async function main() {
     }
   };
   await Promise.all(Array.from({ length: Math.min(Math.max(1, assetConc), 8) }, assetWorker));
+
+  // Compress any previously-cached oversized bitmap favicons (> 16 KB) in place.
+  const sharp = await getSharp();
+  if (sharp) {
+    let recompressed = 0;
+    for (const url of faviconUrls) {
+      const entry = assets[url];
+      if (!entry || entry.mime === "image/svg+xml" || (entry.mime === "image/webp" && entry.bytes <= 16384)) continue;
+      const oldPath = join(assetDir, entry.file);
+      if (!existsSync(oldPath)) continue;
+      try {
+        const raw = await readFile(oldPath);
+        const webp = await compressToWebp(raw, { width: FAVICON_SIZE, height: FAVICON_SIZE, quality: FAVICON_QUALITY });
+        if (webp && webp.length < raw.length) {
+          const nextFile = `${hashKey(url)}.webp`;
+          await writeFile(join(assetDir, nextFile), webp);
+          if (nextFile !== entry.file) await rm(oldPath, { force: true });
+          assets[url] = { file: nextFile, bytes: webp.length, mime: "image/webp", sourceBytes: raw.length };
+          recompressed++;
+        }
+      } catch {}
+    }
+    if (recompressed) console.log(`  favicons: compressed ${recompressed} oversized bitmap favicon(s) to 64px WebP`);
+  }
+
   console.log(`  assets: ${assetOk} mirrored, ${Object.keys(assets).length} mapped`);
   await writeJsonAtomic(assetsPath, assets);
 
@@ -399,17 +440,19 @@ async function main() {
   console.log("done");
 }
 
-/** Every image url a record references (type previews, favicons, keyframes). */
-function collectAssetUrls(node, out) {
+/** Only collect assets the catalog & UI actually render (card preview, first font preview, favicon, keyframes). */
+function collectAssetUrls(node, out, faviconOut = null) {
   const tp = node?.type_previews || {};
-  for (const url of [tp.card?.display?.url, tp.card?.pair?.display?.url]) {
-    if (typeof url === "string" && url.startsWith("https://")) out.add(url);
+  if (typeof tp.card?.display?.url === "string" && tp.card.display.url.startsWith("https://")) {
+    out.add(tp.card.display.url);
   }
-  for (const f of Object.values(tp.fonts || {})) {
-    if (typeof f?.url === "string" && f.url.startsWith("https://")) out.add(f.url);
+  const firstFontUrl = Object.values(tp.fonts || {})[0]?.url;
+  if (typeof firstFontUrl === "string" && firstFontUrl.startsWith("https://")) {
+    out.add(firstFontUrl);
   }
   if (typeof node?.site?.favicon_url === "string" && node.site.favicon_url.startsWith("https://")) {
     out.add(node.site.favicon_url);
+    if (faviconOut) faviconOut.add(node.site.favicon_url);
   }
   for (const s of Array.isArray(node?.screenshots) ? node.screenshots : []) {
     if (typeof s === "string" && s.startsWith("https://")) out.add(s);

@@ -7,7 +7,7 @@
  * assets through the assetPath helper the caller passes in.
  */
 
-import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
+import { shellHead, shellStyle, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -27,7 +27,8 @@ const REFSTYLES_CSS = `
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%,252px),1fr)); gap:13px; }
   .grid [hidden] { display:none !important; }
   .card { display:flex; flex-direction:column; min-width:0; border:1px solid var(--line); border-radius:10px;
-    background:var(--panel); color:var(--fg); text-decoration:none; overflow:clip; }
+    background:var(--panel); color:var(--fg); text-decoration:none; overflow:clip;
+    content-visibility:auto; contain-intrinsic-size:auto 270px; }
   .card:hover, .card:focus-within { border-color:var(--accent); }
   .visual { display:grid; place-items:center; position:relative; isolation:isolate; aspect-ratio:16/10; width:100%;
     border-bottom:1px solid var(--line); background:var(--panel2); color:var(--muted); }
@@ -86,14 +87,16 @@ const REFSTYLES_CSS = `
     background:var(--panel2); border:1px solid var(--line); border-radius:5px; padding:1px 5px; }
 `;
 
+const REFSTYLES_STYLE_LINK = shellStyle("refero-styles", REFSTYLES_CSS);
+
 function page({ active, title, body }) {
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(REFSTYLES_STYLE_LINK)}
 <title>${esc(title)}</title>
-<style>${BASE_CSS}${NAV_CSS}${REFSTYLES_CSS}</style>
 </head>
 <body>
 ${nav(active)}
@@ -179,7 +182,11 @@ function filter() {
   count.textContent = (shown === cards.length ? shown : shown + ' of ' + cards.length) + ' styles';
   empty.hidden = shown > 0;
 }
-query.addEventListener('input', filter);
+let rsSearchTimer = 0;
+query.addEventListener('input', () => {
+  clearTimeout(rsSearchTimer);
+  rsSearchTimer = setTimeout(filter, 100);
+});
 document.querySelector('.grid').addEventListener('error', (event) => {
   if (event.target instanceof HTMLImageElement) {
     const span = document.createElement('span');
@@ -303,10 +310,10 @@ function componentsList(components) {
  * fonts, component recipes, dos/donts, mirrored screenshots, and the
  * Refero-authored DESIGN.md.
  */
-export function referoStyleHtml(catalog, record, { assetPath, designLink } = {}) {
+export function referoStyleHtml(catalog, record, { assetPath, designLink, rowOverride } = {}) {
   const data = record?.data || {};
   const site = record?.site || {};
-  const row = (catalog?.styles || []).find((r) => r.uuid === record?.uuid) || {};
+  const row = rowOverride || (catalog?.styles || []).find((r) => r.uuid === record?.uuid) || {};
   const md = record?.views?.design_md || "";
   // The mapped asset file names live on the catalog row (built from
   // assets.json at fetch time); the stored record stays upstream-verbatim.

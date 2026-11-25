@@ -12,7 +12,7 @@
  */
 
 import MarkdownIt from "markdown-it";
-import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
+import { shellHead, shellStyle, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -202,11 +202,13 @@ if (sideSearch) {
 }
 `;
 
+const BASEUI_STYLE_LINK = shellStyle("baseui", BASEUI_CSS);
+
 function page(title, catalog, activePath, mainHtml, script = "") {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(BASEUI_STYLE_LINK)}
 <title>${esc(title)} · Designer</title>
-<style>${BASE_CSS}${NAV_CSS}${BASEUI_CSS}</style>
 </head><body>
 ${nav("baseui")}
 <div class="baseui-shell">

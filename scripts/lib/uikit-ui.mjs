@@ -15,7 +15,7 @@
  */
 
 import MarkdownIt from "markdown-it";
-import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
+import { shellHead, shellStyle, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -135,11 +135,13 @@ const UIKIT_CSS = `
   @media (max-width: 960px) { .uik-shell { padding: 16px; } }
 `;
 
+const UIKIT_STYLE_LINK = shellStyle("uikit", UIKIT_CSS);
+
 function page(title, active, mainHtml) {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(UIKIT_STYLE_LINK)}
 <title>${esc(title)} · Designer</title>
-<style>${BASE_CSS}${NAV_CSS}${UIKIT_CSS}</style>
 </head><body>
 ${nav(active)}
 <main class="uik-shell">${mainHtml}</main>
@@ -352,9 +354,9 @@ export function uikitPreviewHtml(catalog, item, cssRelPath) {
     <div class="uik-mcp">Drive these tokens programmatically with <code>design_kit_code {"kit": "${esc(catalog.kit)}", "item": "${esc(item.slug)}"}</code> to read the css.</div>`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(UIKIT_STYLE_LINK)}
 <title>${esc(item.title)} preview · ${esc(catalog.name)} · Designer</title>
 <link rel="stylesheet" href="${esc(cssUrl)}">
-<style>${BASE_CSS}${NAV_CSS}${UIKIT_CSS}</style>
 </head><body>
 ${nav("uikits")}
 <main class="uik-shell">${main}</main>

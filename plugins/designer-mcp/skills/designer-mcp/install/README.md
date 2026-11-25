@@ -75,7 +75,7 @@ docker pull ghcr.io/whit3rabbit/designer-mcp:latest
 ```
 
 To stay on one release instead, replace `:latest` with a version tag such as
-`:v2.0.1`. The plugin install does that for you in its `.mcp.json`.
+`:v2.1.0`. The plugin install does that for you in its `.mcp.json`.
 
 On an air-gapped host Docker cannot pull, so the tag a snippet names must
 already be loaded (`docker save` elsewhere, `docker load` there). The

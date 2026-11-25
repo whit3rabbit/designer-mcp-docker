@@ -40,6 +40,7 @@
  *   HOST               bind address (default 127.0.0.1)
  */
 
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -47,6 +48,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { gzipSync } from "node:zlib";
 import { htmlHeaders, loadFrontend, contentTypeFor } from "./lib/frontend.mjs";
 import {
   mergeDesign,
@@ -140,6 +142,8 @@ import {
   uiSdkDocsHtml,
   nav,
   NAV_CSS,
+  SHELL_ASSETS,
+  shellHead,
   themeHead,
   mcpButton,
 } from "./lib/ui.mjs";
@@ -158,6 +162,7 @@ import {
   filePanel,
   KIT_CSS,
   KIT_NAV_CSS,
+  KIT_STYLE_LINK,
   kitNav,
   esc as kitEsc,
 } from "./lib/kit-ui.mjs";
@@ -216,8 +221,23 @@ function designMarkdown(full) {
 // ------------------------------------------------------------------ data
 let catalog = [];
 let byId = new Map();
+let searchIndex = [];
+let designByDomain = null;
 let loadedAt = 0;
 let descriptors = {};
+
+function designIdForDomain(domain) {
+  if (!designByDomain) {
+    designByDomain = new Map();
+    for (const row of catalog) {
+      try {
+        const host = new URL(row.url || "").hostname.replace(/^www\./, "").toLowerCase();
+        if (host && !designByDomain.has(host)) designByDomain.set(host, row.id);
+      } catch {}
+    }
+  }
+  return designByDomain.get(String(domain || "").replace(/^www\./, "").toLowerCase()) || null;
+}
 
 async function loadCatalog() {
   const p = join(CACHE_DIR, "catalog.json");
@@ -227,6 +247,14 @@ async function loadCatalog() {
   // the same array, so either works.
   catalog = raw.designs || raw.styles || [];
   byId = new Map(catalog.map((s) => [s.id, s]));
+  designByDomain = null;
+  searchIndex = catalog.map((s) => ({
+    item: s,
+    siteName: (s.siteName || "").toLowerCase(),
+    northStar: (s.northStar || "").toLowerCase(),
+    industry: (s.industry || "").toLowerCase(),
+    fonts: (s.fonts || []).map((f) => String(f).toLowerCase()),
+  }));
   loadedAt = Date.now();
   descriptors = await readDescriptors();
 }
@@ -296,25 +324,15 @@ function search(query, limit = 40) {
   if (!q) return [];
   const terms = q.split(/\s+/);
   const scored = [];
-  for (const s of catalog) {
-    const hay = [
-      s.siteName,
-      s.northStar,
-      s.industry,
-      ...(s.fonts || []),
-      ...(s.tags || []),
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
+  for (const row of searchIndex) {
     let score = 0;
     for (const t of terms) {
-      if (s.siteName?.toLowerCase().includes(t)) score += 10;
-      if (s.northStar?.toLowerCase().includes(t)) score += 4;
-      if (s.industry?.toLowerCase().includes(t)) score += 3;
-      if ((s.fonts || []).some((f) => f.toLowerCase().includes(t))) score += 2;
+      if (row.siteName.includes(t)) score += 10;
+      if (row.northStar.includes(t)) score += 4;
+      if (row.industry.includes(t)) score += 3;
+      if (row.fonts.some((f) => f.includes(t))) score += 2;
     }
-    if (score > 0) scored.push({ ...s, _score: score });
+    if (score > 0) scored.push({ ...row.item, _score: score });
   }
   scored.sort((a, b) => b._score - a._score || a.siteName.localeCompare(b.siteName));
   return scored.slice(0, limit);
@@ -370,8 +388,17 @@ function tagsFor(entry) {
 }
 
 let unifiedDesignsCache = null;
+let unifiedDesignsSerialized = null;
 let referoStylesByDomain = null;
 let componentsHubCache = null;
+let componentsHubSerialized = null;
+
+function serializePayload(data) {
+  const raw = Buffer.from(JSON.stringify(data), "utf8");
+  const gzip = gzipSync(raw, { level: 6 });
+  const etag = `"${createHash("sha256").update(raw).digest("hex").slice(0, 16)}"`;
+  return { raw, gzip, etag };
+}
 
 async function getUnifiedDesigns() {
   if (unifiedDesignsCache) return unifiedDesignsCache;
@@ -400,6 +427,7 @@ async function getUnifiedDesigns() {
     galleryIds,
     claudeIds,
   });
+  unifiedDesignsSerialized = serializePayload(unifiedDesignsCache);
   return unifiedDesignsCache;
 }
 
@@ -423,10 +451,12 @@ async function getComponentsHub() {
     readUikitsIndex().catch(() => null),
   ]);
   const uikitCatalogs = new Map();
-  for (const row of uikitsIndex?.kits || []) {
-    if (row.error) continue;
-    const cat = await readUikitCatalog(row.kit).catch(() => null);
-    if (cat) uikitCatalogs.set(row.kit, cat);
+  const kitRows = (uikitsIndex?.kits || []).filter((row) => !row.error);
+  const loadedKits = await Promise.all(
+    kitRows.map(async (row) => [row.kit, await readUikitCatalog(row.kit).catch(() => null)]),
+  );
+  for (const [kit, cat] of loadedKits) {
+    if (cat) uikitCatalogs.set(kit, cat);
   }
   componentsHubCache = buildUnifiedComponentsHub({
     componentsIndex,
@@ -441,6 +471,7 @@ async function getComponentsHub() {
     tailwindHyperui: frontend.tailwindGroups("hyperui"),
     frontend,
   });
+  componentsHubSerialized = serializePayload(componentsHubCache);
   return componentsHubCache;
 }
 
@@ -455,6 +486,7 @@ async function galleryHtml() {
     total: unified.total,
     facets: unified.facets,
     indexUrl: "/api/designs-index.json",
+    initialDesigns: unified.designs.slice(0, 24),
   });
 }
 
@@ -542,10 +574,9 @@ ${donts ? `<h2>Don't</h2><ul>${donts}</ul>` : ""}
     // No gallery artifacts: show the cached screenshot preview + token-led page.
     return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead(KIT_STYLE_LINK)}
 <title>${esc(s.siteName)} — Design Systems</title>
 <style>
-${KIT_CSS}${KIT_NAV_CSS}
   .wrap{max-width:1040px;margin:0 auto;padding:22px 20px 70px}
   .deep-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:14px 0;padding:12px 15px;border-radius:10px;background:var(--accent-bg);border:1px solid var(--accent-line)}
   .deep-banner strong{display:block;color:var(--strong);font-size:14px}
@@ -660,15 +691,57 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
 }
 
 // ------------------------------------------------------------------ server
+function acceptsGzip(req) {
+  return /\bgzip\b/i.test(String(req?.headers?.["accept-encoding"] || ""));
+}
+
+function sendPrebuilt(req, res, payload, contentType, cacheControl = "public, max-age=60, must-revalidate") {
+  if (req?.headers?.["if-none-match"] === payload.etag) {
+    res.writeHead(304, { etag: payload.etag, "cache-control": cacheControl });
+    return res.end();
+  }
+  const gz = acceptsGzip(req);
+  const body = gz ? payload.gzip : payload.raw;
+  res.writeHead(200, {
+    "content-type": contentType,
+    "content-length": body.length,
+    etag: payload.etag,
+    "cache-control": cacheControl,
+    ...(gz ? { "content-encoding": "gzip", vary: "accept-encoding" } : {}),
+  });
+  return res.end(req?.method === "HEAD" ? undefined : body);
+}
+
 function json(res, code, body) {
-  const payload = JSON.stringify(body);
-  res.writeHead(code, { "content-type": "application/json; charset=utf-8", "content-length": Buffer.byteLength(payload) });
-  res.end(payload);
+  const raw = Buffer.from(JSON.stringify(body), "utf8");
+  const req = res._req;
+  const gz = code === 200 && acceptsGzip(req) && raw.length >= 1024;
+  const out = gz ? gzipSync(raw, { level: 6 }) : raw;
+  res.writeHead(code, {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": out.length,
+    ...(gz ? { "content-encoding": "gzip", vary: "accept-encoding" } : {}),
+  });
+  res.end(req?.method === "HEAD" ? undefined : out);
 }
 
 function sendHtml(res, body, kind) {
-  res.writeHead(200, { ...htmlHeaders(kind), "content-length": Buffer.byteLength(body) });
-  return res.end(body);
+  const raw = Buffer.isBuffer(body) ? body : Buffer.from(body, "utf8");
+  const req = res._req;
+  const etag = `W/"${createHash("sha256").update(raw).digest("hex").slice(0, 14)}"`;
+  const headers = { ...htmlHeaders(kind), etag, "cache-control": "public, max-age=60, must-revalidate" };
+  if (req?.method === "GET" && req.headers["if-none-match"] === etag) {
+    res.writeHead(304, { etag, "cache-control": headers["cache-control"] });
+    return res.end();
+  }
+  const gz = acceptsGzip(req) && raw.length >= 1024;
+  const out = gz ? gzipSync(raw, { level: 6 }) : raw;
+  res.writeHead(200, {
+    ...headers,
+    "content-length": out.length,
+    ...(gz ? { "content-encoding": "gzip", vary: "accept-encoding" } : {}),
+  });
+  return res.end(req?.method === "HEAD" ? undefined : out);
 }
 
 function readJsonBody(req, maxBytes = 16384) {
@@ -697,11 +770,36 @@ function readJsonBody(req, maxBytes = 16384) {
 }
 
 const server = createServer(async (req, res) => {
+  res._req = req;
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
     const p = url.pathname;
 
     if (p === "/healthz") return json(res, 200, { ok: true, styles: catalog.length, updatedAt: loadedAt });
+
+    // Shared immutable shell CSS/JS bundles
+    if (p.startsWith("/shell/")) {
+      const asset = SHELL_ASSETS.get(p.slice("/shell/".length));
+      if (!asset) return json(res, 404, { error: "shell asset not found" });
+      if (req.headers["if-none-match"] === asset.etag) {
+        res.writeHead(304, {
+          etag: asset.etag,
+          "cache-control": "public, max-age=31536000, immutable",
+        });
+        return res.end();
+      }
+      const gz = acceptsGzip(req);
+      const body = gz ? asset.gzip : asset.content;
+      res.writeHead(200, {
+        "content-type": asset.type,
+        "content-length": body.length,
+        etag: asset.etag,
+        "cache-control": "public, max-age=31536000, immutable",
+        "x-content-type-options": "nosniff",
+        ...(gz ? { "content-encoding": "gzip", vary: "accept-encoding" } : {}),
+      });
+      return res.end(req.method === "HEAD" ? undefined : body);
+    }
 
     // ---------------------------------------------------- Live MCP Picks API
     if (p === "/api/picks") {
@@ -734,7 +832,8 @@ const server = createServer(async (req, res) => {
     if (p === "/" || p === "/index.html") return sendHtml(res, await galleryHtml());
 
     if (p === "/api/designs-index.json") {
-      return json(res, 200, await getUnifiedDesigns());
+      await getUnifiedDesigns();
+      return sendPrebuilt(req, res, unifiedDesignsSerialized, "application/json; charset=utf-8");
     }
 
     if (p === "/starters" || p === "/starters/") {
@@ -889,13 +988,18 @@ const server = createServer(async (req, res) => {
       if (q && catalog.components?.length) {
         const terms = q.split(/\s+/);
         const match = (hay) => terms.every((t) => hay.includes(t));
-        catalog.components = catalog.components.filter((c) =>
+        const components = catalog.components.filter((c) =>
           match(`${c.name} ${c.slug} ${c.group} ${c.description}`.toLowerCase()),
         );
-        catalog.guides = (catalog.guides || []).filter((g) =>
+        const guides = (catalog.guides || []).filter((g) =>
           match(`${g.name} ${g.slug} ${g.group} ${g.description}`.toLowerCase()),
         );
-        catalog.totals = { components: catalog.components.length, guides: catalog.guides.length };
+        return json(res, 200, {
+          ...catalog,
+          components,
+          guides,
+          totals: { components: components.length, guides: guides.length },
+        });
       }
       return json(res, 200, catalog);
     }
@@ -1234,21 +1338,6 @@ const server = createServer(async (req, res) => {
       assetPath: (file) => `/refero-styles/asset/${file}`,
       designLink: (domain) => designIdForDomain(domain),
     });
-    // domain -> main-catalog id, built once from the rows already in memory so
-    // a style page can cross-link the same site's classic catalog entry.
-    let designByDomain = null;
-    function designIdForDomain(domain) {
-      if (!designByDomain) {
-        designByDomain = new Map();
-        for (const row of catalog) {
-          try {
-            const host = new URL(row.url || "").hostname.replace(/^www\./, "");
-            if (host && !designByDomain.has(host)) designByDomain.set(host, row.id);
-          } catch {}
-        }
-      }
-      return designByDomain.get(String(domain || "").replace(/^www\./, "")) || null;
-    }
     if (p === "/refero-styles" || p === "/refero-styles/") {
       const [catalogRs, provenance] = await Promise.all([readReferoStylesCatalog(), readReferoStylesProvenance()]);
       return sendHtml(res, referoStylesCatalogHtml(catalogRs, referoStylesHelpers()));
@@ -1339,7 +1428,8 @@ const server = createServer(async (req, res) => {
 
     // ---------------------------------------------------- unified component hub & CDN browsers
     if (p === "/api/components-hub.json") {
-      return json(res, 200, await getComponentsHub());
+      await getComponentsHub();
+      return sendPrebuilt(req, res, componentsHubSerialized, "application/json; charset=utf-8");
     }
     if (p === "/components" || p === "/components/") {
       const [compIndex, hub] = await Promise.all([readComponentsIndex(), getComponentsHub()]);
@@ -1412,10 +1502,10 @@ const server = createServer(async (req, res) => {
     const mThumbnail = p.match(/^\/component\/([a-z0-9-]+)\/thumbnail\/([a-z0-9-]+)$/);
     if (mThumbnail) {
       const [, slug, id] = mThumbnail;
-      const component = await readComponent(slug);
-      const item = component?.variants?.find((variant) => variant.id === id);
-      const file = item && frontend.thumbnailAsset(slug, item);
-      if (file && await frontend.asset(req, res, file, "no-cache")) return;
+      const file = frontend.thumbnailAssetById(slug, id);
+      const versioned = url.searchParams.get("v") === frontend.publicManifest?.version;
+      const cacheHeader = versioned ? "public, max-age=31536000, immutable" : "public, max-age=3600";
+      if (file && await frontend.asset(req, res, file, cacheHeader)) return;
       return json(res, 404, { error: "matching component thumbnail not built" });
     }
 

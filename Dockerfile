@@ -38,6 +38,11 @@ COPY bake/design-systems/ ./bake/design-systems/
 COPY bake/slopstrap/ ./bake/slopstrap/
 RUN --network=none node frontend/build.mjs --out /frontend-cache
 
+# Lightweight export target so CI can extract `/frontend-cache` to the host for
+# Playwright verification without rebuilding the frontend a second time.
+FROM scratch AS frontend-export
+COPY --from=frontend-build /frontend-cache/ /
+
 FROM node:22-alpine
 
 WORKDIR /app

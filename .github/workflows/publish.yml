@@ -44,38 +44,92 @@ jobs:
       # directory is a build artifact and is not in git, so it is produced
       # here from the fetchers — the same ones the image ships.
       #
-      # The cache is restored between runs and the fetchers skip what is
-      # already present, so this is fast after the first run.
-      - name: Restore the catalog cache
+      # Split catalog caches by layer so touching one fetcher or pin never
+      # invalidates and re-uploads all ~600 MB of unrelated layers.
+      - name: Restore core catalog & thumbs cache
         uses: actions/cache@v6
         with:
-          path: ~/.design-cache
-          key: catalog-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-refero-styles.mjs', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-gradientdeck.mjs', 'scripts/fetch-reui.mjs', 'scripts/fetch-dashboards.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-heroui.mjs', 'scripts/fetch-mantine.mjs', 'scripts/fetch-daisyui.mjs', 'scripts/fetch-baseui.mjs', 'scripts/fetch-uikits.mjs', 'scripts/fetch-thumbs.mjs', 'data/refero-styles/pin.json', 'data/mantine/pin.json', 'data/daisyui/pin.json', 'data/baseui/pin.json', 'data/uikits/pins.json') }}
+          path: |
+            ~/.design-cache/catalog.json
+            ~/.design-cache/index.json
+            ~/.design-cache/descriptors.json
+            ~/.design-cache/styles
+            ~/.design-cache/systems
+            ~/.design-cache/claude
+            ~/.design-cache/gallery
+            ~/.design-cache/thumbs
+          key: catalog-core-${{ runner.os }}-${{ hashFiles('scripts/refero-public-fetch.js', 'scripts/fetch-opendesign.mjs', 'scripts/fetch-agentkit.mjs', 'scripts/fetch-thumbs.mjs') }}
           restore-keys: |
-            catalog-${{ runner.os }}-
+            catalog-core-${{ runner.os }}-
+
+      - name: Restore Refero Styles cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.design-cache/refero-styles
+          key: catalog-refero-styles-${{ runner.os }}-${{ hashFiles('scripts/fetch-refero-styles.mjs', 'data/refero-styles/pin.json') }}
+          restore-keys: |
+            catalog-refero-styles-${{ runner.os }}-
+
+      - name: Restore UI kits cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.design-cache/uikits
+          key: catalog-uikits-${{ runner.os }}-${{ hashFiles('scripts/fetch-uikits.mjs', 'data/uikits/pins.json') }}
+          restore-keys: |
+            catalog-uikits-${{ runner.os }}-
+
+      - name: Restore component & framework caches
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.design-cache/components.json
+            ~/.design-cache/components
+            ~/.design-cache/reui
+            ~/.design-cache/dashboards
+            ~/.design-cache/presets.json
+            ~/.design-cache/presets
+            ~/.design-cache/heroui
+            ~/.design-cache/mantine
+            ~/.design-cache/daisyui
+            ~/.design-cache/baseui
+          key: catalog-frameworks-${{ runner.os }}-${{ hashFiles('scripts/fetch-gradientdeck.mjs', 'scripts/fetch-reui.mjs', 'scripts/fetch-dashboards.mjs', 'scripts/fetch-presets.mjs', 'scripts/fetch-heroui.mjs', 'scripts/fetch-mantine.mjs', 'scripts/fetch-daisyui.mjs', 'scripts/fetch-baseui.mjs', 'data/heroui/pin.json', 'data/mantine/pin.json', 'data/daisyui/pin.json', 'data/baseui/pin.json') }}
+          restore-keys: |
+            catalog-frameworks-${{ runner.os }}-
 
       - name: Populate and bake the catalog
         run: |
           npm ci --omit=dev --ignore-scripts
           export DESIGN_CACHE_DIR="$HOME/.design-cache"
           export REFERO_CACHE_DIR="$HOME/.design-cache"
-          node scripts/refero-public-fetch.js --limit 0 || echo "refero fetch incomplete"
-          node scripts/fetch-refero-styles.mjs || echo "refero-styles fetch incomplete"
-          node scripts/fetch-opendesign.mjs || echo "opendesign import incomplete"
-          node scripts/fetch-agentkit.mjs || echo "agentkit import incomplete"
-          node scripts/fetch-gradientdeck.mjs || echo "component fetch incomplete"
-          node scripts/fetch-reui.mjs || echo "reui fetch incomplete"
-          node scripts/fetch-dashboards.mjs || echo "dashboards fetch incomplete"
-          node scripts/fetch-presets.mjs || echo "preset fetch incomplete"
-          node scripts/fetch-heroui.mjs || echo "heroui fetch incomplete"
-          node scripts/fetch-mantine.mjs || echo "mantine fetch incomplete"
-          node scripts/fetch-daisyui.mjs || echo "daisyui fetch incomplete"
-          node scripts/fetch-baseui.mjs || echo "baseui fetch incomplete"
-          # The UI kits fetcher fails the step when a kit cannot be baked or its
-          # licence no longer matches the pin. It used to echo a warning and go
-          # on, which baked a catalog with a hole in it.
+
+          # Group 1 (ordered): core catalog -> opendesign -> agentkit -> thumbs
+          (
+            node scripts/refero-public-fetch.js --limit 0 || echo "refero fetch incomplete"
+            node scripts/fetch-opendesign.mjs --if-missing || echo "opendesign import incomplete"
+            node scripts/fetch-agentkit.mjs || echo "agentkit import incomplete"
+            node scripts/fetch-thumbs.mjs --compress || echo "thumb fetch incomplete"
+          ) &
+          pid_core=$!
+
+          # Group 2 (independent): pinned frameworks & components (pin-matched layers skip in <10ms)
+          (
+            node scripts/fetch-refero-styles.mjs || echo "refero-styles fetch incomplete"
+            node scripts/fetch-gradientdeck.mjs || echo "component fetch incomplete"
+            node scripts/fetch-reui.mjs --if-missing || echo "reui fetch incomplete"
+            node scripts/fetch-dashboards.mjs --if-missing || echo "dashboards fetch incomplete"
+            node scripts/fetch-presets.mjs --if-missing || echo "preset fetch incomplete"
+            node scripts/fetch-heroui.mjs || echo "heroui fetch incomplete"
+            node scripts/fetch-mantine.mjs || echo "mantine fetch incomplete"
+            node scripts/fetch-daisyui.mjs || echo "daisyui fetch incomplete"
+            node scripts/fetch-baseui.mjs || echo "baseui fetch incomplete"
+          ) &
+          pid_fw=$!
+
+          # Group 3 (strict): UI kits (each kit skips automatically when provenance matches pin)
           node scripts/fetch-uikits.mjs
-          node scripts/fetch-thumbs.mjs --compress || echo "thumb fetch incomplete"
+          wait $pid_core
+          wait $pid_fw
+
           node scripts/bake-cache.mjs --cache "$HOME/.design-cache" --out bake
           ls -la bake/
 
@@ -105,13 +159,34 @@ jobs:
             console.log('baked catalog carries the Agent Kit layer');
           "
 
+      # Build the frontend ONCE inside Buildx (cached via type=gha) and export
+      # `/frontend-cache` to `dist/frontend` so host Playwright verification tests
+      # the exact same bundle without running a duplicate esbuild + Chromium pass.
+      - name: Build frontend bundle (cached in Buildx)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: frontend-export
+          outputs: type=local,dest=dist/frontend
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Cache Playwright browser binaries
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            frontend/node_modules
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
       - name: Verify offline browser previews
         run: |
-          npm ci --prefix frontend --ignore-scripts
-          npm ci --prefix frontend/deck --ignore-scripts
+          if [ ! -x frontend/node_modules/.bin/playwright ]; then
+            npm ci --prefix frontend --ignore-scripts
+          fi
           ./frontend/node_modules/.bin/playwright install --with-deps chromium
-          npm run frontend:fetch-tailwind
-          npm run frontend:build
           npm run frontend:test
 
       - name: Derive tags

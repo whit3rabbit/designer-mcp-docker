@@ -8,7 +8,7 @@
  *   - /components/compare/:slug    Cross-library comparator with live offline preview switcher
  */
 
-import { BASE_CSS, NAV_CSS, nav, subnav, themeHead } from "./ui.mjs";
+import { shellHead, shellStyle, nav, subnav } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -99,6 +99,7 @@ const HUB_CSS = `
     display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line);
     border-radius: 11px; background: var(--panel); color: var(--fg); text-decoration: none; overflow: clip;
     transition: border-color .14s ease, transform .14s ease;
+    content-visibility: auto; contain-intrinsic-size: auto 290px;
   }
   .browse-card:hover, .browse-card:focus-within { border-color: var(--accent); transform: translateY(-1px); }
   .browse-visual {
@@ -128,6 +129,8 @@ const HUB_CSS = `
   .hub-btn:hover { border-color: var(--accent); }
 `;
 
+const HUB_STYLE_LINK = shellStyle("components", HUB_CSS);
+
 /**
  * /components — Unified Component Hub.
  *
@@ -150,7 +153,7 @@ export function unifiedComponentsHtml({
   const catFilters = [["", ssrComponents.length], ...[...counts].sort(([a], [b]) => a.localeCompare(b))];
 
   const ssrCards = ssrComponents
-    .map((item) => {
+    .map((item, idx) => {
       const { slug, title, description, category, breadcrumb, variants = [] } = item;
       const isSlop = slug === "slopstrap";
       const libName = isSlop ? "Slopstrap" : "GradientDeck AI";
@@ -162,9 +165,10 @@ export function unifiedComponentsHtml({
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
+      const loadAttr = idx < 6 ? 'decoding="async"' : 'loading="lazy" decoding="async"';
       return `<a class="browse-card" href="/component/${encodeURIComponent(slug)}" data-ssr="1" data-lib="${isSlop ? "slopstrap" : "gradientdeck"}" data-stack="${esc(stack.toLowerCase())}" data-live="1" data-category="${esc(category || "")}" data-search="${esc(search)}">
       <span class="browse-visual"><span class="thumb-fallback">${esc(libName)}</span>
-        ${thumb ? `<img src="${esc(thumb)}" alt="" width="640" height="400" loading="lazy" decoding="async">` : ""}
+        ${thumb ? `<img src="${esc(thumb)}" alt="" width="640" height="400" ${loadAttr}>` : ""}
       </span>
       <span class="browse-meta"><strong>${esc(name)}</strong>
         <small>${esc(categoryLabel(category))}${category ? " · " : ""}${variants.length} ${variants.length === 1 ? "variant" : "variants"}</small>
@@ -210,9 +214,8 @@ export function unifiedComponentsHtml({
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead(HUB_STYLE_LINK)}
 <title>Components — Unified Multi-Library Gallery</title>
-<style>${BASE_CSS}${NAV_CSS}${HUB_CSS}</style>
 </head>
 <body>
 ${nav("components")}
@@ -287,6 +290,7 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
   var activeCat = '';
   var hubData = null;
   var dynamicShown = 72;
+  var dynamicRendered = 0;
   var currentDynamicList = [];
 
   function esc(s) {
@@ -391,16 +395,16 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
         }
       }
       if (terms.length) {
-        var hay = activeLib === 'compare'
-          ? (it.name + ' ' + it.slug + ' ' + it.category + ' ' + (it.implementations || []).map(function(x){ return x.libName; }).join(' ')).toLowerCase()
-          : (it.name + ' ' + it.slug + ' ' + (it.category || '') + ' ' + (it.desc || '') + ' ' + it.libName + ' ' + it.stack + ' ' + it.styling).toLowerCase();
+        var hay = it._hay || '';
         for (var i = 0; i < terms.length; i++) if (hay.indexOf(terms[i]) < 0) return false;
       }
       return true;
     });
 
     currentDynamicList = list;
-    grid.innerHTML = list.slice(0, dynamicShown).map(renderDynamicCard).join('');
+    var slice = list.slice(0, dynamicShown);
+    grid.innerHTML = slice.map(renderDynamicCard).join('');
+    dynamicRendered = slice.length;
     countEl.textContent = list.length + (activeLib === 'compare' ? ' generic components' : ' components');
     emptyEl.hidden = list.length > 0;
     pagerEl.hidden = list.length <= dynamicShown;
@@ -413,6 +417,12 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
     if (hubData) return cb();
     countEl.textContent = 'Loading multi-library catalog…';
     fetch(HUB_URL).then(function(r){ return r.json(); }).then(function(d){
+      (d.items || []).forEach(function(it){
+        it._hay = (it.name + ' ' + it.slug + ' ' + (it.category || '') + ' ' + (it.desc || '') + ' ' + it.libName + ' ' + it.stack + ' ' + it.styling).toLowerCase();
+      });
+      (d.concepts || []).forEach(function(it){
+        it._hay = (it.name + ' ' + it.slug + ' ' + it.category + ' ' + (it.implementations || []).map(function(x){ return x.libName; }).join(' ')).toLowerCase();
+      });
       hubData = d;
       cb();
     }).catch(function(err){
@@ -487,14 +497,23 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
       else renderDynamic(true);
     });
   });
+  var searchTimer = 0;
   query.addEventListener('input', function(){
-    syncUrl();
-    if (activeLib === 'gradientdeck') filterSsr();
-    else renderDynamic(true);
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function(){
+      syncUrl();
+      if (activeLib === 'gradientdeck') filterSsr();
+      else renderDynamic(true);
+    }, 80);
   });
   moreBtn.addEventListener('click', function(){
+    var prev = dynamicRendered;
     dynamicShown += 72;
-    grid.innerHTML = currentDynamicList.slice(0, dynamicShown).map(renderDynamicCard).join('');
+    var next = Math.min(currentDynamicList.length, dynamicShown);
+    if (next > prev) {
+      grid.insertAdjacentHTML('beforeend', currentDynamicList.slice(prev, next).map(renderDynamicCard).join(''));
+      dynamicRendered = next;
+    }
     pagerEl.hidden = currentDynamicList.length <= dynamicShown;
     if (currentDynamicList.length > dynamicShown) {
       moreBtn.textContent = 'Show more (' + (currentDynamicList.length - dynamicShown) + ' remaining)';
@@ -552,9 +571,8 @@ export function compareIndexHtml(hub) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead(HUB_STYLE_LINK)}
 <title>Compare Generic Components Across Libraries</title>
-<style>${BASE_CSS}${NAV_CSS}${HUB_CSS}</style>
 </head>
 <body>
 ${nav("components")}
@@ -643,10 +661,9 @@ export function compareConceptHtml(concept, hub) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead(HUB_STYLE_LINK)}
 <title>${esc(concept.name)} — Compare Across ${impls.length} Libraries</title>
 <style>
-${BASE_CSS}${NAV_CSS}${HUB_CSS}
 .cmp-wrap { max-width: 1260px; margin: 0 auto; padding: 22px clamp(14px, 3vw, 32px) 72px; }
 .cmp-crumb { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
 .cmp-crumb a { color: var(--muted); text-decoration: none; }

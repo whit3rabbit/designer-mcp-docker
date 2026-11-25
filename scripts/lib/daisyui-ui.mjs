@@ -13,7 +13,7 @@
  * just re-points the frame at ?theme=. Zero remote URLs.
  */
 
-import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
+import { shellHead, shellStyle, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -149,11 +149,13 @@ const DAISYUI_CSS = `
   }
 `;
 
+const DAISYUI_STYLE_LINK = shellStyle("daisyui", DAISYUI_CSS);
+
 function page(title, catalog, activePath, mainHtml, script = "") {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(DAISYUI_STYLE_LINK)}
 <title>${esc(title)} · Designer</title>
-<style>${BASE_CSS}${NAV_CSS}${DAISYUI_CSS}</style>
 </head><body>
 ${nav("daisyui")}
 <div class="dai-shell">

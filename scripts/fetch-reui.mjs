@@ -66,6 +66,17 @@ async function run() {
   let sourceDir = argVal("--source");
   let tempDir = null;
 
+  if (
+    !sourceDir &&
+    process.argv.includes("--if-missing") &&
+    !process.argv.includes("--force") &&
+    existsSync(join(REUI_DIR, "index.json")) &&
+    existsSync(join(REUI_DIR, "runtime", "styles", "style-nova.css"))
+  ) {
+    console.log(`ReUI layer -> ${REUI_DIR} (already cached; skipping due to --if-missing)`);
+    return;
+  }
+
   if (!sourceDir) {
     tempDir = await mkdtemp(join(tmpdir(), "reui-fetch-"));
     sourceDir = tempDir;

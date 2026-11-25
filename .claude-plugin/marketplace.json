@@ -10,7 +10,7 @@
     {
       "name": "designer-mcp",
       "source": "./plugins/designer-mcp",
-      "version": "2.0.1",
+      "version": "2.1.0",
       "description": "Research-first design methodology, offline design catalog, dashboard builder (24 starters, 20 UI/CSS framework kits), document toolchains (docx, pptx, xlsx, pdf), and the offline design_* MCP tools.",
       "displayName": "Designer MCP",
       "category": "developer-tools"

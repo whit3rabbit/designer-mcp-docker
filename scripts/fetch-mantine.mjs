@@ -441,6 +441,16 @@ function parseIllustrationIndex(text) {
 async function run() {
   let sourceDir = argVal("--source");
   let tempDir = null;
+  const force = process.argv.includes("--force");
+
+  if (!sourceDir && !force && existsSync(join(MANTINE_DIR, "index.json"))) {
+    const pin = await readJsonSafe(PIN_PATH);
+    const prior = await readJsonSafe(join(MANTINE_DIR, "provenance.json"));
+    if (pin && prior && JSON.stringify(prior.pin) === JSON.stringify(pin)) {
+      console.log(`Mantine layer -> ${MANTINE_DIR} (up to date, matches pin; pass --force to refetch)`);
+      return;
+    }
+  }
 
   if (!sourceDir) {
     tempDir = await mkdtemp(join(tmpdir(), "mantine-fetch-"));

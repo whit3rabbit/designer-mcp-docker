@@ -11,7 +11,7 @@
  */
 
 import MarkdownIt from "markdown-it";
-import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
+import { shellHead, shellStyle, nav, mcpButton } from "./ui.mjs";
 import { hasHeroUiPreview } from "./heroui-preview.mjs";
 
 const esc = (s) =>
@@ -171,11 +171,13 @@ if (sideSearch) {
 }
 `;
 
+const HEROUI_STYLE_LINK = shellStyle("heroui", HEROUI_CSS);
+
 function page(title, catalog, activePath, mainHtml, script = "") {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(HEROUI_STYLE_LINK)}
 <title>${esc(title)} · Designer</title>
-<style>${BASE_CSS}${NAV_CSS}${HEROUI_CSS}</style>
 </head><body>
 ${nav("heroui")}
 <div class="heroui-shell">

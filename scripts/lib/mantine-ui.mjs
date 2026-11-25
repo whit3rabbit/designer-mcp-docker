@@ -11,7 +11,7 @@
  * module documents framed in an iframe. Zero remote URLs.
  */
 
-import { BASE_CSS, NAV_CSS, nav, mcpButton } from "./ui.mjs";
+import { shellHead, shellStyle, nav, mcpButton } from "./ui.mjs";
 
 const esc = (s) =>
   String(s ?? "")
@@ -147,11 +147,13 @@ const MANTINE_CSS = `
   }
 `;
 
+const MANTINE_STYLE_LINK = shellStyle("mantine", MANTINE_CSS);
+
 function page(title, catalog, activePath, mainHtml, script = "") {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${shellHead(MANTINE_STYLE_LINK)}
 <title>${esc(title)} · Designer</title>
-<style>${BASE_CSS}${NAV_CSS}${MANTINE_CSS}</style>
 </head><body>
 ${nav("mantine")}
 <div class="mant-shell">

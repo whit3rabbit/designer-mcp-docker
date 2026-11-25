@@ -8,7 +8,7 @@
  *   - /components/fonts   Live type specimen tester for all 11 baked @fontsource families
  */
 
-import { BASE_CSS, NAV_CSS, nav, themeHead } from "./ui.mjs";
+import { shellHead, shellStyle, nav } from "./ui.mjs";
 import { componentsSubnav } from "./components-ui.mjs";
 
 const esc = (s) =>
@@ -63,6 +63,8 @@ const CDN_BASE_CSS = `
   .cdn-note code { font-family: var(--mono); background: var(--code-bg); color: var(--code-fg); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
 `;
 
+const CDN_STYLE_LINK = shellStyle("cdn", CDN_BASE_CSS);
+
 /**
  * /components/icons — Searchable 1,500+ Lucide Icon Browser powered by local lucide.min.js.
  */
@@ -77,16 +79,17 @@ export function iconsBrowserHtml({ manifest, counts = {} }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead(CDN_STYLE_LINK)}
 <title>Offline Icons Browser — Lucide ${esc(lucideVer)}</title>
 <style>
-${BASE_CSS}${NAV_CSS}${CDN_BASE_CSS}
-.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; --ic-size: 24px; --ic-stroke: 2; --ic-color: currentColor; }
+.icon-grid svg { width: var(--ic-size); height: var(--ic-size); stroke-width: var(--ic-stroke); stroke: var(--ic-color); }
 .icon-card {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   padding: 14px 8px 11px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--panel); color: var(--fg); cursor: pointer; font: inherit; text-align: center;
   transition: border-color .12s ease, transform .12s ease;
+  content-visibility: auto; contain-intrinsic-size: auto 92px;
 }
 .icon-card:hover { border-color: var(--accent); transform: translateY(-1px); }
 .icon-card span { font-size: 11px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -173,6 +176,7 @@ ${componentsSubnav("icons", counts)}
     var customColor = '';
     var PAGE = 120;
     var shown = PAGE;
+    var rendered = 0;
     var allIcons = [];
     var filtered = [];
     var selected = null;
@@ -201,23 +205,33 @@ ${componentsSubnav("icons", counts)}
       return '<svg ' + head + '>' + inner + '</svg>';
     }
 
-    function render() {
+    function applyIconVars() {
       var size = Number(sizeEl.value);
       var stroke = Number(strokeEl.value);
       sizeV.textContent = size + 'px';
       strokeV.textContent = String(stroke);
-      var slice = filtered.slice(0, shown);
+      grid.style.setProperty('--ic-size', size + 'px');
+      grid.style.setProperty('--ic-stroke', String(stroke));
+      grid.style.setProperty('--ic-color', customColor || 'currentColor');
+    }
+
+    function render(append) {
+      applyIconVars();
+      var target = Math.min(filtered.length, shown);
+      var start = (append && rendered > 0 && rendered < target) ? rendered : 0;
       var frag = document.createDocumentFragment();
-      for (var i = 0; i < slice.length; i++) {
-        var ic = slice[i];
+      for (var i = start; i < target; i++) {
+        var ic = filtered[i];
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'icon-card';
-        btn.innerHTML = buildSvg(ic.def, size, stroke, customColor) + '<span>' + ic.kebab + '</span>';
+        btn.innerHTML = buildSvg(ic.def, 24, 2, '') + '<span>' + ic.kebab + '</span>';
         btn.dataset.idx = String(i);
         frag.appendChild(btn);
       }
-      grid.replaceChildren(frag);
+      if (start === 0) grid.replaceChildren(frag);
+      else grid.appendChild(frag);
+      rendered = target;
       countEl.textContent = filtered.length === allIcons.length
         ? allIcons.length + ' Lucide icons'
         : filtered.length + ' of ' + allIcons.length + ' Lucide icons';
@@ -282,12 +296,16 @@ ${componentsSubnav("icons", counts)}
       if (!selected) return;
       copyText('<i data-lucide="' + selected.kebab + '"></i>', 'HTML');
     });
-    qEl.addEventListener('input', function(){ filter(true); });
-    sizeEl.addEventListener('input', render);
-    strokeEl.addEventListener('input', render);
-    colorEl.addEventListener('input', function(){ customColor = colorEl.value; render(); });
-    colorReset.addEventListener('click', function(){ customColor = ''; render(); });
-    moreBtn.addEventListener('click', function(){ shown += PAGE; render(); });
+    var icTimer = 0;
+    qEl.addEventListener('input', function(){
+      clearTimeout(icTimer);
+      icTimer = setTimeout(function(){ filter(true); }, 80);
+    });
+    sizeEl.addEventListener('input', applyIconVars);
+    strokeEl.addEventListener('input', applyIconVars);
+    colorEl.addEventListener('input', function(){ customColor = colorEl.value; applyIconVars(); });
+    colorReset.addEventListener('click', function(){ customColor = ''; applyIconVars(); });
+    moreBtn.addEventListener('click', function(){ shown += PAGE; render(true); });
 
     if (window.lucide && window.lucide.icons) {
       allIcons = Object.keys(window.lucide.icons).sort().map(function(name){
@@ -328,12 +346,11 @@ export function chartsBrowserHtml({ manifest, counts = {} }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead(CDN_STYLE_LINK)}
 <title>Charts &amp; Data Visualization — Offline CDN Showcase</title>
 ${apexCss ? `<link rel="stylesheet" href="${esc(apexCss)}">` : ""}
 ${tabCss ? `<link rel="stylesheet" href="${esc(tabCss)}">` : ""}
 <style>
-${BASE_CSS}${NAV_CSS}${CDN_BASE_CSS}
 .viz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
 .viz-card {
   display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px;
@@ -402,13 +419,13 @@ ${componentsSubnav("charts", counts)}
     </section>
   </div>
 
-  <script src="${esc(chartJs)}"></script>
-  <script src="${esc(echartsJs)}"></script>
-  <script src="${esc(apexJs)}"></script>
-  <script src="${esc(d3Js)}"></script>
-  <script src="${esc(tabJs)}"></script>
+  <script src="${esc(chartJs)}" defer></script>
+  <script src="${esc(echartsJs)}" defer></script>
+  <script src="${esc(apexJs)}" defer></script>
+  <script src="${esc(d3Js)}" defer></script>
+  <script src="${esc(tabJs)}" defer></script>
   <script>
-  (function(){
+  window.addEventListener('DOMContentLoaded', function(){
     var muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#64748b';
     var line = getComputedStyle(document.documentElement).getPropertyValue('--line').trim() || '#334155';
 
@@ -509,7 +526,7 @@ ${componentsSubnav("charts", counts)}
         ]
       });
     }
-  })();
+  });
   </script>` : '<p class="cdn-lead">Frontend assets have not been built yet. Run <code>npm run frontend:build</code>.</p>'}
 </main>
 </body>
@@ -561,11 +578,10 @@ export function fontsBrowserHtml({ manifest, counts = {} }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${themeHead()}
+${shellHead(CDN_STYLE_LINK)}
 <title>Local Offline Fonts — ${BAKED_FONTS.length} Baked Families</title>
 ${fontsCss ? `<link rel="stylesheet" href="${esc(fontsCss)}">` : ""}
 <style>
-${BASE_CSS}${NAV_CSS}${CDN_BASE_CSS}
 .font-list { display: grid; gap: 14px; }
 .font-card { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 16px 18px; }
 .font-card[hidden] { display: none; }
