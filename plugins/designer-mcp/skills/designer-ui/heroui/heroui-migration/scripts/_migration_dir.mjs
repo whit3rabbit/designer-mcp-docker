@@ -17,7 +17,7 @@ export const OFFLINE_NOTE = [
   "# Offline: no baked HeroUI migration guides available.",
   "#   Bake them in a designer-mcp checkout: npm run heroui && npm run bake",
   "#   or set HEROUI_MIGRATION_DIR to a directory containing agent-guide-full.mdx.",
-  "#   The design_heroui_migration_guide MCP tool serves the same guides when registered.",
+  "#   The design_kit_docs (kit: \"heroui\", kind: \"migration\") MCP tool serves the same guides when registered.",
 ].join("\n");
 
 /** Directory holding agent-guide-full.mdx, or null. */

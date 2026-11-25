@@ -8,7 +8,7 @@ license: Apache-2.0. LICENSE.txt has complete terms.
 
 Turn any reference design into a **vendored design-system template**: the
 structured, offline format the gallery's `/templates` layer and the
-`design_template_*` tools serve. The output is a folder under
+`design_template` / `design_file` (`kind: "template"`) tools serve. The output is a folder under
 `data/design-systems/<slug>/` that an agent (or a human) can copy, restyle,
 and generate decks or pages from.
 
@@ -45,7 +45,7 @@ A user-selected source is sufficient grounding. Route by medium:
   discovers design evidence from the file (fonts, fills, type scale).
 - **Images or a brand board**: view them, sample the palette programmatically
   (Pillow pixel medians beat eyeballing), and name the motifs.
-- **DESIGN.md**: `design_markdown_check` and `design_markdown_check` (MCP
+- **DESIGN.md**: `design_markdown_check` (`mode: "parse" | "manifest"`) and `design_markdown_render` (MCP
   tools from the designer-mcp skill) seed the token set and roles.
 
 Lock the reference before building. Name the source and list the traits that

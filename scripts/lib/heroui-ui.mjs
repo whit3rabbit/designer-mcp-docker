@@ -229,7 +229,7 @@ export function herouiCatalogHtml(catalog) {
       <span class="heroui-count" id="heroui-count">${components.length + guides.length} pages</span>
     </div>
     <div class="heroui-grid" id="heroui-grid">${cards}${guideCards}</div>
-    <div class="heroui-mcp">Pick these programmatically with the <code>design_heroui_*</code> MCP tools (<code>design_heroui_list_components</code>, <code>design_heroui_get_docs</code>, <code>design_heroui_get_styles</code>, <code>design_heroui_get_theme_variables</code>, <code>design_heroui_migration_guide</code>) or the JSON at <code>/api/heroui</code>.</div>`;
+    <div class="heroui-mcp">Pick these programmatically with the <code>design_kit_*</code> MCP tools (<code>design_kit_list</code>, <code>design_kit_search</code>, <code>design_kit_docs</code>, <code>design_kit_code</code> with <code>"kit": "heroui"</code>) or the JSON at <code>/api/heroui</code>.</div>`;
   const script = `
 const grid = document.getElementById('heroui-grid');
 const search = document.getElementById('heroui-search');
@@ -299,8 +299,8 @@ export function herouiDocHtml(catalog, entry, kind, content) {
     </article>
     <div class="heroui-mcp">${
       kind === "guide"
-        ? `Read this guide programmatically with <code>design_heroui_get_guide {"path": "${esc(entry.slug)}"}</code>.`
-        : `Read this component programmatically with <code>design_heroui_get_docs {"components": ["${esc(entry.name)}"]}</code>; styles with <code>design_heroui_get_styles</code>, source with <code>design_heroui_get_source</code>.`
+        ? `Read this guide programmatically with <code>design_kit_docs {"kit": "heroui", "kind": "guide", "item": "${esc(entry.slug)}"}</code>.`
+        : `Read this component programmatically with <code>design_kit_docs {"kit": "heroui", "item": "${esc(entry.slug)}"}</code>; styles with <code>design_kit_code {"kit": "heroui", "kind": "styles", "item": "${esc(entry.slug)}"}</code>, source with <code>design_kit_code {"kit": "heroui", "item": "${esc(entry.slug)}"}</code>.`
     }</div>`;
   return page(title, catalog, entry.path, main, previewScript);
 }

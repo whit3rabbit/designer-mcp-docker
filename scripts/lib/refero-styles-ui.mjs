@@ -110,9 +110,9 @@ function paletteDots(row) {
   return dots ? `<div class="dots">${dots}</div>` : "";
 }
 
-const MCP_HINT = `<div class="mcp">The MCP exposes this layer as
-<code>design_style_list</code>, <code>design_style_search</code>,
-<code>design_style_get</code> and <code>design_style_get_md</code>.
+const MCP_HINT = `<div class="mcp">The MCP exposes this layer via
+<code>design_search</code> (<code>"source": "style"</code>) and
+<code>design_get</code> (<code>"source": "style"</code>, <code>"include": "summary" | "markdown"</code>).
 Profiles and DESIGN.md exports are Refero's analysis of the depicted sites, cached locally for personal use.</div>`;
 
 /**

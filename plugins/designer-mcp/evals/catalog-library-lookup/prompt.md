@@ -12,7 +12,7 @@ the designer-mcp skill's library layer.
 
 ## Expected behavior
 
-- Uses `design_library` for shadcn, then `design_library` for
+- Uses `design_library` (`query: "shadcn"`, then `id: "shadcn"`) for
   the install steps and the setup files with their contents, instead of
   recalling the setup from memory.
 - Respects what the project already has (checks package.json and existing

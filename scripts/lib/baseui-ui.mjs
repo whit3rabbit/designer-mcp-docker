@@ -265,7 +265,7 @@ export function baseUiCatalogHtml(catalog, { reuiSlugs } = {}) {
       <span class="baseui-count" id="baseui-count">${components.length + guides.length} pages</span>
     </div>
     <div id="baseui-sections">${sectionHtml}</div>
-    <div class="baseui-mcp">Pick these programmatically with the <code>design_baseui_*</code> MCP tools (<code>design_baseui_list_components</code>, <code>design_baseui_search</code>, <code>design_baseui_get_docs</code>, <code>design_baseui_get_guide</code>) or the JSON at <code>/api/baseui</code>.</div>`;
+    <div class="baseui-mcp">Pick these programmatically with the <code>design_kit_*</code> MCP tools (<code>design_kit_list</code>, <code>design_kit_search</code>, <code>design_kit_docs</code> with <code>"kit": "baseui"</code>) or the JSON at <code>/api/baseui</code>.</div>`;
   const script = `
 const root = document.getElementById('baseui-sections');
 const search = document.getElementById('baseui-search');
@@ -310,8 +310,8 @@ export function baseUiDocHtml(catalog, entry, content, { reuiSlugs } = {}) {
     }
     <div class="baseui-mcp">${
       isComponent
-        ? `Read this component programmatically with <code>design_baseui_get_docs {"components": ["${esc(entry.name)}"]}</code>; search with <code>design_baseui_search</code>.`
-        : `Read this guide programmatically with <code>design_baseui_get_guide {"path": "${esc(`${entry.section}/${entry.slug}`)}"}</code>.`
+        ? `Read this component programmatically with <code>design_kit_docs {"kit": "baseui", "item": "${esc(entry.slug)}"}</code>; search with <code>design_kit_search {"kit": "baseui"}</code>.`
+        : `Read this guide programmatically with <code>design_kit_docs {"kit": "baseui", "kind": "guide", "item": "${esc(`${entry.section}/${entry.slug}`)}"}</code>.`
     }</div>`;
   return page(title, catalog, entry.path, main);
 }

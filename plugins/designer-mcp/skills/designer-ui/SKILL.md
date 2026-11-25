@@ -26,7 +26,7 @@ and docs to work from.
 |---|---|---|
 | Mantine (`@mantine/core`) | `design_kit_* (kit: "mantine")` | `design_kit_search`, then `design_kit_code` for the full TSX and CSS module |
 | daisyUI 5 (plain HTML classes) | `design_kit_* (kit: "daisyui")` | `design_kit_search`, then `design_kit_code` for classes and example HTML |
-| Base UI (`@base-ui/react`, headless) | `design_kit_* (kit: "baseui")` | `design_kit_docs` for a component, `design_kit_docs` for the handbook |
+| Base UI (`@base-ui/react`, headless) | `design_kit_* (kit: "baseui")` | `design_kit_docs` for a component, `design_kit_docs` (`kind: "guide"`) for the handbook |
 | 16 UI kits (Chakra, MUI, AntD, PrimeReact, Magic UI, etc.) | `design_kit_*` | `design_kit_search`, then `design_kit_docs` for usage and `design_kit_code` for code |
 
 Use the library the project already depends on. Tool parameters are in the

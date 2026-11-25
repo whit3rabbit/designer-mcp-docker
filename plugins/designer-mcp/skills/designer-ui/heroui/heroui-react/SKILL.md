@@ -71,7 +71,7 @@ import { Card } from "@heroui/react";
 
 Everything this skill needs is on disk, in priority order:
 
-1. **MCP tools** (best): with the designer-mcp MCP server registered, the `design_kit_* (kit: "heroui")` tools serve the same catalog programmatically: `design_kit_list`, `design_kit_search`, `design_kit_docs`, `design_kit_docs`, `design_kit_code`, `design_kit_code`, `design_kit_code`, `design_kit_docs`.
+1. **MCP tools** (best): with the designer-mcp MCP server registered, the `design_kit_*` tools (`kit: "heroui"`) serve the same catalog programmatically: `design_kit_list`, `design_kit_search`, `design_kit_docs` (`kind`: `component` | `guide` | `migration`), and `design_kit_code` (`kind`: `source` | `styles` | `theme`).
 2. **Installed package**: a project that depends on `@heroui/react` carries version-matched docs in `node_modules/@heroui/react/docs/` (`llms.txt` index, `components/<name>.md`, `guides/<name>.md`).
 3. **Baked layer**: `<cache>/heroui/docs` (`<cache>` is `$DESIGN_CACHE_DIR`, `/cache` in the image, or `~/.design-cache`), plus component source (`heroui/source`), per-component CSS (`heroui/styles`), and theme CSS (`heroui/theme`). Override with `HEROUI_DOCS_DIR`. Bake it with `npm run heroui && npm run bake` in a designer-mcp checkout.
 

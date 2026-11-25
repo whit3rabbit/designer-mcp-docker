@@ -60,29 +60,44 @@ export function score(query, items) {
   if (queryTerms.length === 0) return items.map((item) => ({ id: item.id, score: 0 }));
 
   const N = items.length;
-  const dfMap = new Map();
-  const tokenized = items.map((item) => {
-    const terms = item._tokens || tokenize(item.text ?? "");
-    item._tokens = terms;
-    const unique = new Set(terms);
-    for (const t of unique) {
-      dfMap.set(t, (dfMap.get(t) || 0) + 1);
-    }
-    return { id: item.id, terms };
-  });
+  const qLen = queryTerms.length;
+  const queryIndex = new Map();
+  for (let i = 0; i < qLen; i++) queryIndex.set(queryTerms[i], i);
 
-  return tokenized.map(({ id, terms }) => {
-    if (terms.length === 0) return { id, score: 0 };
-    const tf = new Map();
-    for (const t of terms) tf.set(t, (tf.get(t) ?? 0) + 1);
-    let totalScore = 0;
-    for (const q of queryTerms) {
-      const f = tf.get(q) ?? 0;
-      if (f === 0) continue;
-      const df = dfMap.get(q) || 1;
-      const idf = Math.log(1 + (N - df + 0.5) / (df + 0.5));
-      totalScore += idf * (f / (f + 1.5));
+  const df = new Int32Array(qLen);
+  const docCounts = new Array(N);
+
+  for (let i = 0; i < N; i++) {
+    const item = items[i];
+    const terms = item._tokens || (item._tokens = tokenize(item.text ?? ""));
+    let counts = null;
+    for (let j = 0; j < terms.length; j++) {
+      const qi = queryIndex.get(terms[j]);
+      if (qi === undefined) continue;
+      if (!counts) counts = new Int32Array(qLen);
+      if (counts[qi] === 0) df[qi]++;
+      counts[qi]++;
     }
-    return { id, score: totalScore };
-  });
+    docCounts[i] = counts;
+  }
+
+  const idf = new Float64Array(qLen);
+  for (let qi = 0; qi < qLen; qi++) {
+    const d = df[qi] || 1;
+    idf[qi] = Math.log(1 + (N - d + 0.5) / (d + 0.5));
+  }
+
+  const out = new Array(N);
+  for (let i = 0; i < N; i++) {
+    const counts = docCounts[i];
+    let totalScore = 0;
+    if (counts) {
+      for (let qi = 0; qi < qLen; qi++) {
+        const f = counts[qi];
+        if (f > 0) totalScore += idf[qi] * (f / (f + 1.5));
+      }
+    }
+    out[i] = { id: items[i].id, score: totalScore };
+  }
+  return out;
 }

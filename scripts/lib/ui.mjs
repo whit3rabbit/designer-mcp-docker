@@ -1663,7 +1663,7 @@ ${secNav}
   </aside>
   <main class="docs-view">
     <div class="docs-head"><span id="doc-path">Select a doc</span><a id="doc-raw" href="#" download hidden>Download .md</a></div>
-    <pre id="doc-body">Select a document from the left to read it offline, or use the MCP tools design_docs_search and design_docs_get.</pre>
+    <pre id="doc-body">Select a document from the left to read it offline, or use the MCP tools design_kit_search and design_kit_docs (kit: "ui-sdk").</pre>
   </main>
 </div>
 <script>
@@ -1765,7 +1765,7 @@ ${SHARED_CSS}
 <body>
 ${nav("templates")}
 <div class="bar"><h1>System templates <span>· ${total} generic design systems</span></h1></div>
-<div class="count">Vendored starting points: copy one whole and build on its tokens. The MCP exposes these as design_template_* tools plus design_manifest_template.</div>
+<div class="count">Vendored starting points: copy one whole and build on its tokens. The MCP exposes these as design_template and design_file (kind: "template").</div>
 <div class="grid">
 ${cards || '<div class="empty">No templates cached. Run: npm run templates</div>'}
 </div>

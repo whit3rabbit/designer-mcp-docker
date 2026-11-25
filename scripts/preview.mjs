@@ -1043,7 +1043,7 @@ const server = createServer(async (req, res) => {
       if (!catalog) return json(res, 404, { error: "uikit catalog not in cache" });
       return json(res, 200, catalog);
     }
-    // The baked file manifest. design_uikit_get_source reads it to resolve a
+    // The baked file manifest. design_kit_code reads it to resolve a
     // path suffix, so remote mode needs it mirrored like the catalog.
     const mUikitApiFiles = p.match(/^\/api\/uikits\/([a-z0-9-]+)\/files\.json$/);
     if (mUikitApiFiles) {

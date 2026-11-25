@@ -272,7 +272,7 @@ export function mantineCatalogHtml(catalog, { previewPath, thumbnailPath, proven
     </div>
     <div class="mant-cat-grid" id="mant-cats">${categoryCards}</div>
     ${sections}
-    <div class="mant-mcp">Pick these programmatically with the <code>design_mantine_*</code> MCP tools (<code>design_mantine_list_components</code>, <code>design_mantine_search</code>, <code>design_mantine_get_component</code>) or the JSON at <code>/api/mantine</code>.</div>`;
+    <div class="mant-mcp">Pick these programmatically with the <code>design_kit_*</code> MCP tools (<code>design_kit_list</code>, <code>design_kit_search</code>, <code>design_kit_code</code> with <code>"kit": "mantine"</code>) or the JSON at <code>/api/mantine</code>.</div>`;
   const script = `
 const search = document.getElementById('mant-search');
 const count = document.getElementById('mant-count');
@@ -356,7 +356,7 @@ export function mantineComponentHtml(catalog, detail, { previewPath, category } 
       <div class="mant-tabs" role="tablist">${tabs}</div>
       ${panels}
     </div>
-    <div class="mant-mcp">Pull this component's full source with <code>design_mantine_get_component {"slug": "${esc(detail.slug)}"}</code>; the catalog is on <code>design_mantine_list_components</code> and <code>design_mantine_search</code>.</div>`;
+    <div class="mant-mcp">Pull this component's full source with <code>design_kit_code {"kit": "mantine", "item": "${esc(detail.slug)}"}</code>; the catalog is on <code>design_kit_list</code> and <code>design_kit_search</code> (<code>"kit": "mantine"</code>).</div>`;
   const script = `
 const tabs = [...document.querySelectorAll('.mant-tabs button')];
 const panels = [...document.querySelectorAll('.mant-panel')];

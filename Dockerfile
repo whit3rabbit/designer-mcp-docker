@@ -79,10 +79,25 @@ RUN node scripts/package-skill.mjs --out /app/dist && \
     cp /app/dist/designer-mcp-skill.zip /app/dist/designer-mcp-marketplace.zip /app/plugins/designer-mcp/ && \
     rm -rf /app/dist
 
+# Pre-warm Node's V8 bytecode compile cache so MCP stdio containers skip
+# script parsing/compilation on cold startup.
+RUN mkdir -p /app/.compile-cache && \
+    NODE_COMPILE_CACHE=/app/.compile-cache node --input-type=module -e ' \
+      await Promise.all([ \
+        import("./scripts/lib/mcp-runtime.mjs"), \
+        import("./scripts/lib/mcp-legacy-tools.mjs"), \
+      ]); \
+    ' && \
+    printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"warmup","version":"1"}}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}\n' \
+      | DESIGN_CACHE_DIR=/cache NODE_COMPILE_CACHE=/app/.compile-cache node scripts/mcp-server.mjs > /dev/null && \
+    printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"warmup","version":"1"}}}\n' \
+      | DESIGN_CACHE_DIR=/cache REFERO_CACHE_DIR=/cache NODE_COMPILE_CACHE=/app/.compile-cache node scripts/mcp-entry.mjs > /dev/null
+
 ENV DESIGN_CACHE_DIR=/cache \
     DESIGN_FRONTEND_DIR=/app/frontend-cache \
     REFERO_CACHE_DIR=/cache \
     REFERO_CACHE_TTL_MS=315360000000 \
+    NODE_COMPILE_CACHE=/app/.compile-cache \
     PORT=8787 \
     HOST=0.0.0.0 \
     NODE_ENV=production

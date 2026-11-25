@@ -37,6 +37,6 @@
       "content": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <title>Tailwind prototype</title>\n    <script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script>\n  </head>\n  <body class=\"grid min-h-screen place-items-center bg-neutral-950 text-neutral-100\">\n    <h1 class=\"text-3xl font-semibold tracking-tight\">Hello from Tailwind over CDN</h1>\n  </body>\n</html>\n"
     }
   ],
-  "notes": "The CDN path is for prototypes the user asked for, never for this repo's own pages: the gallery bans remote URLs. The preset layer (design_preset_search) emits raw CSS properties and Tailwind class snippets that drop straight into either setup. For the shadcn theme variables that ride on top of v4, see the shadcn entry's globals.css.",
-  "related": ["design_preset_search", "design_preset_get"]
+  "notes": "The CDN path is for prototypes the user asked for, never for this repo's own pages: the gallery bans remote URLs. The preset layer (design_preset) emits raw CSS properties and Tailwind class snippets that drop straight into either setup. For the shadcn theme variables that ride on top of v4, see the shadcn entry's globals.css.",
+  "related": ["design_preset"]
 }

@@ -2,7 +2,7 @@
 
 Pass requires every checked item. Fail on any miss.
 
-- [ ] PASS: The agent calls design_library and design_library
+- [ ] PASS: The agent calls `design_library` (search + lookup by `id`)
       before writing any setup file.
 - [ ] PASS: The written setup files match the catalog entry's contents
       (components.json, utils, globals.css) rather than paraphrase from

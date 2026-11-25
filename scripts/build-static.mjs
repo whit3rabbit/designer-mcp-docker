@@ -1112,7 +1112,7 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
       await writeOut(`uikits/${row.kit}/index.html`, relativizeHtml(uikitKitHtml(catalog), 2, { assetBase }));
       const manifest = await readUikitFiles(row.kit);
       // Mirrored for the same reason as the catalog: a remote-mode
-      // design_uikit_get_source resolves path suffixes against it.
+      // design_kit_code resolves path suffixes against it.
       if (manifest) await writeJson(`api/uikits/${row.kit}/files.json`, manifest);
       const bakedFiles = Object.entries(manifest?.files || {}).map(([path, bytes]) => ({ path, bytes }));
       const wantedPaths = (item) => [
@@ -1145,7 +1145,7 @@ document.getElementById('copy-theme').addEventListener('click', async () => {
         }
       }
       // The remote-mode mirror: one plain-text endpoint per baked file, so
-      // design_uikit_get_source resolves any path the manifest lists.
+      // design_kit_code resolves any path the manifest lists.
       for (const [path] of Object.entries(manifest?.files || {})) {
         const content = await readUikitFile(row.kit, path);
         if (content !== null) await writeOut(`api/uikits/${row.kit}/file/${path}`, content);

@@ -22,10 +22,10 @@ Read [rules/AGENTS.md](rules/AGENTS.md) before generating any dashboard code. Ac
 
 ## MCP Tools & Authority
 
-- **Offline MCP lookup:** Use `design_dashboards` (with optional `kind` or `query` filter) and `design_dashboards` to browse or read tech stacks, starters, OpenDesign presets, industry verticals, framework component kits (`mantine`, `heroui`, `chakra`, `mui`, `antd`, `primereact`, `daisyui`, `base-ui`, `coss-ui`, `ark-ui`, `react-bits`, `magic-ui`, `aceternity-ui`, `21st-dev`, `motion-primitives`, `unocss`, `panda-css`, `vanilla-extract`, `stylex`, `open-props`), references, and subskills without needing to locate the skill directory first.
-- **Kit ID mapping (`design_dashboards` -> catalog MCP tools):** Seven framework directory ids match `design_kit_*` directly (`chakra`, `mui`, `antd`, `primereact`, `unocss`, `vanilla-extract`, `stylex`). Nine map to a different `kit` argument, and four use their own tool family:
+- **Offline MCP lookup:** Use `design_dashboards` (with `kind`/`query` to list, or `kind` + `id` to read) to browse or read tech stacks, starters, OpenDesign presets, industry verticals, framework component kits (`mantine`, `heroui`, `chakra`, `mui`, `antd`, `primereact`, `daisyui`, `base-ui`, `coss-ui`, `ark-ui`, `react-bits`, `magic-ui`, `aceternity-ui`, `21st-dev`, `motion-primitives`, `unocss`, `panda-css`, `vanilla-extract`, `stylex`, `open-props`), references, and subskills without needing to locate the skill directory first.
+- **Kit ID mapping (`design_dashboards` -> catalog MCP tools):** All kits use the `design_kit_list`, `design_kit_search`, `design_kit_docs`, and `design_kit_code` tools. Ten framework directory ids match the `kit` argument directly (`mantine`, `heroui`, `daisyui`, `chakra`, `mui`, `antd`, `primereact`, `unocss`, `vanilla-extract`, `stylex`), and ten hyphenated ids map to canonical `kit` values (aliases are also accepted):
 
-  | Framework directory | Tool | `kit` argument / notes |
+  | Framework directory | Tools | `kit` argument / notes |
   |---|---|---|
   | `coss-ui` | `design_kit_*` | `coss` |
   | `magic-ui` | `design_kit_*` | `magicui` |
@@ -36,12 +36,9 @@ Read [rules/AGENTS.md](rules/AGENTS.md) before generating any dashboard code. Ac
   | `react-bits` | `design_kit_*` | `reactbits` (index only, licence-restricted) |
   | `aceternity-ui` | `design_kit_*` | `aceternity` (index only, licence-restricted) |
   | `21st-dev` | `design_kit_*` | `twentyfirst` (index only, licence-restricted) |
-  | `mantine` | `design_kit_* (kit: "mantine")` | dedicated tool family |
-  | `heroui` | `design_kit_* (kit: "heroui")` | dedicated tool family |
-  | `daisyui` | `design_kit_* (kit: "daisyui")` | dedicated tool family |
-  | `base-ui` | `design_kit_* (kit: "baseui")` | dedicated tool family (docs only) |
+  | `base-ui` | `design_kit_*` | `baseui` (docs only, headless) |
 
-- **Design authority:** The [design-system](../design-system/SKILL.md) skill owns the research workflow, reference lock, and `DESIGN.md` contract. Use [designer-ui](../designer-ui/SKILL.md) for general UI craft and component-library docs (`design_kit_*`, `design_kit_* (kit: "mantine")`, `design_kit_* (kit: "heroui")`, `design_kit_* (kit: "daisyui")`, `design_kit_* (kit: "baseui")`), [designer-documents](../designer-documents/SKILL.md) for file deliverables, and [designer-mcp](../designer-mcp/SKILL.md) for catalog setup.
+- **Design authority:** The [design-system](../design-system/SKILL.md) skill owns the research workflow, reference lock, and `DESIGN.md` contract. Use [designer-ui](../designer-ui/SKILL.md) for general UI craft and component-library docs (`design_kit_list`, `design_kit_search`, `design_kit_docs`, `design_kit_code`), [designer-documents](../designer-documents/SKILL.md) for file deliverables, and [designer-mcp](../designer-mcp/SKILL.md) for catalog setup.
 
 ## Recommended Full-Project Order
 

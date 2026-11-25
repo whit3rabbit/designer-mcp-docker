@@ -29,7 +29,7 @@ const OFFLINE_NOTE = [
   "#     npm run heroui && npm run bake",
   "#   or set DESIGN_CACHE_DIR to a cache containing heroui/source/react.",
   "#   Component docs and types stay available: get_component_docs.mjs,",
-  "#   or the design_heroui_get_source MCP tool when registered.",
+  "#   or the design_kit_code (kit: \"heroui\") MCP tool when registered.",
 ].join("\n");
 
 const sourceRoot = () => {

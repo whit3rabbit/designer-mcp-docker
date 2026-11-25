@@ -248,7 +248,7 @@ export function daisyuiCatalogHtml(catalog, { previewPath, thumbnailPath, proven
       <span class="dai-count" id="dai-count">${components.length} components</span>
     </div>
     ${sections}
-    <div class="dai-mcp">Pick these programmatically with the <code>design_daisyui_*</code> MCP tools (<code>design_daisyui_list_components</code>, <code>design_daisyui_search</code>, <code>design_daisyui_get_component</code>) or the JSON at <code>/api/daisyui</code>.</div>`;
+    <div class="dai-mcp">Pick these programmatically with the <code>design_kit_*</code> MCP tools (<code>design_kit_list</code>, <code>design_kit_search</code>, <code>design_kit_code</code> with <code>"kit": "daisyui"</code>) or the JSON at <code>/api/daisyui</code>.</div>`;
   const script = `
 const search = document.getElementById('dai-search');
 const groupSel = document.getElementById('dai-group');
@@ -340,7 +340,7 @@ export function daisyuiComponentHtml(catalog, detail, { previewPath, thumbnailPa
     ${classRows ? `<div class="dai-classes"><h2>Class names</h2>${classRows}</div>` : ""}
     ${blocks.join("\n")}
     <div class="dai-docs"><h4>Upstream rules</h4>${esc(rulesText(detail.docs))}</div>
-    <div class="dai-mcp">Pull this component's classes, syntax and example HTML with <code>design_daisyui_get_component {"slug": "${esc(detail.slug)}"}</code>; the catalog is on <code>design_daisyui_list_components</code> and <code>design_daisyui_search</code>. Full docs: <a href="${esc(detail.docUrl || `https://daisyui.com/components/${detail.slug}/`)}" rel="noopener">${esc(detail.docUrl || `https://daisyui.com/components/${detail.slug}/`)}</a></div>`;
+    <div class="dai-mcp">Pull this component's classes, syntax and example HTML with <code>design_kit_code {"kit": "daisyui", "item": "${esc(detail.slug)}"}</code>; the catalog is on <code>design_kit_list</code> and <code>design_kit_search</code> (<code>"kit": "daisyui"</code>). Full docs: <a href="${esc(detail.docUrl || `https://daisyui.com/components/${detail.slug}/`)}" rel="noopener">${esc(detail.docUrl || `https://daisyui.com/components/${detail.slug}/`)}</a></div>`;
   const script = `
 for (const copy of [...document.querySelectorAll('.dai-copy')]) {
   copy.addEventListener('click', async () => {

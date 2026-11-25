@@ -103,7 +103,7 @@ export const OFFLINE_NOTE = [
   "#   1. npm i @heroui/react (the docs ship inside the package)",
   "#   2. bake the designer-mcp layer: npm run heroui && npm run bake",
   "#   3. or set HEROUI_DOCS_DIR to a directory containing llms.txt",
-  "#   4. the design_heroui_* MCP tools serve this same catalog when registered",
+  "#   4. the design_kit_* (kit: \"heroui\") MCP tools serve this same catalog when registered",
 ].join("\n");
 
 /** PascalCase component name -> kebab-case doc slug ("ToggleButton" -> "toggle-button"). */

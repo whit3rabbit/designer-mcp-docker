@@ -12,7 +12,7 @@ For the upstream `refero_*` server (`scripts/mcp-entry.mjs`), see [refero-legacy
   - `extras` (`design_preset`, `design_library`, `design_assets`)
   - `dashboards` (`design_dashboards`)
   - `picks` (`design_picks`, `design_resolve`)
-- **Legacy compatibility (`--legacy-tools` / `DESIGN_LEGACY_TOOLS=1`):** Re-exposes the 50 pre-v2 granular `design_*` tool names alongside the 17 consolidated tools. (Note: `dispatch()` always accepts legacy tool names internally.)
+- **Legacy compatibility (`--legacy-tools` / `DESIGN_LEGACY_TOOLS=1`):** Re-exposes the 50 pre-v2 granular `design_*` tool names alongside the 17 consolidated tools.
 - **Heading-based doc navigation (`outline` & `section`):** On `design_get` (`include: "markdown"`) and `design_kit_docs`, pass `outline: true` to list headings with byte offsets, then `section: "<heading>"` to read a single section instead of paging a 100–380 KB doc.
 - **Reply size limit:** Default 120,000 bytes (`DESIGN_MCP_MAX_RESPONSE_BYTES`). Large text/file replies page via `offset` and `maxBytes` (default 40,000, max 100,000).
 

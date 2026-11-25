@@ -31,7 +31,7 @@
         "Calls design_facets before promising a direction, to see what is actually present",
         "Reports concrete font families and theme counts rather than generic claims",
         "Notes that colorScheme can be 'mixed' and that upstream's theme filter silently drops mixed styles",
-        "Uses design_list with filters to browse, and design_search for ranked matches"
+        "Uses design_search with filters (no query) to browse, and design_search with a query for ranked matches"
       ]
     },
     {
@@ -42,11 +42,11 @@
         "references/mcp-tools.md"
       ],
       "expected_behavior": [
-        "Lists templates with design_template_list, then picks one that matches the brief and says why",
-        "Calls design_manifest_template with the chosen slug and saves the manifest beside the work",
+        "Lists templates with design_template, then picks one that matches the brief and says why",
+        "Calls design_template (manifest: true or detail: \"full\") with the chosen slug and saves the manifest beside the work",
         "Builds against the manifest contract: no color outside roles and ramps, no raw px where a token exists",
-        "Copies starter files with design_template_file instead of inventing parallel markup",
-        "Does not invent tool names beyond design_template_list/get/file and design_manifest_template"
+        "Copies starter files with design_file (kind: \"template\") instead of inventing parallel markup",
+        "Does not invent tool names beyond design_template and design_file"
       ]
     }
   ],

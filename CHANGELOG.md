@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.0.1 (2026-11-25)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v2.0.1`
+- **6x faster MCP server startup (~130 ms → ~22 ms warm, ~235 ms → ~26 ms cold):**
+  - Replaced eager `@modelcontextprotocol/sdk` (`zod` + `ajv`) startup imports in `scripts/mcp-server.mjs` with a lightweight, zero-dependency, MCP-spec-compliant stdio JSON-RPC 2.0 entrypoint that answers `initialize`, `ping`, `tools/list`, and `resources/list` immediately without blocking on catalog I/O or remote timeouts.
+  - Extracted legacy schemas into `scripts/lib/mcp-legacy-tools.mjs` (loaded only under `--legacy-tools` / `DESIGN_LEGACY_TOOLS=1`) and tool handlers into `scripts/lib/mcp-runtime.mjs` (loaded on first `tools/call` or `resources/read`).
+  - Deferred heavy parsers (`markdown-it`, `culori`, `postcss`, `yaml`, upstream Refero renderer, `frontend.mjs`, index builders) until invoked, parallelized local catalog and UI kit loading, cached catalog search documents, and optimized BM25 scoring (`24 ms → 2 ms` on repeat searches).
+  - Pre-warmed Node 22 V8 bytecode compile cache (`NODE_COMPILE_CACHE=/app/.compile-cache`) in `Dockerfile` for faster cold container starts.
+- **Full v2 MCP tool-name alignment:**
+  - Updated all gallery UI MCP hints (`ui.mjs`, `heroui-ui.mjs`, `mantine-ui.mjs`, `daisyui-ui.mjs`, `baseui-ui.mjs`, `uikit-ui.mjs`, `refero-styles-ui.mjs`), `scripts/probe-mcp.mjs`, runtime error hints (`mcp-runtime.mjs`), library manifests (`data/libraries/entries/*.json`), skill evals, HeroUI helper script notes, `AGENTS.md`, and `SKILL.md` files to reference the consolidated 17 `design_*` tools cleanly.
+
 ## v2.0.0 (2026-11-24)
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v2.0.0`

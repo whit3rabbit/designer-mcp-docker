@@ -226,10 +226,10 @@ five concrete ways:
    running gallery. Every remote read goes through `remoteJson`, `remoteText`,
    and `remoteOr` in `scripts/lib/cache.mjs`, reading the static `api/*` tree
    and falling back to local disk with `remoteNote` if unreachable.
-3. **Shared offline CDN (`design_assets`)**: `design_assets` and
-   `design_assets` read `DESIGN_FRONTEND_DIR`
-   (`/app/frontend-cache`), the exact same versioned `/assets/<version>/`
-   bundle and `importmap.json` served by `/assets` on the webserver.
+3. **Shared offline CDN (`design_assets`)**: `design_assets` reads
+   `DESIGN_FRONTEND_DIR` (`/app/frontend-cache`), the exact same versioned
+   `/assets/<version>/` bundle and `importmap.json` served by `/assets` on the
+   webserver.
 4. **Human-to-agent handoff**: Design detail pages (`/design/:id`) emit
    copyable `designer:<source>:<id>` references (accepted directly by
    `design_get` / `design_get (include: "markdown")`), copy-paste prompts for Open Design and
@@ -300,28 +300,28 @@ five concrete ways:
   Route those asks to the gallery routes or the static `api/reui.json` /
   `api/dashboards.json` endpoints.
 - The HeroUI layer is gallery **and** MCP covered: the `/heroui` routes above
-  plus eight `design_kit_* (kit: "heroui")` tools, over the same baked cache
+  plus `design_kit_list` / `design_kit_search` / `design_kit_docs` / `design_kit_code` (`kit: "heroui"`), over the same baked cache
   (`data/heroui/pin.json` pins the versions; `npm run heroui` refetches).
 - The Mantine layer is gallery **and** MCP covered: the `/mantine` routes
-  above plus three `design_kit_* (kit: "mantine")` tools, over the same baked cache. The
+  above plus `design_kit_list` / `design_kit_search` / `design_kit_code` (`kit: "mantine"`), over the same baked cache. The
   live previews esbuild-bundle the vendored npm tarballs in
   `mantine/vendor/` (`data/mantine/pin.json` pins them; `npm run mantine`
   refetches). A demo that fails to bundle ships source-only — never claim a
   preview that does not exist.
 - The daisyUI layer is gallery **and** MCP covered: the `/daisyui` routes
-  above plus three `design_kit_* (kit: "daisyui")` tools, over the same baked cache. The
+  above plus `design_kit_list` / `design_kit_search` / `design_kit_code` (`kit: "daisyui"`), over the same baked cache. The
   vendored compiled css carries every component class and theme, so the
   native previews are plain HTML documents — no React, no Tailwind install
   (`data/daisyui/pin.json` pins the versions; `npm run daisyui` refetches).
   Component groups and the rendered examples are authored by this repo
   (upstream ships no machine-readable grouping); provenance records that.
 - The Base UI layer is gallery **and** MCP covered: the `/baseui` routes
-  above plus four `design_kit_* (kit: "baseui")` tools, over the same baked cache. Base UI
+  above plus `design_kit_list` / `design_kit_search` / `design_kit_docs` (`kit: "baseui"`), over the same baked cache. Base UI
   is headless, so the layer is docs-only: there are no previews to build, and
   the gallery cross-links ReUI for the rendered version
   (`data/baseui/pin.json` pins the licence ref; `npm run baseui` refetches).
 - The UI kits layer is gallery **and** MCP covered: the `/uikits` routes above
-  plus four generic `design_kit_*` tools, over the same baked cache
+  plus `design_kit_list` / `design_kit_search` / `design_kit_docs` / `design_kit_code`, over the same baked cache
   (`data/uikits/pins.json` pins every kit's source and licence;
   `npm run uikits` refetches). One fetcher, one reader pair and one tool
   family cover all the kits: add a kit by pinning it, never by forking the
@@ -330,7 +330,7 @@ five concrete ways:
   21st.dev are pointer kits by licence: their component code stays upstream,
   only the first-party llms.txt index is baked.
 - The Refero Styles layer is gallery **and** MCP covered: the `/refero-styles`
-  routes above plus four `design_search / design_get` tools, over the same baked cache.
+  routes above plus `design_search` and `design_get` (`source: "style"`), over the same baked cache.
   It is Refero's curated per-site design-system profiles (named tokens,
   surfaces, component recipes with CSS, dos/donts, DESIGN.md export), fetched
   from the public `/v1/styles` API that backs refero.design/styles under the

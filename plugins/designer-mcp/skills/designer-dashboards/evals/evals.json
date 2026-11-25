@@ -9,7 +9,7 @@
       "expected_behavior": [
         "Routes to designer-dashboards and activates designer-dashboards:init.",
         "Reads rules/AGENTS.md guardrails before generating code.",
-        "Selects the react-vite-mantine stack profile from templates/tech-stacks/catalog.json or calls design_dashboards_get.",
+        "Selects the react-vite-mantine stack profile from templates/tech-stacks/catalog.json or calls design_dashboards.",
         "Uses scripts/scaffold-starter.mjs and verifies output with scripts/verify-dashboard.mjs."
       ]
     },
@@ -31,7 +31,7 @@
       "files": [],
       "expected_behavior": [
         "Does not trigger designer-dashboards.",
-        "Routes to design-system or designer-mcp (design_preset_search / design_preset_get)."
+        "Routes to design-system or designer-mcp (design_preset)."
       ]
     }
   ]

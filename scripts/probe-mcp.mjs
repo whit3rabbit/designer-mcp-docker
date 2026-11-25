@@ -69,10 +69,10 @@ console.log(`tools (${names.length}):`, names.join(", "));
 
 for (const [tool, args] of [
   ["design_get", { identifier: "designer:opendesign:agentic" }],
-  ["design_claude_package", { identifier: "designer:opendesign:agentic", path: "README.md" }],
-  ["design_package_file", { identifier: "designer:opendesign:agentic", path: "tokens.css" }],
+  ["design_file", { kind: "claude", identifier: "designer:opendesign:agentic", path: "README.md" }],
+  ["design_file", { kind: "opendesign", identifier: "designer:opendesign:agentic", path: "tokens.css" }],
   ["design_facets", {}],
-  ["design_list", { source: "opendesign", limit: 3 }],
+  ["design_search", { source: "opendesign", limit: 3 }],
 ]) {
   const res = await send("tools/call", { name: tool, arguments: args });
   const text = res.result?.content?.[0]?.text ?? JSON.stringify(res.result);

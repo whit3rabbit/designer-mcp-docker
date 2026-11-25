@@ -193,7 +193,7 @@ export function uikitsIndexHtml(index) {
       <span class="uik-badge"><b>${index.totals?.items ?? 0}</b> items</span>
     </div>
     <div class="uik-grid">${cards}</div>
-    <div class="uik-mcp">Pick these programmatically with the <code>design_uikit_*</code> MCP tools (<code>design_uikit_list</code>, <code>design_uikit_search</code>, <code>design_uikit_get_docs</code>, <code>design_uikit_get_source</code>) or the JSON at <code>/api/uikits</code>.</div>`;
+    <div class="uik-mcp">Pick these programmatically with the <code>design_kit_*</code> MCP tools (<code>design_kit_list</code>, <code>design_kit_search</code>, <code>design_kit_docs</code>, <code>design_kit_code</code>) or the JSON at <code>/api/uikits</code>.</div>`;
   return page("UI kits", "uikits", main);
 }
 
@@ -237,7 +237,7 @@ export function uikitKitHtml(catalog) {
     <div class="uik-badges">${kitBadges(catalog)}</div>
     ${notice}
     ${sections}
-    <div class="uik-mcp">Items resolve with <code>design_uikit_list {"kit": "${esc(catalog.kit)}"}</code>; docs with <code>design_uikit_get_docs</code>; code with <code>design_uikit_get_source</code>. Catalog JSON: <code>/api/uikits/${esc(catalog.kit)}/catalog.json</code>.</div>`;
+    <div class="uik-mcp">Items resolve with <code>design_kit_list {"kit": "${esc(catalog.kit)}"}</code>; docs with <code>design_kit_docs</code>; code with <code>design_kit_code</code>. Catalog JSON: <code>/api/uikits/${esc(catalog.kit)}/catalog.json</code>.</div>`;
   return page(`${catalog.name} · UI kits`, "uikits", main);
 }
 
@@ -266,8 +266,8 @@ export function uikitItemHtml(catalog, item, docsContent, files) {
     <div class="uik-badges">${kitBadges(catalog)}${preview}</div>
     ${docsSection}
     ${fileRows ? `<div class="uik-files"><h2>Baked files (${files.length})</h2><div class="uik-filelist">${fileRows}</div></div>` : ""}
-    <div class="uik-mcp">Docs: <code>design_uikit_get_docs {"kit": "${esc(catalog.kit)}", "item": "${esc(item.slug)}"}</code>${
-      item.source?.length ? ` · Code: <code>design_uikit_get_source {"kit": "${esc(catalog.kit)}", "item": "${esc(item.slug)}"}</code>` : ""
+    <div class="uik-mcp">Docs: <code>design_kit_docs {"kit": "${esc(catalog.kit)}", "item": "${esc(item.slug)}"}</code>${
+      item.source?.length ? ` · Code: <code>design_kit_code {"kit": "${esc(catalog.kit)}", "item": "${esc(item.slug)}"}</code>` : ""
     }</div>`;
   return page(`${item.title} · ${catalog.name}`, "uikits", main);
 }
@@ -279,7 +279,7 @@ export function uikitFileHtml(catalog, filePath, content) {
     <div class="uik-crumb"><a href="/uikits">UI kits</a> / <a href="${kitUrl}">${esc(catalog.name)}</a> / ${esc(filePath)}</div>
     <div class="uik-header"><h1 style="font-size:16px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${esc(filePath)}</h1></div>
     <div class="uik-code"><pre>${esc(content)}</pre></div>
-    <div class="uik-mcp">Read this file programmatically with <code>design_uikit_get_source {"kit": "${esc(catalog.kit)}", "item": "<item>", "path": "${esc(filePath)}"}</code>.</div>`;
+    <div class="uik-mcp">Read this file programmatically with <code>design_kit_code {"kit": "${esc(catalog.kit)}", "item": "<item>", "path": "${esc(filePath)}"}</code>.</div>`;
   return page(`${filePath} · ${catalog.name}`, "uikits", main);
 }
 
@@ -349,7 +349,7 @@ export function uikitPreviewHtml(catalog, item, cssRelPath) {
       ${kitBadges(catalog)}
     </div>
     ${demo}
-    <div class="uik-mcp">Drive these tokens programmatically with <code>design_uikit_get_source {"kit": "${esc(catalog.kit)}", "item": "${esc(item.slug)}"}</code> to read the css.</div>`;
+    <div class="uik-mcp">Drive these tokens programmatically with <code>design_kit_code {"kit": "${esc(catalog.kit)}", "item": "${esc(item.slug)}"}</code> to read the css.</div>`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(item.title)} preview · ${esc(catalog.name)} · Designer</title>
