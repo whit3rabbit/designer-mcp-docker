@@ -15,7 +15,7 @@ createRoot(document.querySelector("#root")!).render(
             React, Motion, Tailwind and shadcn are loaded from this directory.
           </motion.p>
           <Dialog>
-            <DialogTrigger asChild><Button><Sparkles /> Open example</Button></DialogTrigger>
+            <DialogTrigger asChild><Button><Sparkles aria-hidden="true" /> Open example</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Local dialog</DialogTitle>

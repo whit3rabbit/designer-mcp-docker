@@ -1,6 +1,13 @@
-html { color-scheme: light dark; }
+html { color-scheme: light dark; -webkit-text-size-adjust: 100%; }
 body { margin: 0; }
-#preview-root { min-height: 100vh; display: flow-root; }
+#preview-root { min-height: 100vh; display: flow-root; transition: opacity .15s ease; }
+html[data-preview="loading"] #preview-root { opacity: 0; }
+html[data-preview="ready"] #preview-root { opacity: 1; }
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid Highlight;
+  outline: 2px solid -webkit-focus-ring-color;
+  outline-offset: 2px;
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;

@@ -16,7 +16,10 @@ class Boundary extends Component {
 
   render() {
     return this.state.failed
-      ? h("p", { role: "alert" }, "This preview could not run. The source is available in the gallery.")
+      ? h("p", {
+        role: "alert",
+        style: { margin: 0, padding: "1rem", fontFamily: "system-ui, -apple-system, sans-serif", fontSize: "0.875rem", lineHeight: 1.5 },
+      }, "Unable to render this preview. View the component source in the gallery.")
       : this.props.children;
   }
 }

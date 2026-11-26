@@ -235,7 +235,7 @@ export function designDetailHtml({ design, views = [], main = "", aside = "", ta
   const tagList = tags.map((t) => `<li>${esc(t)}</li>`).join("");
   const frame = first
     ? `<div class="tabs" role="tablist" aria-label="Which view">${tabButtons}</div>
-       <div class="frame"><iframe id="view" src="${esc(first.src)}" title="${esc(first.label)} view" sandbox="allow-scripts" loading="lazy"></iframe></div>`
+       <div class="frame frame-host" id="design-frame-host"><iframe id="view" src="${esc(first.src)}" title="${esc(first.label)} view" sandbox="allow-scripts" loading="lazy"></iframe></div>`
     : "";
 
   return `<!doctype html>
@@ -267,9 +267,14 @@ ${aside}
 ${views.length ? `<script>
 const tabs = [...document.querySelectorAll('.tab')];
 const frame = document.getElementById('view');
+const frameHost = document.getElementById('design-frame-host');
+if (window.DesignerUI && frameHost && frame) window.DesignerUI.watchFrame(frameHost, frame);
 function show(t) {
   tabs.forEach((o) => o.setAttribute('aria-selected', String(o === t)));
-  if (frame.getAttribute('src') !== t.dataset.src) frame.setAttribute('src', t.dataset.src);
+  if (frame.getAttribute('src') !== t.dataset.src) {
+    frame.setAttribute('src', t.dataset.src);
+    if (window.DesignerUI && frameHost) window.DesignerUI.watchFrame(frameHost, frame);
+  }
   history.replaceState(null, '', t.dataset.hash ? '#' + t.dataset.hash : location.pathname);
 }
 for (const t of tabs) t.addEventListener('click', () => show(t));

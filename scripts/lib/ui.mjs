@@ -62,36 +62,50 @@ export function themeHead() {
 export const BASE_CSS = `
   :root {
     color-scheme: light dark;
-    --bg: light-dark(#f7f8fa, #0d0f12);
-    --panel: light-dark(#ffffff, #16191e);
-    --panel2: light-dark(#eef1f5, #1d2127);
-    --line: light-dark(#dce1e8, #2a2f37);
-    --fg: light-dark(#181c23, #e6e9ee);
-    --strong: light-dark(#0c0f14, #f7f8fa);
-    --text: light-dark(#3b4250, #d4d9e1);
-    --muted: light-dark(#5b6472, #9aa3b0);
-    --chip: light-dark(#e9edf3, #232832);
-    --accent: light-dark(#4452e0, #7c8cff);
+    --bg: light-dark(#fafafa, #09090b);
+    --panel: light-dark(#ffffff, #111113);
+    --panel2: light-dark(#f4f4f5, #18181b);
+    --line: light-dark(#e4e4e7, #27272a);
+    --line-strong: light-dark(#d4d4d8, #3f3f46);
+    --fg: light-dark(#18181b, #e4e4e7);
+    --strong: light-dark(#09090b, #fafafa);
+    --text: light-dark(#27272a, #d4d4d8);
+    --muted: light-dark(#52525b, #a1a1aa);
+    --chip: light-dark(#f4f4f5, #27272a);
+    --accent: light-dark(#2563eb, #60a5fa);
     --accent-ink: #ffffff;
-    --accent-bg: light-dark(#eceeff, #232a44);
-    --accent-line: light-dark(#b2baf9, #5362a1);
-    --code-bg: light-dark(#f2f4f8, #0a0c0f);
-    --code-fg: light-dark(#1d2432, #d7dbe3);
-    --ok-fg: light-dark(#147a42, #7ee2a8);
-    --nav-bg: light-dark(rgba(255,255,255,.97), rgba(13,15,18,.97));
-    --brand: light-dark(#15733a, #7ee2a8);
-    --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --accent-bg: light-dark(#eff6ff, #172554);
+    --accent-line: light-dark(#93c5fd, #1d4ed8);
+    --code-bg: light-dark(#f4f4f5, #050507);
+    --code-fg: light-dark(#18181b, #e4e4e7);
+    --ok-fg: light-dark(#15803d, #4ade80);
+    --nav-bg: light-dark(rgba(250,250,250,.88), rgba(9,9,11,.88));
+    --brand: light-dark(#15803d, #4ade80);
+    --shadow-sm: light-dark(0 1px 2px rgba(9,9,11,.05), 0 1px 2px rgba(0,0,0,.4));
+    --shadow-lg: light-dark(0 18px 48px rgba(9,9,11,.14), 0 18px 54px rgba(0,0,0,.6));
+    --skel-a: light-dark(#e4e4e7, #18181b);
+    --skel-b: light-dark(#f4f4f5, #27272a);
+    --font: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   :root:has(> head > meta[name="color-scheme"][content="dark"]) { color-scheme: dark; }
   :root:has(> head > meta[name="color-scheme"][content="light"]) { color-scheme: light; }
+  [hidden] { display: none !important; }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font: 14px/1.5 var(--font); }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.55 var(--font); font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
   a { color: var(--accent); }
   a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 2px;
   }
+  dialog:modal { overscroll-behavior: contain; }
+  dialog::backdrop { overflow: hidden; overscroll-behavior: contain; }
   @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
   }
 `;
@@ -137,25 +151,61 @@ export function nav(active) {
     const isOn = pillar === key;
     return `<a class="tab${isOn ? " on" : ""}" href="${href}"${isOn ? ' aria-current="page"' : ""}>${label}</a>`;
   };
-  return `<header class="site-header">
+  return `<a class="skip-link" href="#main-content">Skip to main content</a>
+<div id="nav-progress" class="nav-progress" aria-hidden="true"></div>
+<header class="site-header" id="site-header" data-site-root="/">
   <nav class="nav" aria-label="Primary">
-    <a class="brand" href="/">▣ Designer</a>
-    ${tab("/", "Design Systems", "designs")}
-    ${tab("/components", "Components", "components")}
-    ${tab("/starters", "Starters", "starters")}
-    ${tab("/presets", "Effects &amp; Presets", "presets")}
-    ${tab("/assets", "Assets &amp; Docs", "assets")}
+    <button type="button" class="nav-menu-btn" id="nav-menu-btn" popovertarget="nav-links" popovertargetaction="toggle" aria-controls="nav-links" aria-expanded="false" aria-label="Open navigation menu">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>
+    </button>
+    <a class="brand" href="/"><svg class="brand-mark" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3" stroke="currentColor" stroke-width="1.5"/><rect x="4.5" y="4.5" width="7" height="7" rx="1.2" fill="currentColor"/></svg><span>Designer</span></a>
+    <div class="nav-links" id="nav-links">
+      ${tab("/", "Design Systems", "designs")}
+      ${tab("/components", "Components", "components")}
+      ${tab("/starters", "Starters", "starters")}
+      ${tab("/presets", "Effects &amp; Presets", "presets")}
+      ${tab("/assets", "Assets &amp; Docs", "assets")}
+      <a class="tab nav-mobile-skill" href="/skill">Download Skill ZIP</a>
+    </div>
     <span class="spacer"></span>
+    <button type="button" class="cmd-trigger" id="cmd-trigger" aria-haspopup="dialog" aria-controls="cmd-palette" title="Quick search across designs, components, and tools (⌘K or /)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="M10.8 10.8 14 14"/></svg>
+      <span class="cmd-trigger-label">Search…</span>
+      <kbd class="cmd-kbd" aria-hidden="true">⌘K</kbd>
+    </button>
     <button type="button" class="mcp-tray-btn" id="mcp-tray-btn" aria-expanded="false" aria-controls="mcp-tray" title="Open MCP Picks Tray">
-      <span aria-hidden="true">⚡</span> MCP <span class="mcp-tray-cnt" id="mcp-tray-cnt" hidden>0</span>
+      <span aria-hidden="true">⚡</span> <span class="mcp-btn-label">MCP</span> <span class="mcp-tray-cnt" id="mcp-tray-cnt" hidden>0</span>
     </button>
     <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle color theme" title="Toggle light/dark theme">
       <span class="theme-icon-light" aria-hidden="true">☀</span>
       <span class="theme-icon-dark" aria-hidden="true">☾</span>
     </button>
-    <a class="dl" href="/skill">⬇ Skill</a>
+    <a class="dl" href="/skill">Skill</a>
   </nav>
 </header>
+<dialog id="cmd-palette" class="cmd-dlg" closedby="any" aria-labelledby="cmd-title" data-site-root="/">
+  <h1 id="cmd-title" class="sr-only">Quick Search</h1>
+  <div class="cmd-head">
+    <svg class="cmd-ico" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="M10.8 10.8 14 14"/></svg>
+    <input id="cmd-input" class="cmd-input" type="text" inputmode="search" placeholder="Jump to any design system, component, library, icon, or page…" aria-label="Quick search" aria-autocomplete="list" aria-controls="cmd-results" autocomplete="off" spellcheck="false" autofocus>
+    <button type="button" id="cmd-close" class="mcp-icon-btn" aria-label="Close search">×</button>
+  </div>
+  <div class="cmd-scopes" role="tablist" aria-label="Search scope">
+    <button type="button" role="tab" class="cmd-scope" data-scope="all" aria-selected="true">All</button>
+    <button type="button" role="tab" class="cmd-scope" data-scope="designs" aria-selected="false">Designs</button>
+    <button type="button" role="tab" class="cmd-scope" data-scope="components" aria-selected="false">Components</button>
+    <button type="button" role="tab" class="cmd-scope" data-scope="compare" aria-selected="false">Compare</button>
+    <button type="button" role="tab" class="cmd-scope" data-scope="pages" aria-selected="false">Pages &amp; Tools</button>
+    <span id="cmd-status" class="cmd-status" role="status"></span>
+  </div>
+  <div id="cmd-results" class="cmd-results" role="listbox" aria-label="Search results"></div>
+  <div class="cmd-foot">
+    <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+    <span><kbd>↵</kbd> Open</span>
+    <span><kbd>Esc</kbd> Close</span>
+    <span class="cmd-foot-right">100% offline index</span>
+  </div>
+</dialog>
 <aside id="mcp-tray" class="mcp-tray" data-picks-api="/api/picks" aria-label="MCP Picks Tray" hidden>
   <div class="mcp-tray-head">
     <div class="mcp-tray-title">
@@ -173,6 +223,7 @@ export function nav(active) {
     <span id="mcp-tray-status" class="mcp-status" role="status"></span>
   </div>
 </aside>
+<button type="button" id="back-to-top" class="back-to-top" aria-label="Back to top" title="Back to top" hidden>↑ Top</button>
 <script src="${SHELL_JS_PATH}"></script>`;
 }
 
@@ -209,6 +260,158 @@ const SHELL_NAV_JS = `(function(){
       if (ev.key === 'color-scheme') applyStored();
     });
   }
+
+  function onDomReady(fn) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
+    else fn();
+  }
+
+  // Ensure skip-link target, active subnav scroll, and dialog light-dismiss fallback after full DOM parse
+  onDomReady(function() {
+    if (!document.getElementById('main-content')) {
+      var mainEl = document.querySelector('main, .wrap, .detail, .reui-main, .heroui-main, .mant-main, .dai-main, .base-main, .uk-main');
+      if (mainEl) mainEl.id = 'main-content';
+    }
+    var activeSub = document.querySelector('.subnav .sub-tab[aria-current="page"]');
+    if (activeSub && activeSub.scrollIntoView) {
+      try { activeSub.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } catch (e) {}
+    }
+    document.querySelectorAll('dialog[closedby="any"]').forEach(wireLightDismiss);
+  });
+
+  // Responsive mobile popover nav synchronization
+  var navMenuBtn = document.getElementById('nav-menu-btn');
+  var navLinks = document.getElementById('nav-links');
+  if (navMenuBtn && navLinks && !navMenuBtn.dataset.wired) {
+    navMenuBtn.dataset.wired = '1';
+    var hasPopover = Object.hasOwn ? Object.hasOwn(HTMLElement.prototype, 'popover') : ('popover' in HTMLElement.prototype);
+    var mq = window.matchMedia('(max-width: 860px)');
+    function syncNavMode() {
+      if (mq.matches) {
+        if (hasPopover) navLinks.setAttribute('popover', 'auto');
+        else navLinks.classList.add('is-drawer');
+      } else {
+        if (hasPopover) {
+          try { if (navLinks.matches(':popover-open')) navLinks.hidePopover(); } catch (e) {}
+          navLinks.removeAttribute('popover');
+        }
+        navLinks.classList.remove('is-drawer', 'is-open');
+        navMenuBtn.setAttribute('aria-expanded', 'false');
+      }
+    }
+    syncNavMode();
+    if (mq.addEventListener) mq.addEventListener('change', syncNavMode);
+    if (hasPopover) {
+      navLinks.addEventListener('toggle', function(ev) {
+        navMenuBtn.setAttribute('aria-expanded', String(ev.newState === 'open'));
+      });
+    } else {
+      navMenuBtn.addEventListener('click', function() {
+        var open = navLinks.classList.toggle('is-open');
+        navMenuBtn.setAttribute('aria-expanded', String(open));
+      });
+    }
+  }
+
+  // Top navigation loading progress bar for same-origin MPA links
+  var progressBar = document.getElementById('nav-progress');
+  var progressTimer = 0;
+  function startNavProgress() {
+    if (!progressBar) return;
+    clearTimeout(progressTimer);
+    progressBar.classList.remove('done');
+    progressBar.classList.add('active');
+    progressTimer = setTimeout(function(){ progressBar.classList.remove('active'); }, 6000);
+  }
+  function resetNavProgress() {
+    if (!progressBar) return;
+    clearTimeout(progressTimer);
+    progressBar.classList.remove('active', 'done');
+  }
+  window.addEventListener('pageshow', resetNavProgress);
+  document.addEventListener('click', function(e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest('a[href]');
+    if (!a || a.hasAttribute('download') || (a.target && a.target !== '_self')) return;
+    var raw = a.getAttribute('href') || '';
+    if (!raw || raw[0] === '#' || raw.indexOf('javascript:') === 0) return;
+    try {
+      var u = new URL(a.href, location.href);
+      if (u.origin !== location.origin) return;
+      if (u.pathname === location.pathname && u.search === location.search) return;
+      startNavProgress();
+    } catch (err) {}
+  });
+
+  // Back-to-top button on long pages
+  var topBtn = document.getElementById('back-to-top');
+  if (topBtn && !topBtn.dataset.wired) {
+    topBtn.dataset.wired = '1';
+    var topTick = false;
+    function syncTopBtn() {
+      topTick = false;
+      topBtn.hidden = (window.scrollY || document.documentElement.scrollTop || 0) < 620;
+    }
+    window.addEventListener('scroll', function() {
+      if (!topTick) { topTick = true; requestAnimationFrame(syncTopBtn); }
+    }, { passive: true });
+    topBtn.addEventListener('click', function() {
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    });
+    syncTopBtn();
+  }
+
+  // Reusable iframe loading overlay helper (exposed on window.DesignerUI)
+  function watchFrame(container, iframe) {
+    if (!container || !iframe) return;
+    container.classList.add('is-loading');
+    var overlay = container.querySelector('.frame-loader');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'frame-loader';
+      overlay.setAttribute('aria-hidden', 'true');
+      overlay.innerHTML = '<span class="frame-spinner"></span><span>Loading preview…</span>';
+      container.appendChild(overlay);
+    }
+    var settled = false;
+    function done() {
+      if (settled) return;
+      settled = true;
+      container.classList.remove('is-loading');
+    }
+    iframe.addEventListener('load', done, { once: true });
+    iframe.addEventListener('error', done, { once: true });
+    function onMsg(ev) {
+      if (ev.source === iframe.contentWindow && ev.data && ev.data.source === 'design-preview') {
+        done();
+        window.removeEventListener('message', onMsg);
+      }
+    }
+    window.addEventListener('message', onMsg);
+    setTimeout(done, 4500);
+  }
+
+  // Helper: closedby="any" pointer fallback for browsers lacking HTMLDialogElement.closedBy
+  function wireLightDismiss(dlg) {
+    if (!dlg || ('closedBy' in HTMLDialogElement.prototype) || dlg.dataset.ldWired) return;
+    dlg.dataset.ldWired = '1';
+    var pressedOutside = false;
+    function outside(e) {
+      var r = dlg.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    }
+    dlg.addEventListener('pointerdown', function(e) { pressedOutside = outside(e); });
+    dlg.addEventListener('pointerup', function(e) { if (pressedOutside && outside(e)) dlg.close(); });
+  }
+  document.querySelectorAll('dialog[closedby="any"]').forEach(wireLightDismiss);
+
+  window.__DESIGNER_CACHE = window.__DESIGNER_CACHE || {};
+  window.DesignerUI = {
+    watchFrame: watchFrame,
+    wireLightDismiss: wireLightDismiss,
+    startNavProgress: startNavProgress
+  };
 
   // ---- Shared MCP Picks Tray & [data-mcp-ref] button wiring ----
   var STORAGE_KEY = 'designer-mcp-picks';
@@ -365,18 +568,26 @@ const SHELL_NAV_JS = `(function(){
 
   document.addEventListener('click', function(e){
     var target = e.target.closest('[data-mcp-ref]');
-    if (!target) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var ref = target.getAttribute('data-mcp-ref');
-    var label = target.getAttribute('data-mcp-label') || ref;
-    if (!ref) return;
-    var exists = picks.some(function(p){ return p.ref === ref; });
-    if (exists) removeOne(ref);
-    else {
-      addOrUpdate({ ref: ref, label: label });
-      setStatus('Sent to MCP');
+    if (target) {
+      e.preventDefault();
+      e.stopPropagation();
+      var ref = target.getAttribute('data-mcp-ref');
+      var label = target.getAttribute('data-mcp-label') || ref;
+      if (!ref) return;
+      var exists = picks.some(function(p){ return p.ref === ref; });
+      if (exists) removeOne(ref);
+      else {
+        addOrUpdate({ ref: ref, label: label });
+        setStatus('Sent to MCP');
+      }
+      return;
     }
+    if (!tray.hidden && !tray.contains(e.target) && !trayBtn.contains(e.target)) {
+      setOpen(false);
+    }
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !tray.hidden) setOpen(false);
   });
   window.addEventListener('storage', function(ev){
     if (ev.key === STORAGE_KEY) { picks = loadLocal(); renderTray(); }
@@ -403,6 +614,305 @@ const SHELL_NAV_JS = `(function(){
       }
     }).catch(function(){});
   }
+
+  // ---- Global Quick Search Command Palette (⌘K / Ctrl+K / /) ----
+  var cmdDlg = document.getElementById('cmd-palette');
+  var cmdTrigger = document.getElementById('cmd-trigger');
+  var cmdInput = document.getElementById('cmd-input');
+  var cmdClose = document.getElementById('cmd-close');
+  var cmdResults = document.getElementById('cmd-results');
+  var cmdStatus = document.getElementById('cmd-status');
+  if (!cmdDlg || !cmdInput || !cmdResults) return;
+  wireLightDismiss(cmdDlg);
+
+  var siteRoot = cmdDlg.getAttribute('data-site-root') || '/';
+  var isStatic = siteRoot !== '/';
+  function resolveRoute(path) {
+    if (!path || path === '/') return isStatic ? siteRoot + 'index.html' : '/';
+    if (!isStatic) return path[0] === '/' ? path : '/' + path;
+    var clean = path.replace(/^(?:\\.\\.\\/|\\.\\/|\\/)+/, '');
+    if (/\\.(?:html|json|zip|css|js|svg|png|webp)$/i.test(clean)) return siteRoot + clean;
+    return siteRoot + clean.replace(/\\/$/, '') + '/index.html';
+  }
+  function resolveIndexHref(href) {
+    if (!href) return resolveRoute('/');
+    if (!isStatic) return href;
+    return siteRoot + href.replace(/^(?:\\.\\.\\/|\\.\\/|\\/)+/, '');
+  }
+
+  var QUICK_PAGES = [
+    { name: 'Design Systems', sub: 'Unified gallery of 1,747 DESIGN.md systems', kind: 'page', route: '/', tags: 'refero opendesign templates palette color theme' },
+    { name: 'Components Hub', sub: '2,035 components across 25 offline UI libraries', kind: 'page', route: '/components', tags: 'ui react html shadcn heroui mantine daisyui' },
+    { name: 'Compare Across Libraries', sub: '49 generic UI primitives side by side', kind: 'page', route: '/components/compare', tags: 'button dialog tabs accordion table compare' },
+    { name: 'Icons Browser (Lucide)', sub: '1,500+ offline vector icons with SVG/JSX copy', kind: 'page', route: '/components/icons', tags: 'svg lucide icon phosphor remix' },
+    { name: 'Charts & Data Viz', sub: 'Chart.js, ECharts, ApexCharts, D3 & Tabulator', kind: 'page', route: '/components/charts', tags: 'graph plot chart table data visualization' },
+    { name: 'Local Fonts Specimen', sub: '11 baked @fontsource variable & display fonts', kind: 'page', route: '/components/fonts', tags: 'typography typeface woff2 inter archivo lora' },
+    { name: 'Starters & App Kits', sub: 'Offline dashboards, system templates & Slopstrap', kind: 'page', route: '/starters', tags: 'dashboard starter template kit zip' },
+    { name: 'Effects & Presets', sub: '159 background patterns, gradients & Liquid Glass', kind: 'page', route: '/presets', tags: 'gradient pattern liquid glass css backdrop' },
+    { name: 'Assets & Offline CDN', sub: 'Import map, starter ZIP, vendor JS/CSS & library manifests', kind: 'page', route: '/assets', tags: 'cdn importmap zip manifest npm' },
+    { name: 'UI SDK Offline Docs', sub: '@ui-sdk/core, react & web headless references', kind: 'page', route: '/docs', tags: 'documentation headless accessibility' },
+    { name: 'Refero Deep Styles', sub: '788 deep design-system profiles with CSS recipes', kind: 'page', route: '/refero-styles', tags: 'refero styles recipes tokens' },
+    { name: 'ReUI Components', sub: '1,264 shadcn/ui Radix + Base UI live components', kind: 'page', route: '/reui', tags: 'reui shadcn radix baseui' },
+    { name: 'HeroUI v3', sub: '73 components, guides & live CSS previews', kind: 'page', route: '/heroui', tags: 'heroui react aria tailwind' },
+    { name: 'Mantine UI', sub: '123 ready-made components with live previews', kind: 'page', route: '/mantine', tags: 'mantine react css modules' },
+    { name: 'daisyUI 5', sub: '68 pure-CSS components across 35 themes', kind: 'page', route: '/daisyui', tags: 'daisyui tailwind themes html' },
+    { name: 'Base UI', sub: 'Headless @base-ui/react components & handbook', kind: 'page', route: '/baseui', tags: 'baseui headless mui react' },
+    { name: 'UI Kits (16 libraries)', sub: 'Chakra, MUI, Ant Design, PrimeReact, Ark, Magic UI…', kind: 'page', route: '/uikits', tags: 'chakra mui antd primereact ark magicui motion openprops' },
+    { name: 'Tailwind (HyperUI & shadcn)', sub: 'HTML & React Tailwind component examples', kind: 'page', route: '/tailwind', tags: 'tailwind hyperui shadcn' }
+  ];
+
+  var cmdScope = 'all';
+  var cmdActiveIdx = 0;
+  var cmdList = [];
+  var loadingIndexes = false;
+  var indexesReady = false;
+  var designItems = [];
+  var compItems = [];
+  var compareItems = [];
+
+  function ingestDesigns(data) {
+    if (!data || !Array.isArray(data.designs)) return;
+    window.__DESIGNER_CACHE.designs = data;
+    designItems = data.designs.map(function(d){
+      var ref = d.source === 'template' ? 'designer:template:' + String(d.id).replace(/^template:/, '')
+        : String(d.id || '').indexOf('rs:') === 0 ? 'designer:style:' + String(d.id).slice(3)
+        : d.source === 'opendesign' ? 'designer:opendesign:' + d.id
+        : 'designer:refero:' + d.id;
+      return {
+        kind: 'designs',
+        name: d.name || d.id,
+        sub: [d.theme, d.industry && d.industry !== 'template' ? d.industry : '', d.domain || ''].filter(Boolean).join(' · ') || d.source,
+        href: resolveIndexHref(d.href),
+        colors: (d.colors || []).slice(0, 5),
+        badge: d.source === 'refero-styles' ? 'Deep Style' : d.source === 'opendesign' ? 'OpenDesign' : d.source === 'template' ? 'Template' : 'Refero',
+        ref: ref,
+        hay: (d.name + ' ' + (d.domain || '') + ' ' + (d.industry || '') + ' ' + (d.theme || '') + ' ' + (d.fonts || []).join(' ') + ' ' + (d.moods || []).join(' ')).toLowerCase()
+      };
+    });
+  }
+  function ingestHub(data) {
+    if (!data) return;
+    window.__DESIGNER_CACHE.hub = data;
+    compareItems = (data.concepts || []).map(function(c){
+      return {
+        kind: 'compare',
+        name: c.name,
+        sub: c.category + ' · ' + c.libCount + ' libraries (' + c.liveCount + ' live)',
+        href: resolveRoute('/components/compare/' + encodeURIComponent(c.slug)),
+        badge: c.libCount + ' libs',
+        live: c.liveCount > 0,
+        ref: 'designer:compare:' + c.slug,
+        hay: (c.name + ' ' + c.slug + ' ' + c.category + ' ' + (c.implementations || []).map(function(x){ return x.libName; }).join(' ')).toLowerCase()
+      };
+    });
+    compItems = (data.items || []).map(function(it){
+      var ref = it.lib === 'heroui' ? 'designer:heroui:' + it.slug
+        : it.lib === 'mantine' ? 'designer:mantine:' + it.slug
+        : it.lib === 'daisyui' ? 'designer:daisyui:' + it.slug
+        : it.lib === 'baseui' ? 'designer:baseui:' + it.slug
+        : it.lib === 'reui' ? 'designer:reui:' + it.slug
+        : it.lib === 'gradientdeck' ? 'designer:component:' + it.slug
+        : it.lib && it.lib.indexOf('uikit:') === 0 ? 'designer:uikit:' + it.lib.slice(6) + ':' + it.slug
+        : '';
+      return {
+        kind: 'components',
+        name: it.name,
+        sub: it.libName + (it.category ? ' · ' + it.category : ''),
+        href: resolveIndexHref(it.href),
+        badge: it.libName,
+        live: Boolean(it.previewable),
+        ref: ref,
+        hay: (it.name + ' ' + it.slug + ' ' + (it.category || '') + ' ' + it.libName + ' ' + (it.stack || '')).toLowerCase()
+      };
+    });
+  }
+
+  function ensureCmdIndexes() {
+    if (indexesReady) return;
+    if (window.__DESIGNER_CACHE.designs && !designItems.length) ingestDesigns(window.__DESIGNER_CACHE.designs);
+    if (window.__DESIGNER_CACHE.hub && !compItems.length) ingestHub(window.__DESIGNER_CACHE.hub);
+    if (designItems.length && compItems.length) { indexesReady = true; return; }
+    if (loadingIndexes) return;
+    loadingIndexes = true;
+    if (cmdStatus) cmdStatus.textContent = 'Indexing catalog…';
+    var p1 = designItems.length ? Promise.resolve() : fetch(siteRoot + 'api/designs-index.json').then(function(r){ return r.ok ? r.json() : null; }).then(ingestDesigns).catch(function(){});
+    var p2 = compItems.length ? Promise.resolve() : fetch(siteRoot + 'api/components-hub.json').then(function(r){ return r.ok ? r.json() : null; }).then(ingestHub).catch(function(){});
+    Promise.all([p1, p2]).then(function(){
+      loadingIndexes = false;
+      indexesReady = true;
+      if (cmdStatus) cmdStatus.textContent = (designItems.length + compItems.length + compareItems.length).toLocaleString() + ' indexed';
+      if (cmdDlg.open) renderCmdResults();
+    });
+  }
+
+  function scoreMatch(item, terms, rawQ) {
+    var nameL = item.name.toLowerCase();
+    var hay = item.hay;
+    for (var i = 0; i < terms.length; i++) {
+      if (hay.indexOf(terms[i]) < 0) return 0;
+    }
+    var score = 10;
+    if (nameL === rawQ) score += 100;
+    else if (nameL.indexOf(rawQ) === 0) score += 50;
+    else if (nameL.indexOf(rawQ) >= 0) score += 25;
+    if (item.live) score += 4;
+    return score;
+  }
+
+  function renderCmdResults() {
+    var rawQ = cmdInput.value.trim().toLowerCase();
+    var terms = rawQ ? rawQ.split(/\\s+/).filter(Boolean) : [];
+    var out = [];
+
+    if (!terms.length) {
+      if (cmdScope === 'all' || cmdScope === 'pages') {
+        QUICK_PAGES.slice(0, cmdScope === 'pages' ? 18 : 8).forEach(function(p){
+          out.push({ kind: 'pages', name: p.name, sub: p.sub, href: resolveRoute(p.route), badge: 'Page' });
+        });
+      }
+      if (cmdScope === 'all' || cmdScope === 'compare') {
+        compareItems.slice(0, cmdScope === 'compare' ? 24 : 6).forEach(function(c){ out.push(c); });
+      }
+      if (cmdScope === 'designs') {
+        designItems.slice(0, 24).forEach(function(d){ out.push(d); });
+      }
+      if (cmdScope === 'components') {
+        compItems.slice(0, 24).forEach(function(c){ out.push(c); });
+      }
+    } else {
+      var scored = [];
+      if (cmdScope === 'all' || cmdScope === 'pages') {
+        QUICK_PAGES.forEach(function(p){
+          var hay = (p.name + ' ' + p.sub + ' ' + p.tags).toLowerCase();
+          var sc = scoreMatch({ name: p.name, hay: hay }, terms, rawQ);
+          if (sc) scored.push({ sc: sc + 12, item: { kind: 'pages', name: p.name, sub: p.sub, href: resolveRoute(p.route), badge: 'Page' } });
+        });
+      }
+      if (cmdScope === 'all' || cmdScope === 'compare') {
+        compareItems.forEach(function(c){
+          var sc = scoreMatch(c, terms, rawQ);
+          if (sc) scored.push({ sc: sc + 10, item: c });
+        });
+      }
+      if (cmdScope === 'all' || cmdScope === 'designs') {
+        var dCount = 0;
+        for (var i = 0; i < designItems.length; i++) {
+          var sc = scoreMatch(designItems[i], terms, rawQ);
+          if (sc) { scored.push({ sc: sc, item: designItems[i] }); if (++dCount >= 40) break; }
+        }
+      }
+      if (cmdScope === 'all' || cmdScope === 'components') {
+        var cCount = 0;
+        for (var j = 0; j < compItems.length; j++) {
+          var sc2 = scoreMatch(compItems[j], terms, rawQ);
+          if (sc2) { scored.push({ sc: sc2, item: compItems[j] }); if (++cCount >= 40) break; }
+        }
+      }
+      scored.sort(function(a, b){ return b.sc - a.sc || a.item.name.localeCompare(b.item.name); });
+      out = scored.slice(0, 32).map(function(x){ return x.item; });
+    }
+
+    cmdList = out;
+    cmdActiveIdx = 0;
+
+    if (!out.length) {
+      if (loadingIndexes) {
+        cmdResults.innerHTML = '<div class="cmd-skel-wrap"><div class="skel cmd-skel-row"></div><div class="skel cmd-skel-row"></div><div class="skel cmd-skel-row"></div></div>';
+      } else {
+        cmdResults.innerHTML = '<div class="cmd-empty">No matches for <strong>' + escHtml(cmdInput.value.trim()) + '</strong>. Try a library name, component (dialog, table), or design style.</div>';
+      }
+      return;
+    }
+
+    cmdResults.innerHTML = out.map(function(it, idx){
+      var swatches = it.colors && it.colors.length
+        ? '<span class="cmd-swatches" aria-hidden="true">' + it.colors.map(function(c){ return '<span style="background:' + escHtml(c) + '"></span>'; }).join('') + '</span>'
+        : '';
+      var mcp = it.ref
+        ? '<button type="button" class="mcp-send-btn compact" data-mcp-ref="' + escHtml(it.ref) + '" data-mcp-label="' + escHtml(it.name) + '" aria-pressed="false">+ MCP</button>'
+        : '';
+      return '<a class="cmd-item' + (idx === 0 ? ' active' : '') + '" role="option" id="cmd-opt-' + idx + '" aria-selected="' + (idx === 0) + '" data-cmd-idx="' + idx + '" href="' + escHtml(it.href) + '">' +
+        swatches +
+        '<span class="cmd-item-text"><strong>' + escHtml(it.name) + '</strong><small>' + escHtml(it.sub || '') + '</small></span>' +
+        '<span class="cmd-item-end">' +
+          (it.live ? '<span class="cmd-badge live">Live</span>' : '') +
+          '<span class="cmd-badge">' + escHtml(it.badge || it.kind) + '</span>' +
+          mcp +
+        '</span>' +
+      '</a>';
+    }).join('');
+    cmdInput.setAttribute('aria-activedescendant', 'cmd-opt-0');
+    syncButtons();
+  }
+
+  function setCmdActive(idx) {
+    if (!cmdList.length) return;
+    cmdActiveIdx = (idx + cmdList.length) % cmdList.length;
+    var items = cmdResults.querySelectorAll('.cmd-item');
+    items.forEach(function(el, i){
+      var on = i === cmdActiveIdx;
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-selected', String(on));
+      if (on && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+    });
+    cmdInput.setAttribute('aria-activedescendant', 'cmd-opt-' + cmdActiveIdx);
+  }
+
+  function openCmd() {
+    if (cmdDlg.open) return;
+    if (!tray.hidden) setOpen(false);
+    cmdDlg.showModal();
+    cmdInput.focus();
+    cmdInput.select();
+    ensureCmdIndexes();
+    renderCmdResults();
+  }
+
+  if (cmdTrigger) cmdTrigger.addEventListener('click', openCmd);
+  if (cmdClose) cmdClose.addEventListener('click', function(){ cmdDlg.close(); });
+  var cmdTimer = 0;
+  cmdInput.addEventListener('input', function(){
+    clearTimeout(cmdTimer);
+    cmdTimer = setTimeout(renderCmdResults, 60);
+  });
+  cmdInput.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowDown') { e.preventDefault(); setCmdActive(cmdActiveIdx + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setCmdActive(cmdActiveIdx - 1); }
+    else if (e.key === 'Enter') {
+      var active = cmdResults.querySelector('.cmd-item.active');
+      if (active) { e.preventDefault(); startNavProgress(); location.href = active.href; }
+    }
+  });
+  cmdDlg.querySelectorAll('.cmd-scope').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      cmdScope = tab.dataset.scope;
+      cmdDlg.querySelectorAll('.cmd-scope').forEach(function(t){ t.setAttribute('aria-selected', String(t === tab)); });
+      renderCmdResults();
+      cmdInput.focus();
+    });
+  });
+  cmdResults.addEventListener('mousemove', function(e){
+    var row = e.target.closest('.cmd-item');
+    if (!row) return;
+    var idx = Number(row.dataset.cmdIdx);
+    if (!isNaN(idx) && idx !== cmdActiveIdx) setCmdActive(idx);
+  });
+
+  document.addEventListener('keydown', function(e){
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (cmdDlg.open) cmdDlg.close();
+      else openCmd();
+      return;
+    }
+    if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !cmdDlg.open) {
+      var tag = (document.activeElement && document.activeElement.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (document.activeElement && document.activeElement.isContentEditable)) return;
+      var pageSearch = document.querySelector('#ds-q, #browse-query, #ic-q, #cmp-q, #reui-search, #heroui-search, #mant-search, #dai-search');
+      if (pageSearch) { e.preventDefault(); pageSearch.focus(); pageSearch.select(); }
+      else { e.preventDefault(); openCmd(); }
+    }
+  });
 })();
 `;
 
@@ -411,28 +921,86 @@ export const SHELL_JS_PATH = registerShellAsset("shell", "js", SHELL_NAV_JS, "te
 /** Optional contextual secondary strip shown under the main nav on hub sub-pages. */
 export function subnav(items, active) {
   const links = items
-    .map(({ href, label, key, count }) => {
+    .map(({ href, label, key, count, sep }) => {
       const on = active === key;
       const badge = count !== undefined && count !== null ? ` <span class="sub-cnt">${esc(count)}</span>` : "";
-      return `<a class="sub-tab${on ? " on" : ""}" href="${esc(href)}"${on ? ' aria-current="page"' : ""}>${esc(label)}${badge}</a>`;
+      const divider = sep ? '<span class="sub-sep" aria-hidden="true"></span>' : "";
+      return `${divider}<a class="sub-tab${on ? " on" : ""}" href="${esc(href)}"${on ? ' aria-current="page"' : ""}>${esc(label)}${badge}</a>`;
     })
     .join("");
   return `<nav class="subnav" aria-label="Section">${links}</nav>`;
 }
 
 export const NAV_CSS = `
+  .sr-only {
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+    clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+  .skip-link {
+    position:fixed; top:-48px; left:12px; z-index:120; padding:8px 14px;
+    background:var(--accent); color:var(--accent-ink); border-radius:8px;
+    font:600 13px var(--font); text-decoration:none; transition:top .15s ease;
+  }
+  .skip-link:focus { top:10px; }
+  .nav-progress {
+    position:fixed; top:0; left:0; right:0; height:2.5px; z-index:110; pointer-events:none;
+    background:linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--ok-fg)));
+    transform-origin:0 50%; transform:scaleX(0); opacity:0;
+  }
+  .nav-progress.active {
+    opacity:1; animation:nav-prog 2.8s cubic-bezier(.15,.75,.3,1) forwards;
+  }
+  @keyframes nav-prog {
+    0% { transform:scaleX(.06); }
+    45% { transform:scaleX(.62); }
+    100% { transform:scaleX(.92); }
+  }
   .site-header { position:sticky; top:0; z-index:30; }
-  .nav { display:flex; align-items:center; gap:4px;
-    background:var(--nav-bg);
-    border-bottom:1px solid var(--line); padding:0 16px; height:48px; overflow-x:auto; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
-  .brand { flex:none; white-space:nowrap; font-weight:700; margin-right:12px; letter-spacing:-.015em; color:var(--strong); text-decoration:none; font-size:14.5px; }
-  .tab { color:var(--muted); text-decoration:none; padding:6px 11px; border-radius:7px;
-    font-size:13px; font-weight:500; white-space:nowrap; border:1px solid transparent; }
+  .nav {
+    display:flex; align-items:center; gap:6px;
+    background:var(--nav-bg); backdrop-filter:blur(12px) saturate(1.4); -webkit-backdrop-filter:blur(12px) saturate(1.4);
+    border-bottom:1px solid var(--line); padding:0 16px; height:52px;
+  }
+  .nav-menu-btn {
+    display:none; flex:none; align-items:center; justify-content:center;
+    width:32px; height:32px; padding:0; border-radius:8px;
+    border:1px solid var(--line); background:var(--panel2); color:var(--fg); cursor:pointer;
+  }
+  .nav-menu-btn:hover { border-color:var(--accent); color:var(--strong); }
+  .brand {
+    flex:none; display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
+    font-weight:700; margin-right:10px; letter-spacing:-.025em; color:var(--strong);
+    text-decoration:none; font-size:15px;
+  }
+  .brand-mark { color:var(--accent); flex:none; }
+  .nav-links { display:flex; align-items:center; gap:3px; min-width:0; }
+  .nav-mobile-skill { display:none; }
+  .tab {
+    color:var(--muted); text-decoration:none; padding:6px 11px; border-radius:7px;
+    font-size:13px; font-weight:500; white-space:nowrap; border:1px solid transparent;
+    transition:color .12s ease, background-color .12s ease, border-color .12s ease;
+  }
   .tab:hover { color:var(--strong); background:var(--panel2); }
-  .tab.on, .tab[aria-current="page"] { color:var(--strong); background:var(--accent-bg); border-color:var(--accent-line); font-weight:600; }
-  .spacer { flex:1; min-width:8px; }
-  .theme-toggle { flex:none; display:inline-flex; align-items:center; justify-content:center; width:32px; height:30px;
-    background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:7px; cursor:pointer; font-size:14px; padding:0; }
+  .tab.on, .tab[aria-current="page"] {
+    color:var(--strong); background:var(--accent-bg); border-color:var(--accent-line); font-weight:600;
+  }
+  .spacer { flex:1; min-width:6px; }
+  .cmd-trigger {
+    flex:none; display:inline-flex; align-items:center; gap:7px; height:32px; padding:0 10px;
+    background:var(--panel2); color:var(--muted); border:1px solid var(--line); border-radius:8px;
+    font:500 12.5px var(--font); cursor:pointer; white-space:nowrap;
+    transition:border-color .12s ease, color .12s ease, background-color .12s ease;
+  }
+  .cmd-trigger:hover { border-color:var(--accent); color:var(--strong); background:var(--panel); }
+  .cmd-kbd {
+    font:600 10.5px var(--mono); padding:1px 5px; border-radius:5px;
+    border:1px solid var(--line); background:var(--panel); color:var(--muted);
+  }
+  .theme-toggle {
+    flex:none; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px;
+    background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:8px;
+    cursor:pointer; font-size:14px; padding:0;
+  }
   .theme-toggle:hover { border-color:var(--accent); color:var(--strong); }
   .theme-icon-light { display:none; }
   .theme-icon-dark { display:inline; }
@@ -444,32 +1012,203 @@ export const NAV_CSS = `
   :root:has(> head > meta[name="color-scheme"][content="dark"]) .theme-icon-dark { display:none; }
   :root:has(> head > meta[name="color-scheme"][content="light"]) .theme-icon-light { display:none; }
   :root:has(> head > meta[name="color-scheme"][content="light"]) .theme-icon-dark { display:inline; }
-  .dl { flex:none; font-size:12.5px; font-weight:550; color:var(--accent); text-decoration:none; border:1px solid var(--line);
-    background:var(--panel2); border-radius:7px; padding:5px 11px; white-space:nowrap; }
-  .dl:hover { border-color:var(--accent); }
-  .subnav { display:flex; align-items:center; gap:6px; overflow-x:auto; padding:8px 16px;
-    background:var(--panel); border-bottom:1px solid var(--line); scrollbar-width:thin; }
-  .sub-tab { color:var(--muted); text-decoration:none; font-size:12.5px; padding:4px 10px;
-    border-radius:999px; border:1px solid transparent; white-space:nowrap; }
+  .dl {
+    flex:none; display:inline-flex; align-items:center; height:32px; font-size:12.5px; font-weight:600;
+    color:var(--accent); text-decoration:none; border:1px solid var(--line);
+    background:var(--panel2); border-radius:8px; padding:0 11px; white-space:nowrap;
+  }
+  .dl:hover { border-color:var(--accent); background:var(--accent-bg); }
+  @media (max-width: 860px) {
+    .nav { padding:0 12px; gap:6px; }
+    .nav-menu-btn { display:inline-flex; }
+    .nav-links:not(:is(:popover-open, .\:popover-open, .is-open)) { display:none; }
+    .nav-links.is-drawer.is-open,
+    .nav-links[popover]:is(:popover-open, .\:popover-open) {
+      position:fixed; inset:auto; inset-block-start:56px; inset-inline-start:12px;
+      width:min(280px, calc(100dvw - 24px)); max-height:calc(100dvh - 72px);
+      display:flex; flex-direction:column; align-items:stretch; gap:4px;
+      padding:8px; margin:0; border-radius:12px; border:1px solid var(--line);
+      background:var(--panel); box-shadow:var(--shadow-lg); overflow:auto; z-index:80;
+    }
+    .nav-links .tab { padding:9px 12px; font-size:13.5px; }
+    .nav-mobile-skill { display:block; margin-top:4px; border-top:1px solid var(--line); border-radius:0 0 7px 7px; color:var(--accent); }
+    .cmd-trigger-label, .cmd-kbd { display:none; }
+    .cmd-trigger { width:32px; padding:0; justify-content:center; }
+    .dl { display:none; }
+  }
+  @media (max-width: 420px) {
+    .mcp-btn-label { display:none; }
+  }
+  .subnav {
+    display:flex; align-items:center; gap:5px; overflow-x:auto; padding:8px 16px;
+    background:var(--panel); border-bottom:1px solid var(--line);
+    scrollbar-width:none; -webkit-mask-image:linear-gradient(90deg, #000 0, #000 calc(100% - 24px), transparent);
+    mask-image:linear-gradient(90deg, #000 0, #000 calc(100% - 24px), transparent);
+  }
+  .subnav::-webkit-scrollbar { display:none; }
+  .sub-sep { flex:none; width:1px; height:16px; background:var(--line); margin:0 4px; }
+  .sub-tab {
+    color:var(--muted); text-decoration:none; font-size:12.5px; padding:4px 10px;
+    border-radius:999px; border:1px solid transparent; white-space:nowrap;
+    transition:color .12s ease, background-color .12s ease;
+  }
   .sub-tab:hover { color:var(--strong); background:var(--panel2); }
-  .sub-tab.on, .sub-tab[aria-current="page"] { color:var(--strong); background:var(--panel2); border-color:var(--line); font-weight:600; }
+  .sub-tab.on, .sub-tab[aria-current="page"] {
+    color:var(--strong); background:var(--accent-bg); border-color:var(--accent-line); font-weight:600;
+  }
   .sub-cnt { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+
+  /* ---- Global Command Palette (dialog) ---- */
+  .cmd-dlg {
+    width:min(640px, calc(100dvw - 24px)); max-height:min(76dvh, 620px);
+    padding:0; margin:min(10dvh, 84px) auto auto;
+    border:1px solid var(--line-strong); border-radius:14px;
+    background:var(--panel); color:var(--fg); box-shadow:var(--shadow-lg);
+    overflow:hidden; opacity:0;
+    transition-property:opacity, transform, display, overlay;
+    transition-duration:.14s; transition-timing-function:ease-out;
+    transition-behavior:allow-discrete;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .cmd-dlg { transform:translateY(-8px) scale(.98); }
+  }
+  .cmd-dlg[open] {
+    display:flex; flex-direction:column; opacity:1; transform:none;
+  }
+  @starting-style {
+    .cmd-dlg[open] { opacity:0; }
+    @media (prefers-reduced-motion: no-preference) {
+      .cmd-dlg[open] { transform:translateY(-8px) scale(.98); }
+    }
+  }
+  .cmd-dlg::backdrop {
+    background:rgba(6,8,12,0); backdrop-filter:blur(2px);
+    transition-property:background-color, display, overlay;
+    transition-duration:.18s; transition-timing-function:ease-out;
+    transition-behavior:allow-discrete;
+  }
+  .cmd-dlg[open]::backdrop { background:rgba(6,8,12,.6); }
+  @starting-style {
+    .cmd-dlg[open]::backdrop { background:rgba(6,8,12,0); }
+  }
+  .cmd-head {
+    display:flex; align-items:center; gap:10px; padding:11px 14px;
+    border-bottom:1px solid var(--line); background:var(--panel);
+  }
+  .cmd-ico { flex:none; color:var(--muted); }
+  .cmd-input {
+    flex:1; min-width:0; border:0; background:transparent; color:var(--strong);
+    font:500 14.5px var(--font); padding:4px 0; outline:none;
+  }
+  .cmd-input:focus-visible { outline:none; }
+  .cmd-scopes {
+    display:flex; align-items:center; gap:5px; flex-wrap:wrap;
+    padding:8px 14px; border-bottom:1px solid var(--line); background:var(--panel2);
+  }
+  .cmd-scope {
+    padding:3px 9px; border-radius:999px; border:1px solid transparent;
+    background:transparent; color:var(--muted); font:550 12px var(--font); cursor:pointer;
+  }
+  .cmd-scope:hover { color:var(--strong); background:var(--panel); }
+  .cmd-scope[aria-selected="true"] {
+    background:var(--accent-bg); border-color:var(--accent-line); color:var(--strong); font-weight:600;
+  }
+  .cmd-status { margin-left:auto; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .cmd-results { overflow-y:auto; padding:6px; flex:1; min-height:140px; background:var(--panel); }
+  .cmd-item {
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:9px;
+    text-decoration:none; color:var(--fg); border:1px solid transparent;
+  }
+  .cmd-item.active, .cmd-item:hover {
+    background:var(--panel2); border-color:var(--line);
+  }
+  .cmd-swatches {
+    flex:none; display:inline-flex; width:44px; height:24px; border-radius:6px;
+    overflow:hidden; border:1px solid var(--line);
+  }
+  .cmd-swatches span { flex:1; }
+  .cmd-item-text { min-width:0; flex:1; display:flex; flex-direction:column; gap:1px; }
+  .cmd-item-text strong { font-size:13.5px; font-weight:600; color:var(--strong); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cmd-item-text small { font-size:11.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cmd-item-end { flex:none; display:inline-flex; align-items:center; gap:5px; }
+  .cmd-badge {
+    font-size:10.5px; padding:1px 7px; border-radius:999px;
+    border:1px solid var(--line); background:var(--panel); color:var(--muted); white-space:nowrap;
+  }
+  .cmd-badge.live { color:var(--ok-fg); border-color:color-mix(in srgb, var(--ok-fg) 40%, var(--line)); }
+  .cmd-empty { padding:28px 16px; text-align:center; font-size:13px; color:var(--muted); }
+  .cmd-skel-wrap { padding:8px; display:flex; flex-direction:column; gap:8px; }
+  .cmd-skel-row { height:42px; border-radius:8px; }
+  .cmd-foot {
+    display:flex; align-items:center; gap:14px; padding:8px 14px;
+    border-top:1px solid var(--line); background:var(--panel2); font-size:11.5px; color:var(--muted);
+  }
+  .cmd-foot kbd {
+    font:600 10.5px var(--mono); padding:1px 5px; border-radius:4px;
+    border:1px solid var(--line); background:var(--panel); color:var(--fg); margin-right:3px;
+  }
+  .cmd-foot-right { margin-left:auto; }
+
+  /* ---- Reusable Skeletons, Iframe Loader & Back-to-top ---- */
+  .skel {
+    background:linear-gradient(90deg, var(--skel-a) 25%, var(--skel-b) 50%, var(--skel-a) 75%);
+    background-size:200% 100%; animation:skel-shimmer 1.3s ease-in-out infinite;
+  }
+  @keyframes skel-shimmer {
+    0% { background-position:200% 0; }
+    100% { background-position:-200% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skel { animation:none; background:var(--skel-a); }
+  }
+  .skel-card {
+    border:1px solid var(--line); border-radius:11px; background:var(--panel); overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .skel-media { aspect-ratio:16/10; width:100%; }
+  .skel-lines { padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .skel-line { height:12px; border-radius:6px; }
+  .skel-line.w-60 { width:60%; height:14px; }
+  .skel-line.w-90 { width:90%; }
+  .skel-line.w-40 { width:40%; }
+  .frame-host { position:relative; }
+  .frame-loader {
+    position:absolute; inset:0; z-index:4; display:flex; align-items:center; justify-content:center; gap:9px;
+    background:var(--panel); color:var(--muted); font-size:12.5px; font-weight:500;
+    opacity:0; pointer-events:none; transition:opacity .18s ease;
+  }
+  .frame-host.is-loading .frame-loader { opacity:1; }
+  .frame-spinner {
+    width:15px; height:15px; border-radius:50%;
+    border:2px solid var(--line-strong); border-top-color:var(--accent);
+    animation:frame-spin .7s linear infinite;
+  }
+  @keyframes frame-spin { to { transform:rotate(360deg); } }
+  .back-to-top {
+    position:fixed; right:18px; bottom:18px; z-index:45;
+    padding:7px 13px; border-radius:999px; border:1px solid var(--line-strong);
+    background:var(--panel); color:var(--strong); font:600 12px var(--font);
+    box-shadow:var(--shadow-sm); cursor:pointer;
+  }
+  .back-to-top:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* ---- MCP Picks Tray ---- */
   .mcp-tray-btn {
-    flex:none; display:inline-flex; align-items:center; gap:5px; height:30px; padding:0 10px;
-    background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:7px;
+    flex:none; display:inline-flex; align-items:center; gap:5px; height:32px; padding:0 10px;
+    background:var(--panel2); color:var(--fg); border:1px solid var(--line); border-radius:8px;
     font:600 12px var(--font); cursor:pointer; white-space:nowrap;
   }
   .mcp-tray-btn:hover, .mcp-tray-btn.has-picks { border-color:var(--accent-line); background:var(--accent-bg); color:var(--strong); }
   .mcp-tray-cnt {
     display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 4px;
     border-radius:999px; background:var(--accent); color:var(--accent-ink); font-size:10.5px; font-weight:700;
+    font-variant-numeric:tabular-nums;
   }
-  .mcp-tray-cnt[hidden], .mcp-tray[hidden], .mcp-tray-empty[hidden] { display:none !important; }
   .mcp-tray {
-    position:fixed; right:16px; top:56px; z-index:70; width:min(400px, calc(100vw - 24px));
-    max-height:calc(100dvh - 76px); display:flex; flex-direction:column;
-    background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:12px;
-    box-shadow:0 16px 48px rgba(0,0,0,.28); overflow:hidden;
+    position:fixed; right:16px; top:60px; z-index:70; width:min(400px, calc(100vw - 24px));
+    max-height:calc(100dvh - 80px); display:flex; flex-direction:column;
+    background:var(--panel); color:var(--fg); border:1px solid var(--line-strong); border-radius:12px;
+    box-shadow:var(--shadow-lg); overflow:hidden;
   }
   .mcp-tray-head {
     display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -1006,7 +1745,7 @@ ${nav("tailwind")}
     <button type="button" data-width="768px" aria-pressed="false">Tablet (768px)</button>
     <button type="button" data-width="375px" aria-pressed="false">Mobile (375px)</button>
   </div>
-  <div class="frame-stage">
+  <div class="frame-stage frame-host" id="tw-frame-host">
     <iframe sandbox="allow-scripts" src="${esc(example.preview)}" title="${esc(group.name)} preview"></iframe>
   </div>
   <details><summary>${source === "hyperui" ? "HTML source" : "React source"}</summary>
@@ -1017,6 +1756,8 @@ ${nav("tailwind")}
 </main>
 <script>
 const previewFrame = document.querySelector('.example iframe');
+const frameHost = document.getElementById('tw-frame-host');
+if (window.DesignerUI && frameHost && previewFrame) window.DesignerUI.watchFrame(frameHost, previewFrame);
 const vpBtns = [...document.querySelectorAll('.viewport-bar button')];
 for (const btn of vpBtns) {
   btn.addEventListener('click', () => {
@@ -1128,7 +1869,7 @@ ${nav("components")}
   <div class="vtabs">${tabs}</div>
   <section class="preview" aria-labelledby="preview-heading"${variants.length ? "" : " hidden"}>
     <h2 id="preview-heading">Preview</h2>
-    <div id="preview-slot"></div>
+    <div id="preview-slot" class="frame-host"></div>
     <p id="preview-status" role="status" hidden>Preview unavailable for this cache entry. Rebuild the frontend with the current catalog.</p>
   </section>
   ${panels}
@@ -1155,6 +1896,7 @@ function selectVariant(t) {
   frame.setAttribute('sandbox', 'allow-scripts');
   frame.src = path;
   previewSlot.append(frame);
+  if (window.DesignerUI) window.DesignerUI.watchFrame(previewSlot, frame);
 }
 tabs.forEach(t => t.addEventListener('click', () => selectVariant(t)));
 if (tabs.length) selectVariant(tabs[0]);
@@ -1488,21 +2230,32 @@ document.querySelectorAll('[data-slop-level-set]').forEach((btn) => btn.addEvent
 }
 
 // ------------------------------------------------------------------ presets
+function presetCatalogVisual(c) {
+  if (c.preview) return `<div class="swatch" style="background:${esc(c.preview)}"></div>`;
+  if (c.kind === "liquid-glass") {
+    return `<div class="swatch glass-scene swatch-center"><div class="liquid-glass glass-sample" style="--glass-blur:18px;--glass-saturate:188%;--glass-contrast:108%;--glass-tint:rgba(255,255,255,0.22);--glass-border:rgba(255,255,255,0.45);--glass-radius:16px"></div></div>`;
+  }
+  return `<div class="swatch swatch-triptych" aria-hidden="true">
+    <span style="background:radial-gradient(120% 100% at 50% 0%,#0f766e 0%,#09090b 75%)"></span>
+    <span style="background:radial-gradient(#3f3f46 1px,transparent 1px) 0 0/12px 12px,linear-gradient(135deg,#18181b,#09090b)"></span>
+    <span style="background:radial-gradient(circle at 20% 20%,#6366f1 0%,transparent 55%),radial-gradient(circle at 80% 80%,#ec4899 0%,transparent 55%),#09090b"></span>
+  </div>`;
+}
+
 export function presetsHtml(catalogs) {
   const list = catalogs?.catalogs || [];
   const total = catalogs?.total ?? 0;
 
   const cards = list
     .map(
-      (c) => `<div class="card">
-    <div class="swatch" style="background:${esc(c.preview || "#222")}"></div>
+      (c) => `<a class="card" href="/presets/${encodeURIComponent(c.kind)}">
+    ${presetCatalogVisual(c)}
     <div class="meta">
       <h3>${esc(c.label || c.kind)}</h3>
-      <div class="desc">${esc(c.summary || "")}</div>
-      <div class="tags"><span class="tag">${c.total} presets</span></div>
-      <div class="tags"><a class="tag" href="/presets/${encodeURIComponent(c.kind)}">Open →</a></div>
+      <div class="desc">${esc(c.summary || (c.kind === "liquid-glass" ? "Frosted translucent glass surfaces with tunable blur, saturation, and specular borders." : "Copy-ready CSS radial glows, dot matrices, architectural grids, and mesh gradients."))}</div>
+      <div class="tags"><span class="tag-pill">${c.total} presets</span><span class="tag-cta">Browse catalog</span></div>
     </div>
-  </div>`,
+  </a>`,
     )
     .join("");
 
@@ -1515,17 +2268,23 @@ ${shellHead()}
 <title>Gradients &amp; Patterns — ${total} presets</title>
 <style>
 ${SHARED_CSS}
-  .grid { display:grid; gap:12px; padding:18px 20px 60px;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:11px; overflow:hidden; }
-  .swatch { height:130px; border-bottom:1px solid var(--line); }
-  .meta { padding:12px 14px 14px; display:flex; flex-direction:column; gap:8px; }
-  .card h3 { margin:0; font-size:14px; font-weight:600; }
-  .desc { color:var(--muted); font-size:12px; line-height:1.5; }
-  .tags { display:flex; gap:5px; flex-wrap:wrap; }
-  .tag { font-size:11px; padding:2px 7px; border-radius:999px; border:1px solid var(--line);
-    background:var(--panel2); color:var(--muted); text-decoration:none; }
-  .tag:hover { border-color:var(--accent); color:var(--fg); }
+${GLASS_PREVIEW_CSS}
+  .grid { display:grid; gap:14px; padding:18px 20px 60px; max-width:1200px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .card { display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; text-decoration:none; color:inherit; transition:border-color .14s ease; }
+  .card:hover, .card:focus-visible { border-color:var(--accent); }
+  .swatch { height:150px; border-bottom:1px solid var(--line); position:relative; }
+  .swatch-center { display:grid; place-items:center; }
+  .swatch-triptych { display:grid; grid-template-columns:repeat(3,1fr); }
+  .swatch-triptych span { height:100%; border-right:1px solid rgba(255,255,255,.08); }
+  .swatch-triptych span:last-child { border-right:none; }
+  .meta { padding:14px 16px 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
+  .card h3 { margin:0; font-size:15px; font-weight:600; color:var(--strong); }
+  .desc { color:var(--muted); font-size:12.5px; line-height:1.5; }
+  .tags { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:auto; padding-top:4px; }
+  .tag-pill { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--line);
+    background:var(--panel2); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .tag-cta { font-size:12px; font-weight:550; color:var(--accent); }
 </style>
 </head>
 <body>
@@ -1584,7 +2343,7 @@ export function presetDetailHtml(catalog) {
     active: "presets", title: heading, heading, items, itemName: "presets", searchLabel: "Search presets",
     styles: glass ? GLASS_PREVIEW_CSS : "",
     back: '<a class="back" href="/presets">← All catalogs</a>',
-    dialog: `<dialog class="catalog-dialog" aria-labelledby="preset-title">
+    dialog: `<dialog class="catalog-dialog" closedby="any" aria-labelledby="preset-title">
       <header><h2 id="preset-title"></h2><button type="button" id="preset-close" autofocus>Close</button></header>
       ${glass ? '<p class="glass-description" id="preset-description" hidden></p>' : ""}
       <div class="browse-visual${glass ? " glass-scene" : ""}"><span class="${glass ? "liquid-glass glass-sample" : "swatch"}" id="preset-swatch"></span></div>

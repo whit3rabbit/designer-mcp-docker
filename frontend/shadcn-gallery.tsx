@@ -25,7 +25,7 @@ const demos = {
     <DialogContent><DialogHeader><DialogTitle>Project settings</DialogTitle><DialogDescription>Review your project preferences.</DialogDescription></DialogHeader></DialogContent></Dialog>,
   "dropdown-menu": <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline">Actions</Button></DropdownMenuTrigger>
     <DropdownMenuContent><DropdownMenuItem>Rename</DropdownMenuItem><DropdownMenuItem>Duplicate</DropdownMenuItem></DropdownMenuContent></DropdownMenu>,
-  input: <label className="grid w-full gap-2">Email<Input type="email" placeholder="name@example.com" /></label>,
+  input: <label className="grid w-full gap-2 text-sm font-medium">Email<Input type="email" placeholder="name@example.com" /></label>,
   tabs: <Tabs className="w-full" defaultValue="overview"><TabsList><TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="settings">Settings</TabsTrigger></TabsList>
     <TabsContent value="overview">Project overview</TabsContent><TabsContent value="settings">Project settings</TabsContent></Tabs>,
   tooltip: <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="outline">More information</Button></TooltipTrigger>
@@ -35,6 +35,6 @@ const demos = {
 function Example() {
   useEffect(() => { document.documentElement.dataset.preview = "ready"; }, []);
   const name = document.documentElement.dataset.demo as keyof typeof demos;
-  return <main className="mx-auto grid min-h-screen max-w-sm place-items-center p-6">{demos[name]}</main>;
+  return <main className="mx-auto grid min-h-screen max-w-sm place-items-center p-6">{demos[name] ?? <p role="alert" className="text-sm text-muted-foreground">Preview unavailable for this component.</p>}</main>;
 }
 createRoot(document.querySelector("#preview-root")!).render(<Example />);

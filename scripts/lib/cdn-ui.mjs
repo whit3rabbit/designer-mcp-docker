@@ -126,12 +126,14 @@ ${componentsSubnav("icons", counts)}
     <label class="cdn-ctl">Color <input id="ic-color" type="color" value="#7c8cff"><button type="button" id="ic-color-reset" class="cdn-btn" style="padding:3px 7px;font-size:11px">Auto</button></label>
   </div>
   <p id="ic-count" class="cdn-count" role="status">Loading icons…</p>
-  <div id="ic-grid" class="icon-grid"></div>
+  <div id="ic-grid" class="icon-grid">
+    ${Array.from({ length: 18 }, () => '<div class="skel" style="height:86px;border-radius:10px" aria-hidden="true"></div>').join("")}
+  </div>
   <div id="ic-pager" class="icon-pager" hidden>
     <button type="button" id="ic-more" class="cdn-btn">Show more icons</button>
   </div>
 
-  <dialog id="ic-dlg" class="icon-dlg" aria-labelledby="ic-dlg-title">
+  <dialog id="ic-dlg" class="icon-dlg" closedby="any" aria-labelledby="ic-dlg-title">
     <header><h2 id="ic-dlg-title"></h2><button type="button" id="ic-close" class="cdn-btn">Close</button></header>
     <div class="icon-preview-row">
       <div class="icon-tile light" id="ic-tile-light"></div>

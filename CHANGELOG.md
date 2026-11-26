@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.1.1 (2026-11-25)
+
+- Image: `ghcr.io/whit3rabbit/designer-mcp:v2.1.1`
+- **Design System & shadcn/ui Zinc Theme (`DESIGN.md`):**
+  - Added canonical [DESIGN.md](DESIGN.md) documenting the dark-first shadcn/ui Zinc neutral token system, typography scale, 5-pillar navigation, `⌘K` search & multi-facet filtering, interaction states, accessibility rules, and static GitHub Pages offline contract.
+  - Solidified `BASE_CSS` tokens in `scripts/lib/ui.mjs` to the Zinc neutral palette (`#09090b` / `#111113` / `#18181b` / `#27272a` dark; `#fafafa` / `#ffffff` / `#f4f4f5` / `#e4e4e7` light; `#60a5fa` / `#2563eb` accent).
+- **Frontend & Gallery UX / Accessibility Improvements:**
+  - Decluttered `/components` (`scripts/lib/components-ui.mjs`): collapsed the 16-pill cross-library comparator strip into a compact expandable bar, trimmed primary library chips to the 8 core libraries (with the remaining 17 UI kits in the `More UI kits` selector), and made category filters a single horizontally scrollable row.
+  - Added live CSS pattern/gradient triptych and Liquid Glass previews to `/presets` (`scripts/lib/ui.mjs`).
+  - Applied Apple HIG accessibility, typography, and reduced-motion standards across `frontend/` (`preview.css`, `preview-root.mjs`, `mantine-preview-root.mjs`, `reui-preview-root.mjs`, `starter.tsx`, `shadcn-gallery.tsx`, `build.mjs`).
+
 ## v2.1.0 (2026-11-25)
 
 - Image: `ghcr.io/whit3rabbit/designer-mcp:v2.1.0`

@@ -790,7 +790,17 @@ export { default } from "dayjs";
     const styles = versions[pkg] ? join(vendorRoot, pkg, versions[pkg], "styles.css") : null;
     if (styles && existsSync(styles)) cssParts.push(await readFile(styles, "utf8"));
   }
-  cssParts.push(`html { color-scheme: light; }\nbody { margin: 0; }\n#preview-root { min-height: 100vh; display: flow-root; }`);
+  cssParts.push(`html { color-scheme: light; -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+#preview-root { min-height: 100vh; display: flow-root; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}`);
   cssParts.push(...cssStore.values());
   let mantineCss = cssParts.join("\n");
   for (const [url, dataUrl] of dataUrls) {
@@ -973,8 +983,17 @@ async function buildStarter(scratch, out, shadcnFiles) {
   --radius-xl: calc(var(--radius) + 4px);
 }
 @layer base {
+  html { color-scheme: light dark; -webkit-text-size-adjust: 100%; }
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground; font-family: Inter, system-ui, sans-serif; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 `);
   tailwind(css, join(out, "starter.css"));

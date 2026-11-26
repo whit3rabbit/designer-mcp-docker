@@ -36,7 +36,7 @@ class Boundary extends Component {
 
   render() {
     return this.state.failed
-      ? h("p", { role: "alert", className: "text-sm text-muted-foreground p-4" }, "This preview could not run. The source is available in View code.")
+      ? h("p", { role: "alert", className: "text-sm text-muted-foreground p-4" }, "Unable to render this preview. Select View code to inspect the source.")
       : this.props.children;
   }
 }

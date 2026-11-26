@@ -63,37 +63,49 @@ const PAIRING_LABELS = {
 };
 
 const DESIGNS_CSS = `
-  .ds-wrap { max-width: 1520px; margin: 0 auto; padding: 22px clamp(14px, 3vw, 32px) 72px; }
-  .ds-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-  .ds-head h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); font-weight: 700; letter-spacing: -.02em; color: var(--strong); }
-  .ds-head p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; max-width: 72ch; }
+  .ds-wrap { max-width: 1520px; margin: 0 auto; padding: 24px clamp(14px, 3vw, 32px) 72px; }
+  .ds-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  .ds-head h1 { margin: 0; font-size: clamp(24px, 3vw, 32px); font-weight: 700; letter-spacing: -.03em; color: var(--strong); line-height: 1.15; }
+  .ds-head p { margin: 5px 0 0; color: var(--muted); font-size: 13.5px; max-width: 72ch; }
   .ds-toolbar {
     display: flex; flex-direction: column; gap: 10px;
     background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 14px; margin-bottom: 14px;
+    padding: 12px 14px; margin-bottom: 14px; box-shadow: var(--shadow-sm);
   }
   .ds-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .ds-search-wrap { position: relative; flex: 1 1 280px; min-width: 200px; display: flex; align-items: center; }
+  .ds-search-ico { position: absolute; left: 11px; color: var(--muted); pointer-events: none; }
   .ds-search {
-    flex: 1 1 260px; min-width: 200px; padding: 8px 12px; border-radius: 8px;
+    width: 100%; padding: 8px 36px 8px 34px; border-radius: 8px;
     border: 1px solid var(--line); background: var(--panel2); color: var(--fg); font: inherit; font-size: 13.5px;
+    transition: border-color .12s ease, background-color .12s ease;
   }
+  .ds-search:focus { border-color: var(--accent); background: var(--panel); }
+  .ds-search-kbd {
+    position: absolute; right: 9px; font: 600 10.5px var(--mono); padding: 1px 5px;
+    border-radius: 4px; border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+    pointer-events: none;
+  }
+  .ds-search-wrap:focus-within .ds-search-kbd { opacity: 0; }
   .ds-select {
     padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line);
     background: var(--panel2); color: var(--fg); font: inherit; font-size: 12.5px; cursor: pointer;
   }
   .ds-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-  .ds-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 4px; }
+  .ds-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-right: 4px; }
+  .ds-label-gap { margin-left: 8px; }
   .pill {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line);
     background: var(--panel2); color: var(--fg); font: inherit; font-size: 12px; cursor: pointer;
+    transition: border-color .12s ease, background-color .12s ease;
   }
   .pill:hover { border-color: var(--accent); }
   .pill[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent-line); color: var(--strong); font-weight: 600; }
   .pill .n { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
   .hue-strip { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px; }
   .hue-dot {
-    width: 24px; height: 24px; border-radius: 999px; border: 2px solid var(--line);
+    width: 22px; height: 22px; border-radius: 999px; border: 2px solid var(--line);
     padding: 0; cursor: pointer; position: relative; transition: transform .12s ease, border-color .12s ease;
   }
   .hue-dot:hover { transform: scale(1.12); border-color: var(--strong); }
@@ -104,17 +116,18 @@ const DESIGNS_CSS = `
   }
   .ds-more-btn:hover { border-color: var(--accent); }
   .ds-more-btn[aria-expanded="true"] { background: var(--accent-bg); border-color: var(--accent-line); }
+  .ds-mob-toggle { display: none; }
   .ds-badge-cnt {
     display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px;
     padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
   .ds-drawer {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px;
     padding-top: 12px; border-top: 1px solid var(--line); margin-top: 2px;
   }
-  .ds-drawer[hidden] { display: none; }
   .ds-facet { display: flex; flex-direction: column; gap: 6px; }
-  .ds-facet-h { font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .ds-facet-h { font-size: 12px; font-weight: 600; color: var(--strong); }
   .ds-facet-pills { display: flex; flex-wrap: wrap; gap: 5px; }
   .hex-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .hex-row input[type="color"] { width: 32px; height: 30px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); padding: 2px; cursor: pointer; }
@@ -122,60 +135,70 @@ const DESIGNS_CSS = `
   .hex-row input[type="range"] { width: 100px; accent-color: var(--accent); }
   .hex-clear { padding: 4px 8px; font-size: 11.5px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel2); color: var(--muted); cursor: pointer; }
   .ds-active { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
-  .ds-active[hidden] { display: none; }
   .active-chip {
     display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px;
     background: var(--accent-bg); border: 1px solid var(--accent-line); color: var(--strong); font-size: 12px; cursor: pointer;
   }
   .active-chip span { opacity: .7; }
-  .clear-all { background: transparent; border: 0; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; padding: 3px 6px; }
+  .clear-all { background: transparent; border: 0; color: var(--accent); font: inherit; font-size: 12px; font-weight: 550; cursor: pointer; padding: 3px 6px; }
   .clear-all:hover { text-decoration: underline; }
-  .ds-meta-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; font-size: 12.5px; color: var(--muted); }
-  .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 16px; list-style: none; padding: 0; margin: 0; }
+  .ds-meta-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 268px), 1fr)); gap: 16px; list-style: none; padding: 0; margin: 0; }
   .ds-card {
-    display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 11px;
-    background: var(--panel); overflow: hidden; transition: border-color .14s ease, transform .14s ease;
-    content-visibility: auto; contain-intrinsic-size: auto 330px;
+    display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--panel); overflow: hidden; box-shadow: var(--shadow-sm);
+    transition: border-color .14s ease, box-shadow .14s ease;
+    content-visibility: auto; contain-intrinsic-size: auto 340px;
   }
-  .ds-card:hover, .ds-card:focus-within { border-color: var(--accent); transform: translateY(-1px); }
+  .ds-card:hover, .ds-card:focus-within { border-color: var(--accent); }
   .ds-card-link { display: flex; flex-direction: column; text-decoration: none; color: inherit; flex: 1; }
   .ds-visual {
     position: relative; aspect-ratio: 16 / 10; background: var(--panel2);
     border-bottom: 1px solid var(--line); overflow: hidden;
   }
-  .ds-visual img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
-  .ds-visual.svg-fit img { object-fit: contain; padding: 10px; }
-  .ds-swatch-fallback { position: absolute; inset: 0; display: flex; }
+  .ds-swatch-fallback { position: absolute; inset: 0; z-index: 0; display: flex; }
   .ds-swatch-fallback span { flex: 1; }
-  .ds-palette { display: flex; height: 9px; border-bottom: 1px solid var(--line); }
+  .ds-visual img {
+    position: relative; z-index: 1; width: 100%; height: 100%;
+    object-fit: cover; object-position: top; display: block;
+  }
+  .ds-visual.svg-fit img { object-fit: contain; padding: 10px; background: var(--panel2); }
+  .ds-palette { display: flex; height: 7px; border-bottom: 1px solid var(--line); }
   .ds-palette span { flex: 1; }
-  .ds-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .ds-body { padding: 11px 13px 12px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
   .ds-title-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-  .ds-title { font-weight: 650; font-size: 14px; color: var(--strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ds-title { font-weight: 650; font-size: 14px; color: var(--strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -.01em; }
   .ds-src {
     flex: none; font-size: 10.5px; padding: 1px 7px; border-radius: 999px;
     border: 1px solid var(--line); background: var(--panel2); color: var(--muted); white-space: nowrap;
   }
   .ds-src.deep { color: var(--accent); border-color: var(--accent-line); background: var(--accent-bg); }
-  .ds-src.open { color: var(--ok-fg); }
+  .ds-src.open { color: var(--ok-fg); border-color: color-mix(in srgb, var(--ok-fg) 35%, var(--line)); }
   .ds-desc { font-size: 12px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.45; }
   .ds-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; padding-top: 4px; }
   .ds-tag { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: var(--chip); color: var(--muted); }
   .ds-card-foot {
     display: flex; align-items: center; justify-content: space-between; gap: 6px;
-    padding: 7px 12px; border-top: 1px solid var(--line); background: var(--panel2); font-size: 11.5px;
+    padding: 7px 13px; border-top: 1px solid var(--line); background: var(--panel2); font-size: 11.5px; color: var(--muted);
   }
   .ds-card-foot a { text-decoration: none; font-weight: 550; }
   .ds-card-foot a:hover { text-decoration: underline; }
   .ds-pager { display: flex; justify-content: center; gap: 10px; margin-top: 28px; }
-  .ds-pager[hidden] { display: none; }
   .ds-btn {
     padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line);
     background: var(--panel); color: var(--strong); font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
   }
   .ds-btn:hover { border-color: var(--accent); }
   .ds-empty { text-align: center; color: var(--muted); padding: 48px 16px; }
-  .ds-empty[hidden] { display: none; }
+  @media (max-width: 680px) {
+    .ds-wrap { padding-top: 16px; }
+    .ds-mob-toggle { display: inline-flex; }
+    .ds-select { flex: 1 1 140px; min-width: 0; }
+    .ds-toolbar:not(.mob-open) .ds-quick-facets { display: none; }
+    .ds-toolbar:not(.mob-open) .ds-theme-group { display: none; }
+    .ds-label-gap { margin-left: 0; }
+    .ds-search-kbd { display: none; }
+  }
 `;
 
 const DESIGNS_STYLE_LINK = shellStyle("designs", DESIGNS_CSS);
@@ -344,26 +367,31 @@ ${nav("designs")}
     </div>
   </header>
 
-  <section class="ds-toolbar" aria-label="Filter design systems">
+  <section id="ds-toolbar" class="ds-toolbar" aria-label="Filter design systems">
     <div class="ds-row">
-      <input id="ds-q" class="ds-search" type="search" placeholder="Search ${total} design systems (name, domain, font, mood, industry, #hex)..." aria-label="Search design systems" autocomplete="off">
-      <div class="ds-group" role="group" aria-label="Theme">${themePills}</div>
+      <div class="ds-search-wrap">
+        <svg class="ds-search-ico" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="M10.8 10.8 14 14"/></svg>
+        <input id="ds-q" class="ds-search" type="search" placeholder="Search ${total} design systems (name, domain, font, mood, industry, #hex)..." aria-label="Search design systems" autocomplete="off">
+        <kbd class="ds-search-kbd" aria-hidden="true">/</kbd>
+      </div>
+      <div class="ds-group ds-theme-group" role="group" aria-label="Theme">${themePills}</div>
       <select id="ds-sort" class="ds-select" aria-label="Sort design systems">
         <option value="richness">Sort: Most complete</option>
-        <option value="name">Sort: A → Z</option>
-        <option value="light">Sort: Lightest → Darkest</option>
-        <option value="dark">Sort: Darkest → Lightest</option>
+        <option value="name">Sort: A – Z</option>
+        <option value="light">Sort: Lightest first</option>
+        <option value="dark">Sort: Darkest first</option>
         <option value="color" id="sort-color-opt" hidden>Sort: Closest color match</option>
       </select>
+      <button type="button" id="ds-mob-toggle" class="ds-more-btn ds-mob-toggle" aria-expanded="false">Filters</button>
       <button type="button" id="ds-more-btn" class="ds-more-btn" aria-expanded="false" aria-controls="ds-drawer">
         More filters <span id="ds-more-cnt" class="ds-badge-cnt" hidden>0</span>
       </button>
     </div>
 
-    <div class="ds-row">
+    <div class="ds-row ds-quick-facets">
       <span class="ds-label">Accent</span>
       <div class="hue-strip" role="group" aria-label="Filter by accent color">${hueDots}</div>
-      <span class="ds-label" style="margin-left:8px">Source</span>
+      <span class="ds-label ds-label-gap">Source</span>
       <div class="ds-group" role="group" aria-label="Filter by source">${sourcePills}</div>
     </div>
 
@@ -439,6 +467,9 @@ ${nav("designs")}
   var indEl = document.getElementById('ds-industry');
   var activeEl = document.getElementById('ds-active');
   var countEl = document.getElementById('ds-count');
+  var summaryEl = document.getElementById('ds-summary');
+  var toolbarEl = document.getElementById('ds-toolbar');
+  var mobToggle = document.getElementById('ds-mob-toggle');
   var gridEl = document.getElementById('ds-grid');
   var emptyEl = document.getElementById('ds-empty');
   var pagerEl = document.getElementById('ds-pager');
@@ -671,6 +702,11 @@ ${nav("designs")}
     countEl.textContent = filtered.length === allDesigns.length
       ? filtered.length + ' design systems'
       : filtered.length + ' of ' + allDesigns.length + ' design systems';
+    if (summaryEl) {
+      summaryEl.textContent = filtered.length > target
+        ? 'Showing ' + target + ' of ' + filtered.length
+        : '';
+    }
     emptyEl.hidden = filtered.length > 0;
     pagerEl.hidden = filtered.length <= shown;
     if (filtered.length > shown) {
@@ -751,6 +787,20 @@ ${nav("designs")}
     clearTimeout(searchTimer);
     searchTimer = setTimeout(function(){ apply(true); }, 100);
   });
+  qEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && qEl.value) {
+      e.preventDefault();
+      qEl.value = '';
+      state.q = '';
+      apply(true);
+    }
+  });
+  if (mobToggle && toolbarEl) {
+    mobToggle.addEventListener('click', function(){
+      var open = toolbarEl.classList.toggle('mob-open');
+      mobToggle.setAttribute('aria-expanded', String(open));
+    });
+  }
   sortEl.addEventListener('change', function(){ state.sort = sortEl.value; apply(false); });
   moreBtn.addEventListener('click', function(){
     var open = drawer.hidden;
@@ -835,7 +885,17 @@ ${nav("designs")}
     state.fontStyle || state.pairing || state.font || state.industry || state.surface ||
     state.hex || state.hues.size || state.moods.size || state.caps.size || state.sort !== 'richness'
   );
-  fetch(INDEX_URL).then(function(r){ return r.json(); }).then(function(data){
+  if (hasInitialFilters || ssrInitialCount === 0) {
+    countEl.textContent = 'Filtering design systems…';
+    gridEl.innerHTML = Array.from({ length: 8 }, function(){
+      return '<li class="skel-card" aria-hidden="true"><div class="skel skel-media"></div><div class="skel-lines"><div class="skel skel-line w-60"></div><div class="skel skel-line w-90"></div><div class="skel skel-line w-40"></div></div></li>';
+    }).join('');
+    renderedCount = 0;
+  }
+  var cachedDesigns = window.__DESIGNER_CACHE && window.__DESIGNER_CACHE.designs;
+  (cachedDesigns ? Promise.resolve(cachedDesigns) : fetch(INDEX_URL).then(function(r){ return r.json(); })).then(function(data){
+    window.__DESIGNER_CACHE = window.__DESIGNER_CACHE || {};
+    window.__DESIGNER_CACHE.designs = data;
     allDesigns = (data.designs || []).map(function(d){
       d._hay = [
         d.name, d.domain, d.desc, d.industry, d.theme, d.groundTone,

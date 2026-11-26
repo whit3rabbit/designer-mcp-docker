@@ -242,7 +242,9 @@ const STATIC_EXACT_ROUTES = new Map([
  */
 function relativizeHtml(html, depth, { assetBase, thumbMap, templateThumbMap } = {}) {
   const p = prefixFor(depth);
-  let out = html.replaceAll('data-picks-api="/api/picks"', 'data-picks-api=""');
+  let out = html
+    .replaceAll('data-picks-api="/api/picks"', 'data-picks-api=""')
+    .replaceAll('data-site-root="/"', `data-site-root="${p}"`);
 
   // Single-pass rewrite for href/src/data-src/data-base-src/data-preview root-relative attributes.
   out = out.replace(

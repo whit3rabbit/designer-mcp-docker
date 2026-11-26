@@ -26,10 +26,10 @@ export function componentsSubnav(active, counts = {}) {
     [
       { href: "/components", label: "All Components", key: "components" },
       { href: "/components/compare", label: "Compare Across Libraries", key: "compare", count: counts.concepts },
-      { href: "/components/icons", label: "Icons (Lucide)", key: "icons" },
+      { href: "/components/icons", label: "Icons (Lucide)", key: "icons", sep: true },
       { href: "/components/charts", label: "Charts & Data Viz", key: "charts" },
       { href: "/components/fonts", label: "Local Fonts", key: "fonts" },
-      { href: "/reui", label: "ReUI", key: "reui" },
+      { href: "/reui", label: "ReUI", key: "reui", sep: true },
       { href: "/heroui", label: "HeroUI", key: "heroui" },
       { href: "/mantine", label: "Mantine", key: "mantine" },
       { href: "/daisyui", label: "daisyUI", key: "daisyui" },
@@ -42,16 +42,25 @@ export function componentsSubnav(active, counts = {}) {
 }
 
 const HUB_CSS = `
-  .hub { max-width: 1540px; margin: 0 auto; padding: 22px clamp(14px, 3vw, 32px) 68px; }
-  .hub h1 { margin: 0; font-size: clamp(22px, 3vw, 28px); font-weight: 700; letter-spacing: -.02em; color: var(--strong); }
-  .hub-lead { margin: 5px 0 16px; color: var(--muted); font-size: 13.5px; max-width: 78ch; }
-  .hub-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .hub { max-width: 1540px; margin: 0 auto; padding: 24px clamp(14px, 3vw, 32px) 68px; }
+  .hub h1 { margin: 0; font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -.03em; color: var(--strong); line-height: 1.15; }
+  .hub-lead { margin: 6px 0 18px; color: var(--muted); font-size: 13.5px; max-width: 78ch; }
+  .hub-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-sm); }
   .hub-row { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
-  .hub-label { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 3px; }
+  .hub-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-right: 3px; }
+  .hub-search-wrap { position: relative; flex: 1 1 260px; min-width: 190px; display: flex; align-items: center; }
+  .hub-search-ico { position: absolute; left: 11px; color: var(--muted); pointer-events: none; }
   .hub-search {
-    flex: 1 1 260px; min-width: 190px; padding: 8px 12px; border-radius: 8px;
+    width: 100%; padding: 8px 34px 8px 34px; border-radius: 8px;
     border: 1px solid var(--line); background: var(--panel2); color: var(--fg); font: inherit; font-size: 13.5px;
+    transition: border-color .12s ease, background-color .12s ease;
   }
+  .hub-search:focus { border-color: var(--accent); background: var(--panel); }
+  .hub-search-kbd {
+    position: absolute; right: 9px; font: 600 10.5px var(--mono); padding: 1px 5px;
+    border-radius: 4px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); pointer-events: none;
+  }
+  .hub-search-wrap:focus-within .hub-search-kbd { opacity: 0; }
   .hub-select {
     padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line);
     background: var(--panel2); color: var(--fg); font: inherit; font-size: 12.5px; cursor: pointer;
@@ -60,6 +69,7 @@ const HUB_CSS = `
     display: inline-flex; align-items: center; gap: 5px;
     padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line);
     background: var(--panel2); color: var(--fg); font: inherit; font-size: 12px; cursor: pointer;
+    transition: border-color .12s ease, background-color .12s ease;
   }
   .hub-chip:hover { border-color: var(--accent); }
   .hub-chip[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent-line); color: var(--strong); font-weight: 600; }
@@ -68,50 +78,62 @@ const HUB_CSS = `
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
     padding: 10px 14px; border-radius: 10px; border: 1px solid var(--accent-line); background: var(--accent-bg); margin-bottom: 14px; font-size: 12.5px;
   }
-  .hub-lib-banner[hidden] { display: none; }
   .hub-lib-banner strong { color: var(--strong); }
   .hub-lib-banner a { font-weight: 600; text-decoration: none; white-space: nowrap; }
   .hub-lib-banner a:hover { text-decoration: underline; }
-  .compare-strip { margin-bottom: 18px; }
-  .compare-strip[hidden] { display: none; }
-  .compare-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
-  .compare-head h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--strong); }
-  .compare-head a { font-size: 12.5px; text-decoration: none; }
-  .compare-pills { display: flex; flex-wrap: wrap; gap: 7px; }
+  .hub-search-hint {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line-strong);
+    background: var(--panel); margin-bottom: 12px; font-size: 12.5px; color: var(--muted);
+  }
+  .hub-search-hint strong { color: var(--strong); }
+  .hub-hint-btn {
+    padding: 5px 12px; border-radius: 7px; border: 1px solid var(--accent);
+    background: var(--accent); color: var(--accent-ink); font: 600 12px var(--font); cursor: pointer;
+  }
+  .compare-strip { margin-bottom: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 9px 12px; }
+  .compare-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .compare-head-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .compare-head h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--strong); }
+  .compare-head a { font-size: 12.5px; text-decoration: none; font-weight: 550; }
+  .compare-head a:hover { text-decoration: underline; }
+  .compare-more > summary { font-size: 12px; color: var(--muted); cursor: pointer; list-style: none; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel2); }
+  .compare-more > summary:hover { color: var(--strong); border-color: var(--line-strong); }
+  .compare-more[open] > summary { color: var(--strong); border-color: var(--accent-line); background: var(--accent-bg); }
+  .compare-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
   .compare-pill {
-    display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 9px;
-    border: 1px solid var(--line); background: var(--panel); color: var(--fg); text-decoration: none; font-size: 12.5px; font-weight: 550;
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--panel2); color: var(--fg); text-decoration: none; font-size: 12px; font-weight: 550;
   }
   .compare-pill:hover { border-color: var(--accent); color: var(--strong); }
-  .compare-pill .cnt { font-size: 11px; color: var(--accent); background: var(--accent-bg); border-radius: 999px; padding: 1px 6px; font-weight: 600; }
-  .browse-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .compare-pill .cnt { font-size: 11px; color: var(--accent); background: var(--accent-bg); border-radius: 999px; padding: 1px 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .browse-filters { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; margin-bottom: 10px; padding-bottom: 2px; }
+  .browse-filters::-webkit-scrollbar { display: none; }
   .browse-filters button {
-    font: inherit; font-size: 12px; padding: 5px 9px; border-radius: 7px;
-    border: 1px solid var(--line); background: var(--panel2); color: var(--fg); cursor: pointer;
+    flex-shrink: 0; font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 7px;
+    border: 1px solid var(--line); background: var(--panel2); color: var(--fg); cursor: pointer; white-space: nowrap;
   }
   .browse-filters button:hover { border-color: var(--accent); }
   .browse-filters button[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent-line); color: var(--strong); font-weight: 600; }
-  .browse-filters button span { color: var(--muted); margin-inline-start: 3px; }
-  .browse-count { color: var(--muted); font-size: 12.5px; margin: 10px 0 10px; }
+  .browse-filters button span { color: var(--muted); margin-inline-start: 3px; font-variant-numeric: tabular-nums; }
+  .browse-count { color: var(--muted); font-size: 12.5px; margin: 10px 0 10px; font-variant-numeric: tabular-nums; }
   .browse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 248px), 1fr)); gap: 14px; }
-  .browse-grid [hidden] { display: none !important; }
   .browse-card {
     display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line);
-    border-radius: 11px; background: var(--panel); color: var(--fg); text-decoration: none; overflow: clip;
-    transition: border-color .14s ease, transform .14s ease;
+    border-radius: 12px; background: var(--panel); color: var(--fg); text-decoration: none; overflow: clip;
+    box-shadow: var(--shadow-sm); transition: border-color .14s ease;
     content-visibility: auto; contain-intrinsic-size: auto 290px;
   }
-  .browse-card:hover, .browse-card:focus-within { border-color: var(--accent); transform: translateY(-1px); }
+  .browse-card:hover, .browse-card:focus-within { border-color: var(--accent); }
   .browse-visual {
     display: grid; place-items: center; position: relative; isolation: isolate; aspect-ratio: 16 / 10;
     width: 100%; border-bottom: 1px solid var(--line); background: var(--panel2); color: var(--muted);
   }
-  .browse-visual img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .browse-visual img { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover; }
   .browse-visual:has(img:not([hidden])) .thumb-fallback { visibility: hidden; }
-  .browse-visual img[hidden] { display: none; }
   .thumb-fallback { font-size: 11.5px; padding: 8px; text-align: center; }
-  .browse-meta { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px 12px; flex: 1; }
-  .browse-meta strong { font-weight: 650; color: var(--strong); font-size: 14px; }
+  .browse-meta { display: flex; flex-direction: column; gap: 5px; padding: 11px 13px 13px; flex: 1; }
+  .browse-meta strong { font-weight: 650; color: var(--strong); font-size: 14px; letter-spacing: -.01em; }
   .browse-meta small, .browse-meta .desc { color: var(--muted); font-size: 12px; }
   .browse-meta .desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.45; }
   .card-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; padding-top: 4px; }
@@ -119,9 +141,7 @@ const HUB_CSS = `
   .cbadge.lib { color: var(--strong); font-weight: 550; }
   .cbadge.live { color: var(--ok-fg); border-color: color-mix(in srgb, var(--ok-fg) 40%, var(--line)); }
   .browse-empty { color: var(--muted); padding: 28px 0; text-align: center; }
-  .browse-empty[hidden] { display: none; }
   .hub-pager { display: flex; justify-content: center; gap: 10px; margin-top: 22px; }
-  .hub-pager[hidden] { display: none; }
   .hub-btn {
     padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line);
     background: var(--panel); color: var(--strong); font: inherit; font-size: 12.5px; font-weight: 550; cursor: pointer; text-decoration: none;
@@ -189,13 +209,14 @@ export function unifiedComponentsHtml({
     .join("");
 
   const libs = hub?.libraries || [];
-  const primaryIds = ["gradientdeck", "shadcn", "reui", "heroui", "mantine", "daisyui", "hyperui", "baseui", "uikit:chakra", "uikit:mui", "uikit:antd", "uikit:primereact", "uikit:ark", "uikit:coss", "uikit:magicui", "uikit:motion", "uikit:openprops"];
+  const primaryIds = ["gradientdeck", "shadcn", "reui", "heroui", "mantine", "daisyui", "hyperui", "baseui"];
   const libById = new Map(libs.map((l) => [l.id, l]));
   const primaryLibs = primaryIds.map((id) => libById.get(id)).filter(Boolean);
   const moreLibs = libs.filter((l) => !primaryIds.includes(l.id));
 
   const libChips = [
     `<button type="button" class="hub-chip" data-lib="gradientdeck" aria-pressed="true">GradientDeck AI <span>${ssrComponents.length}</span></button>`,
+    `<button type="button" class="hub-chip" data-lib="all" aria-pressed="false">All libraries <span>${hub?.totals?.items || ssrComponents.length}</span></button>`,
     `<button type="button" class="hub-chip" data-lib="compare" aria-pressed="false">Generic / Compare <span>${hub?.concepts?.length || 0}</span></button>`,
     ...primaryLibs
       .filter((l) => l.id !== "gradientdeck")
@@ -225,16 +246,25 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
   <p class="hub-lead">Browse <strong>${hub?.totals?.items || ssrComponents.length}</strong> components across <strong>${hub?.totals?.libraries || 1}</strong> offline libraries. Filter by a specific library (shadcn/ui, ReUI, HeroUI, Mantine, daisyUI, GradientDeck AI, Chakra, MUI…) or pick a generic component to compare implementations side by side.</p>
 
   ${conceptPills ? `<section class="compare-strip" id="compare-strip" aria-label="Compare generic components across libraries">
-    <div class="compare-head">
-      <h2>Compare Generic Components Across Libraries</h2>
-      <a href="/components/compare">View all ${hub?.concepts?.length || 0} cross-library components →</a>
-    </div>
-    <div class="compare-pills">${conceptPills}</div>
+    <details class="compare-more">
+      <summary class="compare-head">
+        <span class="compare-head-left">
+          <h2>Compare Generic Components Across Libraries</h2>
+          <span class="cnt">${hub?.concepts?.length || 0} primitives</span>
+        </span>
+        <a href="/components/compare">Open comparator</a>
+      </summary>
+      <div class="compare-pills">${conceptPills}</div>
+    </details>
   </section>` : ""}
 
   <section class="hub-panel" aria-label="Filter components">
     <div class="hub-row">
-      <input id="browse-query" class="hub-search" type="search" placeholder="Search components (button, dialog, voice orb, table...)" aria-label="Search components" autocomplete="off">
+      <div class="hub-search-wrap">
+        <svg class="hub-search-ico" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="M10.8 10.8 14 14"/></svg>
+        <input id="browse-query" class="hub-search" type="search" placeholder="Search components (button, dialog, voice orb, table...)" aria-label="Search components" autocomplete="off">
+        <kbd class="hub-search-kbd" aria-hidden="true">/</kbd>
+      </div>
       <div class="hub-row" role="group" aria-label="Stack filter">
         <button type="button" class="hub-chip" data-stack="" aria-pressed="true">All stacks</button>
         <button type="button" class="hub-chip" data-stack="live" aria-pressed="false">Live Preview</button>
@@ -252,7 +282,11 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
 
   <div id="hub-lib-banner" class="hub-lib-banner" hidden>
     <span id="hub-lib-desc"></span>
-    <a id="hub-lib-link" href="#">Open full library view →</a>
+    <a id="hub-lib-link" href="#">Open full library view</a>
+  </div>
+  <div id="hub-search-hint" class="hub-search-hint" hidden>
+    <span id="hub-hint-text"></span>
+    <button type="button" id="hub-hint-btn" class="hub-hint-btn">Search all ${hub?.totals?.libraries || 25} libraries</button>
   </div>
 
   <div id="browse-filters" class="browse-filters" role="group" aria-label="Categories">
@@ -277,6 +311,9 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
   var bannerEl = document.getElementById('hub-lib-banner');
   var bannerDesc = document.getElementById('hub-lib-desc');
   var bannerLink = document.getElementById('hub-lib-link');
+  var hintEl = document.getElementById('hub-search-hint');
+  var hintText = document.getElementById('hub-hint-text');
+  var hintBtn = document.getElementById('hub-hint-btn');
   var moreSelect = document.getElementById('hub-more-lib');
   var pagerEl = document.getElementById('hub-pager');
   var moreBtn = document.getElementById('hub-more');
@@ -329,6 +366,16 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
     countEl.textContent = (shown === ssrCards.length ? shown : shown + ' of ' + ssrCards.length) + ' components';
     emptyEl.hidden = shown > 0;
     pagerEl.hidden = true;
+    if (hintEl && hintText) {
+      var raw = query.value.trim();
+      var showHint = Boolean(raw && shown < 3);
+      hintEl.hidden = !showHint;
+      if (showHint) {
+        hintText.innerHTML = shown === 0
+          ? 'No GradientDeck AI components match <strong>' + esc(raw) + '</strong>. Search across all 25 offline libraries instead?'
+          : 'Only ' + shown + ' match' + (shown === 1 ? '' : 'es') + ' in GradientDeck AI for <strong>' + esc(raw) + '</strong>.';
+      }
+    }
   }
 
   function buildDynamicCategories(list) {
@@ -379,7 +426,9 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
     var terms = query.value.trim().toLowerCase().split(/\\s+/).filter(Boolean);
     var pool = activeLib === 'compare'
       ? (hubData.concepts || [])
-      : (hubData.items || []).filter(function(it){ return it.lib === activeLib; });
+      : activeLib === 'all'
+        ? (hubData.items || [])
+        : (hubData.items || []).filter(function(it){ return it.lib === activeLib; });
 
     var list = pool.filter(function(it) {
       if (activeCat && (it.category || '') !== activeCat) return false;
@@ -415,8 +464,26 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
 
   function ensureHub(cb) {
     if (hubData) return cb();
+    if (window.__DESIGNER_CACHE && window.__DESIGNER_CACHE.hub) {
+      var cached = window.__DESIGNER_CACHE.hub;
+      (cached.items || []).forEach(function(it){
+        if (!it._hay) it._hay = (it.name + ' ' + it.slug + ' ' + (it.category || '') + ' ' + (it.desc || '') + ' ' + it.libName + ' ' + it.stack + ' ' + it.styling).toLowerCase();
+      });
+      (cached.concepts || []).forEach(function(it){
+        if (!it._hay) it._hay = (it.name + ' ' + it.slug + ' ' + it.category + ' ' + (it.implementations || []).map(function(x){ return x.libName; }).join(' ')).toLowerCase();
+      });
+      hubData = cached;
+      return cb();
+    }
     countEl.textContent = 'Loading multi-library catalog…';
+    emptyEl.hidden = true;
+    pagerEl.hidden = true;
+    grid.innerHTML = Array.from({ length: 8 }, function(){
+      return '<div class="skel-card" aria-hidden="true"><div class="skel skel-media"></div><div class="skel-lines"><div class="skel skel-line w-60"></div><div class="skel skel-line w-90"></div><div class="skel skel-line w-40"></div></div></div>';
+    }).join('');
     fetch(HUB_URL).then(function(r){ return r.json(); }).then(function(d){
+      window.__DESIGNER_CACHE = window.__DESIGNER_CACHE || {};
+      window.__DESIGNER_CACHE.hub = d;
       (d.items || []).forEach(function(it){
         it._hay = (it.name + ' ' + it.slug + ' ' + (it.category || '') + ' ' + (it.desc || '') + ' ' + it.libName + ' ' + it.stack + ' ' + it.styling).toLowerCase();
       });
@@ -451,6 +518,7 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
     if (activeLib === 'gradientdeck') {
       bannerEl.hidden = true;
       if (compareStrip) compareStrip.hidden = false;
+      filtersWrap.hidden = false;
       grid.replaceChildren.apply(grid, ssrCards);
       filtersWrap.innerHTML = ssrFiltersHtml;
       wireCategoryButtons();
@@ -459,26 +527,52 @@ ${componentsSubnav("components", { concepts: hub?.concepts?.length || 0 })}
     }
 
     if (compareStrip) compareStrip.hidden = activeLib === 'compare';
+    if (hintEl) hintEl.hidden = true;
     ensureHub(function() {
       if (activeLib === 'compare') {
         bannerEl.hidden = false;
         bannerDesc.innerHTML = '<strong>Cross-Library Generic Components</strong> — click any component to compare live previews &amp; docs across libraries.';
         bannerLink.href = '/components/compare';
-        bannerLink.textContent = 'Full comparison directory →';
+        bannerLink.textContent = 'Full comparison directory';
+        filtersWrap.hidden = false;
         buildDynamicCategories(hubData.concepts || []);
+      } else if (activeLib === 'all') {
+        bannerEl.hidden = false;
+        bannerDesc.innerHTML = '<strong>All ' + (hubData.libraries || []).length + ' Offline Libraries</strong> — unified search across every cached component, live preview, and doc page.';
+        bannerLink.href = '/components/compare';
+        bannerLink.textContent = 'Compare generic primitives';
+        filtersWrap.hidden = true;
+        filtersWrap.innerHTML = '';
       } else {
         var meta = (hubData.libraries || []).find(function(l){ return l.id === activeLib; });
         bannerEl.hidden = !meta;
         if (meta) {
           bannerDesc.innerHTML = '<strong>' + esc(meta.name) + '</strong> · ' + esc(meta.stack) + ' · ' + esc(meta.styling) + ' — ' + esc(meta.summary || '');
           bannerLink.href = meta.href;
-          bannerLink.textContent = 'Open dedicated ' + meta.name + ' explorer →';
+          bannerLink.textContent = 'Open dedicated ' + meta.name + ' explorer';
         }
-        buildDynamicCategories((hubData.items || []).filter(function(it){ return it.lib === activeLib; }));
+        var libItems = (hubData.items || []).filter(function(it){ return it.lib === activeLib; });
+        var catSet = new Set(libItems.map(function(it){ return it.category || ''; }).filter(Boolean));
+        filtersWrap.hidden = catSet.size <= 1 || catSet.size > 24;
+        if (!filtersWrap.hidden) buildDynamicCategories(libItems);
+        else filtersWrap.innerHTML = '';
       }
       renderDynamic(true);
     });
   }
+
+  if (hintBtn) {
+    hintBtn.addEventListener('click', function(){ setLibrary('all'); });
+  }
+  query.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && query.value) {
+      e.preventDefault();
+      query.value = '';
+      syncUrl();
+      if (activeLib === 'gradientdeck') filterSsr();
+      else renderDynamic(true);
+    }
+  });
 
   document.querySelectorAll('[data-lib]').forEach(function(btn){
     btn.addEventListener('click', function(){ setLibrary(btn.dataset.lib); });
@@ -740,7 +834,7 @@ ${componentsSubnav("compare", { concepts: hub?.concepts?.length || 0 })}
         <a id="cmp-open-lib" class="cmp-primary" href="#">Open full library page →</a>
       </div>
     </div>
-    <div id="cmp-stage-body" class="cmp-frame-host"></div>
+    <div id="cmp-stage-body" class="cmp-frame-host frame-host"></div>
   </section>
 
   ${related ? `<section class="cmp-related"><h2>More ${esc(concept.category)} components</h2><div class="compare-pills">${related}</div></section>` : ""}
@@ -812,7 +906,9 @@ ${componentsSubnav("compare", { concepts: hub?.concepts?.length || 0 })}
       frame.style.width = currentWidth;
       if (im.lib === 'heroui' && currentHeroTheme === 'dark') frame.style.background = '#0d0f12';
       stageBody.replaceChildren(frame);
+      if (window.DesignerUI) window.DesignerUI.watchFrame(stageBody, frame);
     } else {
+      stageBody.classList.remove('is-loading');
       var reuiPeer = IMPLS.find(function(x){ return x.lib === 'reui'; });
       stageBody.innerHTML = '<div class="cmp-docs-box">' +
         '<h2>' + esc(im.libName) + ' · ' + esc(im.name) + '</h2>' +
